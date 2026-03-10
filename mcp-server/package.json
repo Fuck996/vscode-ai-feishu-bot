@@ -1,0 +1,12 @@
+{
+  "name": "feishu-mcp-server",
+  "version": "1.0.0",
+  "description": "飞书通知 MCP Server - 供 Copilot Agent 调用以发送工作总结到飞书",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.8.0"
+  }
+}

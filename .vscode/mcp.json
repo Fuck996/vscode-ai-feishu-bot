@@ -1,0 +1,13 @@
+{
+  "servers": {
+    "feishu-notifier": {
+      "type": "stdio",
+      "command": "node",
+      "args": ["${workspaceFolder}/mcp-server/index.js"],
+      "env": {
+        "WEBHOOK_ENDPOINT": "http://localhost:3000/api/webhook/b81d4b78-f87c-4afd-b39d-abd6b9763847",
+        "TRIGGER_TOKEN": "4cd8847ce224f31decc20ebeb972392ce9ff478ecb55ead2"
+      }
+    }
+  }
+}
