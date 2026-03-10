@@ -1,0 +1,838 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>飞书AI通知系统 - 机器人管理预览</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background-color: #f3f4f6;
+            color: #1f2937;
+        }
+
+        .navbar {
+            background: white;
+            box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .navbar-brand {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 1.25rem;
+            font-weight: bold;
+            color: #1f2937;
+        }
+
+        .navbar-nav {
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+        }
+
+        .nav-item {
+            padding: 0.5rem 1rem;
+            cursor: pointer;
+            border-radius: 0.375rem;
+            transition: background-color 0.2s;
+            text-decoration: none;
+            color: #6b7280;
+            font-size: 0.875rem;
+        }
+
+        .nav-item:hover {
+            background-color: #f3f4f6;
+            color: #1f2937;
+        }
+
+        .nav-item.active {
+            background-color: #dbeafe;
+            color: #1e40af;
+            font-weight: 500;
+        }
+
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            color: #6b7280;
+            font-size: 0.875rem;
+        }
+
+        .logout-btn {
+            padding: 0.5rem 1rem;
+            background-color: #ef4444;
+            color: white;
+            border: none;
+            border-radius: 0.375rem;
+            cursor: pointer;
+            font-size: 0.875rem;
+            transition: background-color 0.2s;
+        }
+
+        .logout-btn:hover {
+            background-color: #dc2626;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        .page-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+        }
+
+        .page-title {
+            font-size: 1.875rem;
+            font-weight: bold;
+            color: #1f2937;
+        }
+
+        .add-btn {
+            padding: 0.5rem 1rem;
+            background-color: #10b981;
+            color: white;
+            border: none;
+            border-radius: 0.375rem;
+            cursor: pointer;
+            font-size: 0.875rem;
+            font-weight: 500;
+            transition: background-color 0.2s;
+        }
+
+        .add-btn:hover {
+            background-color: #059669;
+        }
+
+        .section {
+            background: white;
+            border-radius: 0.5rem;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+
+        .section-header {
+            padding: 1.5rem;
+            border-bottom: 1px solid #e5e7eb;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .section-title {
+            font-size: 1.125rem;
+            font-weight: bold;
+            color: #1f2937;
+        }
+
+        .section-content {
+            overflow-x: auto;
+            padding: 1.5rem;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        thead {
+            background-color: #f9fafb;
+        }
+
+        th {
+            padding: 0.75rem;
+            text-align: left;
+            font-weight: 600;
+            font-size: 0.875rem;
+            color: #6b7280;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        td {
+            padding: 0.75rem;
+            font-size: 0.875rem;
+            color: #374151;
+            border-bottom: 1px solid #f3f4f6;
+        }
+
+        tbody tr:hover {
+            background-color: #f9fafb;
+        }
+
+        .status-active {
+            color: #10b981;
+            font-weight: 600;
+        }
+
+        .status-inactive {
+            color: #6b7280;
+            font-weight: 600;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .btn {
+            padding: 0.375rem 0.75rem;
+            border: none;
+            border-radius: 0.25rem;
+            font-size: 0.75rem;
+            cursor: pointer;
+            transition: background-color 0.2s;
+            white-space: nowrap;
+        }
+
+        .btn-primary {
+            background-color: #3b82f6;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background-color: #2563eb;
+        }
+
+        .btn-secondary {
+            background-color: #e5e7eb;
+            color: #374151;
+        }
+
+        .btn-secondary:hover {
+            background-color: #d1d5db;
+        }
+
+        .btn-danger {
+            background-color: #f3f4f6;
+            color: #ef4444;
+        }
+
+        .status-toggle {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .switch {
+            width: 44px;
+            height: 24px;
+            background-color: #cbd5e1;
+            border-radius: 12px;
+            position: relative;
+            cursor: pointer;
+            transition: background-color 0.2s;
+            border: none;
+            padding: 0;
+        }
+
+        .switch.active {
+            background-color: #10b981;
+        }
+
+        .switch-thumb {
+            width: 20px;
+            height: 20px;
+            background-color: white;
+            border-radius: 10px;
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            transition: left 0.2s;
+        }
+
+        .switch.active .switch-thumb {
+            left: 22px;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 2rem;
+            color: #9ca3af;
+            font-size: 0.875rem;
+        }
+
+        .info-box {
+            background-color: #dbeafe;
+            color: #1e40af;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            margin-bottom: 2rem;
+            font-size: 0.875rem;
+        }
+
+        /* 模态框样式 */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: 50;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: 0.5rem;
+            box-shadow: 0 20px 25px rgba(0, 0, 0, 0.15);
+            width: 90%;
+            max-width: 450px;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        .modal-header {
+            padding: 1.5rem;
+            border-bottom: 1px solid #e5e7eb;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-header h2 {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: #1f2937;
+            margin: 0;
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: #6b7280;
+            padding: 0.25rem 0.5rem;
+            transition: color 0.2s;
+        }
+
+        .modal-close:hover {
+            color: #1f2937;
+        }
+
+        .modal-body {
+            padding: 1.5rem;
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .form-label {
+            display: block;
+            font-weight: 500;
+            font-size: 0.875rem;
+            color: #1f2937;
+            margin-bottom: 0.5rem;
+        }
+
+        .form-label .required {
+            color: #ef4444;
+        }
+
+        .form-input,
+        .form-textarea {
+            width: 100%;
+            padding: 0.5rem;
+            border: 1px solid #d1d5db;
+            border-radius: 0.375rem;
+            font-size: 0.875rem;
+            font-family: inherit;
+        }
+
+        .form-input:focus,
+        .form-textarea:focus {
+            outline: none;
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+
+        .form-textarea {
+            min-height: 80px;
+            resize: none;
+        }
+
+        .form-hint {
+            font-size: 0.75rem;
+            color: #6b7280;
+            margin-top: 0.25rem;
+        }
+
+        .info-box-modal {
+            background-color: #dbeafe;
+            color: #1e40af;
+            padding: 0.75rem;
+            border-radius: 0.375rem;
+            margin-bottom: 1.5rem;
+            font-size: 0.875rem;
+            line-height: 1.5;
+        }
+
+        .help-text {
+            margin-top: 1.5rem;
+            padding-top: 1.5rem;
+            border-top: 1px solid #e5e7eb;
+            font-size: 0.75rem;
+            color: #6b7280;
+            line-height: 1.6;
+        }
+
+        .help-text p {
+            font-weight: 500;
+            margin-bottom: 0.5rem;
+        }
+
+        .help-text ul {
+            margin: 0.5rem 0 0 1rem;
+            padding-left: 1rem;
+        }
+
+        .help-text li {
+            margin-bottom: 0.25rem;
+        }
+
+        .help-text a {
+            color: #3b82f6;
+            text-decoration: none;
+        }
+
+        .help-text a:hover {
+            text-decoration: underline;
+        }
+
+        .modal-footer {
+            padding: 1.5rem;
+            display: flex;
+            gap: 0.75rem;
+            justify-content: flex-end;
+            border-top: 1px solid #e5e7eb;
+        }
+
+        .btn-cancel {
+            padding: 0.5rem 1.5rem;
+            background-color: #e5e7eb;
+            color: #374151;
+            border: none;
+            border-radius: 0.375rem;
+            cursor: pointer;
+            font-size: 0.875rem;
+            font-weight: 500;
+            transition: background-color 0.2s;
+        }
+
+        .btn-cancel:hover {
+            background-color: #d1d5db;
+        }
+
+        .btn-create {
+            padding: 0.5rem 1.5rem;
+            background-color: #10b981;
+            color: white;
+            border: none;
+            border-radius: 0.375rem;
+            cursor: pointer;
+            font-size: 0.875rem;
+            font-weight: 500;
+            transition: background-color 0.2s;
+        }
+
+        .btn-create:hover {
+            background-color: #059669;
+        }
+
+        .footer {
+            text-align: center;
+            padding: 2rem;
+            color: #9ca3af;
+            font-size: 0.875rem;
+            background: white;
+            border-top: 1px solid #e5e7eb;
+            margin-top: 2rem;
+        }
+
+        @media (max-width: 768px) {
+            .navbar {
+                flex-direction: column;
+                gap: 1rem;
+            }
+
+            .container {
+                padding: 1rem;
+            }
+
+            table {
+                font-size: 0.75rem;
+            }
+
+            td, th {
+                padding: 0.5rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- 顶部导航栏 -->
+    <div class="navbar">
+        <div class="navbar-brand">
+            <span>🔔</span>
+            <span>飞书AI通知系统</span>
+        </div>
+        <div class="navbar-nav">
+            <a href="#" class="nav-item">📊 仪表板</a>
+            <a href="#" class="nav-item active">🤖 机器人</a>
+            <a href="#" class="nav-item">📜 历史</a>
+            <a href="#" class="nav-item">⚙️ 设置</a>
+        </div>
+        <div class="user-info">
+            <span>👤 admin</span>
+            <button class="logout-btn">退出</button>
+        </div>
+    </div>
+
+    <!-- 主容器 -->
+    <div class="container">
+        <div class="page-header">
+            <h1 class="page-title">机器人管理</h1>
+            <button class="add-btn" onclick="openAddRobotModal()">➕ 新建机器人</button>
+        </div>
+
+        <div class="info-box">
+            💡 在此管理飞书机器人，可以创建、编辑、删除和测试机器人。每个机器人可接收来自不同应用的通知。
+        </div>
+
+        <!-- 机器人列表 -->
+        <div class="section">
+            <div class="section-header">
+                <h2 class="section-title">所有机器人</h2>
+            </div>
+            <div class="section-content">
+                <table>
+                    <thead>
+                        <tr>
+                            <th style="width: 20%;">机器人名称</th>
+                            <th style="width: 20%;">App ID</th>
+                            <th style="width: 12%;">快捷开关</th>
+                            <th style="width: 13%;">创建时间</th>
+                            <th style="width: 12%;">消息数</th>
+                            <th style="width: 13%;">操作</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>生产部署通知</td>
+                            <td>CLG8N5VE8</td>
+                            <td>
+                                <div class="status-toggle">
+                                    <button class="switch active">
+                                        <div class="switch-thumb"></div>
+                                    </button>
+                                    <span style="color: #10b981; font-size: 0.75rem; font-weight: 600;">已启用</span>
+                                </div>
+                            </td>
+                            <td>2026-03-05</td>
+                            <td>15条</td>
+                            <td>
+                                <div class="action-buttons">
+                                    <button class="btn btn-primary">测试</button>
+                                    <button class="btn btn-secondary">编辑</button>
+                                    <button class="btn btn-danger">删除</button>
+                                </div>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>测试验证通知</td>
+                            <td>CLG8N5VE9</td>
+                            <td>
+                                <div class="status-toggle">
+                                    <button class="switch active">
+                                        <div class="switch-thumb"></div>
+                                    </button>
+                                    <span style="color: #10b981; font-size: 0.75rem; font-weight: 600;">已启用</span>
+                                </div>
+                            </td>
+                            <td>2026-03-04</td>
+                            <td>8条</td>
+                            <td>
+                                <div class="action-buttons">
+                                    <button class="btn btn-primary">测试</button>
+                                    <button class="btn btn-secondary">编辑</button>
+                                    <button class="btn btn-danger">删除</button>
+                                </div>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>告警通知</td>
+                            <td>CLG8N5VF0</td>
+                            <td>
+                                <div class="status-toggle">
+                                    <button class="switch active">
+                                        <div class="switch-thumb"></div>
+                                    </button>
+                                    <span style="color: #10b981; font-size: 0.75rem; font-weight: 600;">已启用</span>
+                                </div>
+                            </td>
+                            <td>2026-03-02</td>
+                            <td>22条</td>
+                            <td>
+                                <div class="action-buttons">
+                                    <button class="btn btn-primary">测试</button>
+                                    <button class="btn btn-secondary">编辑</button>
+                                    <button class="btn btn-danger">删除</button>
+                                </div>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>日志收集服务</td>
+                            <td>CLG8N5VF1</td>
+                            <td>
+                                <div class="status-toggle">
+                                    <button class="switch">
+                                        <div class="switch-thumb"></div>
+                                    </button>
+                                    <span style="color: #6b7280; font-size: 0.75rem; font-weight: 600;">已禁用</span>
+                                </div>
+                            </td>
+                            <td>2026-02-28</td>
+                            <td>45条</td>
+                            <td>
+                                <div class="action-buttons">
+                                    <button class="btn btn-primary">测试</button>
+                                    <button class="btn btn-secondary">编辑</button>
+                                    <button class="btn btn-danger">删除</button>
+                                </div>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>性能监控</td>
+                            <td>CLG8N5VF2</td>
+                            <td>
+                                <div class="status-toggle">
+                                    <button class="switch active">
+                                        <div class="switch-thumb"></div>
+                                    </button>
+                                    <span style="color: #10b981; font-size: 0.75rem; font-weight: 600;">已启用</span>
+                                </div>
+                            </td>
+                            <td>2026-02-25</td>
+                            <td>156条</td>
+                            <td>
+                                <div class="action-buttons">
+                                    <button class="btn btn-primary">测试</button>
+                                    <button class="btn btn-secondary">编辑</button>
+                                    <button class="btn btn-danger">删除</button>
+                                </div>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- 新建机器人模态框 -->
+    <div class="modal" id="addRobotModal">
+        <div class="modal-content">
+            <!-- 模态框头部 -->
+            <div class="modal-header">
+                <h2>🤖 创建新的机器人</h2>
+                <button class="modal-close" onclick="closeAddRobotModal()">✕</button>
+            </div>
+
+            <!-- 模态框内容 -->
+            <div class="modal-body">
+                <!-- 提示信息 -->
+                <div class="info-box-modal">
+                    💡 <strong>提示：</strong> 机器人是连接飞书的桥梁，用于接收和发送通知。每个机器人需要 Webhook URL 来接收回调。
+                </div>
+
+                <!-- 表单 -->
+                <form id="addRobotForm" onsubmit="handleAddRobot(event)">
+                    <!-- 机器人名称 -->
+                    <div class="form-group">
+                        <label class="form-label">
+                            机器人名称 <span class="required">*</span>
+                        </label>
+                        <input 
+                            type="text" 
+                            class="form-input" 
+                            name="name" 
+                            id="robotName"
+                            placeholder="例如：代码提交通知"
+                            required
+                        />
+                        <div class="form-hint">用于识别不同的机器人，最多50个字符</div>
+                    </div>
+
+                    <!-- 机器人描述 -->
+                    <div class="form-group">
+                        <label class="form-label">描述（可选）</label>
+                        <textarea 
+                            class="form-textarea" 
+                            name="description" 
+                            id="robotDescription"
+                            placeholder="例如：用于发送 Git 提交通知到飞书群组"
+                        ></textarea>
+                        <div class="form-hint">描述此机器人的用途，帮助识别和管理</div>
+                    </div>
+
+                    <!-- Webhook URL -->
+                    <div class="form-group">
+                        <label class="form-label">
+                            Webhook URL <span class="required">*</span>
+                        </label>
+                        <input 
+                            type="url" 
+                            class="form-input" 
+                            name="webhookUrl" 
+                            id="robotWebhookUrl"
+                            placeholder="https://open.feishu.cn/open-apis/bot/v2/hook/..."
+                            required
+                        />
+                        <div class="form-hint">从飞书开发者后台获取的 Webhook URL</div>
+                    </div>
+
+                    <!-- 帮助信息 -->
+                    <div class="help-text">
+                        <p>需要帮助？</p>
+                        <ul>
+                            <li>如何获取 Webhook URL？ <a href=\"#\">查看文档</a></li>
+                            <li>一个 URL 可以绑定多个机器人吗？ <a href=\"#\">了解更多</a></li>
+                            <li>创建后可以修改 URL 吗？ <a href=\"#\">查看指南</a></li>
+                        </ul>
+                    </div>
+                </form>
+            </div>
+
+            <!-- 模态框底部 -->
+            <div class="modal-footer">
+                <button class="btn-cancel" onclick="closeAddRobotModal()">取消</button>
+                <button class="btn-create" onclick="handleAddRobot(event)">✓ 创建机器人</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 页脚 -->
+    <div class="footer">
+        © 2026 飞书AI通知系统. 所有权利保留. | 前端 v1.0.0 | 后端 v1.0.0
+    </div>
+
+    <script>
+        /**
+         * 打开新建机器人模态框
+         */
+        function openAddRobotModal() {
+            const modal = document.getElementById('addRobotModal');
+            if (modal) {
+                modal.classList.add('active');
+            }
+        }
+
+        /**
+         * 关闭新建机器人模态框
+         */
+        function closeAddRobotModal() {
+            const modal = document.getElementById('addRobotModal');
+            if (modal) {
+                modal.classList.remove('active');
+                // 重置表单
+                const form = document.getElementById('addRobotForm');
+                if (form) {
+                    form.reset();
+                }
+            }
+        }
+
+        /**
+         * 处理新建机器人表单提交
+         */
+        function handleAddRobot(event) {
+            event.preventDefault();
+
+            // 获取表单数据
+            const name = document.getElementById('robotName').value.trim();
+            const description = document.getElementById('robotDescription').value.trim();
+            const webhookUrl = document.getElementById('robotWebhookUrl').value.trim();
+
+            // 验证必填字段
+            if (!name) {
+                alert('请输入机器人名称');
+                document.getElementById('robotName').focus();
+                return;
+            }
+
+            if (!webhookUrl) {
+                alert('请输入 Webhook URL');
+                document.getElementById('robotWebhookUrl').focus();
+                return;
+            }
+
+            // 验证 URL 格式
+            try {
+                new URL(webhookUrl);
+            } catch (error) {
+                alert('Webhook URL 格式不正确，请检查后重试');
+                document.getElementById('robotWebhookUrl').focus();
+                return;
+            }
+
+            // 这里你可以发送到后端 API
+            // 现在只是打印到控制台
+            console.log('新建机器人表单数据:', {
+                name,
+                description,
+                webhookUrl
+            });
+
+            alert(`✅ 成功创建机器人: ${name}\\n\\nWebhook URL: ${webhookUrl}`);
+
+            // 关闭模态框
+            closeAddRobotModal();
+        }
+
+        /**
+         * 点击模态框外部关闭
+         */
+        document.addEventListener('DOMContentLoaded', function() {
+            const modal = document.getElementById('addRobotModal');
+            if (modal) {
+                modal.addEventListener('click', function(event) {
+                    if (event.target === modal) {
+                        closeAddRobotModal();
+                    }
+                });
+            }
+
+            // 绑定切换开关事件（如需要）
+            const switches = document.querySelectorAll('.switch');
+            switches.forEach(switchBtn => {
+                switchBtn.addEventListener('click', function() {
+                    this.classList.toggle('active');
+                });
+            });
+        });
+    </script>
+</body>
+</html>

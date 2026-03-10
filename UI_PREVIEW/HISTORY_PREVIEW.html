@@ -1,0 +1,539 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>飞书AI通知系统 - 通知历史预览</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background-color: #f3f4f6;
+            color: #1f2937;
+        }
+
+        .navbar {
+            background: white;
+            box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .navbar-brand {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 1.25rem;
+            font-weight: bold;
+            color: #1f2937;
+        }
+
+        .navbar-nav {
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+        }
+
+        .nav-item {
+            padding: 0.5rem 1rem;
+            cursor: pointer;
+            border-radius: 0.375rem;
+            transition: background-color 0.2s;
+            text-decoration: none;
+            color: #6b7280;
+            font-size: 0.875rem;
+        }
+
+        .nav-item:hover {
+            background-color: #f3f4f6;
+            color: #1f2937;
+        }
+
+        .nav-item.active {
+            background-color: #dbeafe;
+            color: #1e40af;
+            font-weight: 500;
+        }
+
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            color: #6b7280;
+            font-size: 0.875rem;
+        }
+
+        .logout-btn {
+            padding: 0.5rem 1rem;
+            background-color: #ef4444;
+            color: white;
+            border: none;
+            border-radius: 0.375rem;
+            cursor: pointer;
+            font-size: 0.875rem;
+            transition: background-color 0.2s;
+        }
+
+        .logout-btn:hover {
+            background-color: #dc2626;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        .page-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+        }
+
+        .page-title {
+            font-size: 1.875rem;
+            font-weight: bold;
+            color: #1f2937;
+        }
+
+        .filters {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 2rem;
+            background: white;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+
+        .filter-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.25rem;
+        }
+
+        .filter-label {
+            font-size: 0.75rem;
+            color: #6b7280;
+            font-weight: 600;
+        }
+
+        .filter-input,
+        .filter-select {
+            padding: 0.5rem;
+            border: 1px solid #d1d5db;
+            border-radius: 0.375rem;
+            font-size: 0.875rem;
+        }
+
+        .filter-input:focus,
+        .filter-select:focus {
+            outline: none;
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+
+        .section {
+            background: white;
+            border-radius: 0.5rem;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+            margin-bottom: 2rem;
+        }
+
+        .section-header {
+            padding: 1.5rem;
+            border-bottom: 1px solid #e5e7eb;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .section-title {
+            font-size: 1.125rem;
+            font-weight: bold;
+            color: #1f2937;
+        }
+
+        .section-content {
+            overflow-x: auto;
+            padding: 1.5rem;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        thead {
+            background-color: #f9fafb;
+        }
+
+        th {
+            padding: 0.75rem;
+            text-align: left;
+            font-weight: 600;
+            font-size: 0.875rem;
+            color: #6b7280;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        td {
+            padding: 0.75rem;
+            font-size: 0.875rem;
+            color: #374151;
+            border-bottom: 1px solid #f3f4f6;
+        }
+
+        tbody tr:hover {
+            background-color: #f9fafb;
+        }
+
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.25rem;
+            padding: 0.25rem 0.75rem;
+            border-radius: 0.25rem;
+            font-size: 0.75rem;
+            font-weight: 500;
+        }
+
+        .status-success {
+            background-color: #d1fae5;
+            color: #047857;
+        }
+
+        .status-error {
+            background-color: #fee2e2;
+            color: #dc2626;
+        }
+
+        .status-warning {
+            background-color: #fef3c7;
+            color: #d97706;
+        }
+
+        .status-info {
+            background-color: #dbeafe;
+            color: #1e40af;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .btn {
+            padding: 0.375rem 0.75rem;
+            border: none;
+            border-radius: 0.25rem;
+            font-size: 0.75rem;
+            cursor: pointer;
+            transition: background-color 0.2s;
+            white-space: nowrap;
+        }
+
+        .btn-primary {
+            background-color: #3b82f6;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background-color: #2563eb;
+        }
+
+        .pagination {
+            display: flex;
+            justify-content: center;
+            gap: 0.5rem;
+            margin-top: 1rem;
+            padding-top: 1rem;
+            border-top: 1px solid #e5e7eb;
+        }
+
+        .pagination button {
+            padding: 0.5rem 0.75rem;
+            border: 1px solid #d1d5db;
+            background: white;
+            cursor: pointer;
+            border-radius: 0.25rem;
+            font-size: 0.875rem;
+            transition: background-color 0.2s;
+        }
+
+        .pagination button:hover {
+            background-color: #f3f4f6;
+        }
+
+        .pagination button.active {
+            background-color: #3b82f6;
+            color: white;
+            border-color: #3b82f6;
+        }
+
+        .footer {
+            text-align: center;
+            padding: 2rem;
+            color: #9ca3af;
+            font-size: 0.875rem;
+        }
+
+        @media (max-width: 768px) {
+            .navbar {
+                flex-direction: column;
+                gap: 1rem;
+            }
+
+            .filters {
+                flex-direction: column;
+            }
+
+            .container {
+                padding: 1rem;
+            }
+
+            table {
+                font-size: 0.75rem;
+            }
+
+            td, th {
+                padding: 0.5rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- 顶部导航栏 -->
+    <div class="navbar">
+        <div class="navbar-brand">
+            <span>🔔</span>
+            <span>飞书AI通知系统</span>
+        </div>
+        <div class="navbar-nav">
+            <a href="#" class="nav-item">📊 仪表板</a>
+            <a href="#" class="nav-item">🤖 机器人</a>
+            <a href="#" class="nav-item active">📜 历史</a>
+            <a href="#" class="nav-item">⚙️ 设置</a>
+        </div>
+        <div class="user-info">
+            <span>👤 admin</span>
+            <button class="logout-btn">退出</button>
+        </div>
+    </div>
+
+    <!-- 主容器 -->
+    <div class="container">
+        <h1 class="page-title">通知历史</h1>
+
+        <!-- 筛选条件 -->
+        <div class="filters">
+            <div class="filter-group">
+                <label class="filter-label">状态</label>
+                <select class="filter-select">
+                    <option>全部</option>
+                    <option>✅ 成功</option>
+                    <option>❌ 失败</option>
+                    <option>⚠️ 警告</option>
+                    <option>ℹ️ 信息</option>
+                </select>
+            </div>
+
+            <div class="filter-group">
+                <label class="filter-label">机器人</label>
+                <select class="filter-select">
+                    <option>全部</option>
+                    <option>生产部署通知</option>
+                    <option>测试验证通知</option>
+                    <option>告警通知</option>
+                    <option>日志收集服务</option>
+                    <option>性能监控</option>
+                </select>
+            </div>
+
+            <div class="filter-group">
+                <label class="filter-label">时间范围</label>
+                <select class="filter-select">
+                    <option>今天</option>
+                    <option>昨天</option>
+                    <option>本周</option>
+                    <option>本月</option>
+                    <option>全部</option>
+                </select>
+            </div>
+
+            <div class="filter-group">
+                <label class="filter-label">搜索</label>
+                <input type="text" class="filter-input" placeholder="搜索标题或内容...">
+            </div>
+        </div>
+
+        <!-- 通知列表 -->
+        <div class="section">
+            <div class="section-header">
+                <h2 class="section-title">所有通知</h2>
+                <span style="color: #6b7280; font-size: 0.875rem;">共 128 条</span>
+            </div>
+            <div class="section-content">
+                <table>
+                    <thead>
+                        <tr>
+                            <th style="width: 18%;">时间</th>
+                            <th style="width: 25%;">标题</th>
+                            <th style="width: 12%;">状态</th>
+                            <th style="width: 18%;">机器人</th>
+                            <th style="width: 12%;">来源</th>
+                            <th style="width: 15%;">操作</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>2026-03-10 10:30:45</td>
+                            <td>生产环境部署成功</td>
+                            <td><span class="status-badge status-success">✅ 成功</span></td>
+                            <td>生产部署通知</td>
+                            <td>Jenkins Pipeline</td>
+                            <td>
+                                <div class="action-buttons">
+                                    <button class="btn btn-primary">详情</button>
+                                </div>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>2026-03-10 10:15:22</td>
+                            <td>测试流程通过验证</td>
+                            <td><span class="status-badge status-success">✅ 成功</span></td>
+                            <td>测试验证通知</td>
+                            <td>自动化测试</td>
+                            <td>
+                                <div class="action-buttons">
+                                    <button class="btn btn-primary">详情</button>
+                                </div>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>2026-03-10 09:45:33</td>
+                            <td>数据库备份失败</td>
+                            <td><span class="status-badge status-error">❌ 失败</span></td>
+                            <td>告警通知</td>
+                            <td>备份系统</td>
+                            <td>
+                                <div class="action-buttons">
+                                    <button class="btn btn-primary">详情</button>
+                                </div>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>2026-03-10 09:30:11</td>
+                            <td>日志收集任务完成</td>
+                            <td><span class="status-badge status-success">✅ 成功</span></td>
+                            <td>日志收集服务</td>
+                            <td>Log System</td>
+                            <td>
+                                <div class="action-buttons">
+                                    <button class="btn btn-primary">详情</button>
+                                </div>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>2026-03-10 09:00:00</td>
+                            <td>性能监控告警</td>
+                            <td><span class="status-badge status-warning">⚠️ 警告</span></td>
+                            <td>性能监控</td>
+                            <td>监控系统</td>
+                            <td>
+                                <div class="action-buttons">
+                                    <button class="btn btn-primary">详情</button>
+                                </div>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>2026-03-10 08:30:56</td>
+                            <td>系统健康检查</td>
+                            <td><span class="status-badge status-info">ℹ️ 信息</span></td>
+                            <td>性能监控</td>
+                            <td>系统监控</td>
+                            <td>
+                                <div class="action-buttons">
+                                    <button class="btn btn-primary">详情</button>
+                                </div>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>2026-03-10 08:15:22</td>
+                            <td>缓存刷新完成</td>
+                            <td><span class="status-badge status-success">✅ 成功</span></td>
+                            <td>生产部署通知</td>
+                            <td>缓存服务</td>
+                            <td>
+                                <div class="action-buttons">
+                                    <button class="btn btn-primary">详情</button>
+                                </div>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>2026-03-10 07:45:00</td>
+                            <td>配置更新推送</td>
+                            <td><span class="status-badge status-success">✅ 成功</span></td>
+                            <td>生产部署通知</td>
+                            <td>配置中心</td>
+                            <td>
+                                <div class="action-buttons">
+                                    <button class="btn btn-primary">详情</button>
+                                </div>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>2026-03-10 07:30:33</td>
+                            <td>API 调用超时</td>
+                            <td><span class="status-badge status-warning">⚠️ 警告</span></td>
+                            <td>告警通知</td>
+                            <td>API 网关</td>
+                            <td>
+                                <div class="action-buttons">
+                                    <button class="btn btn-primary">详情</button>
+                                </div>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>2026-03-10 07:00:15</td>
+                            <td>数据库连接池已满</td>
+                            <td><span class="status-badge status-error">❌ 失败</span></td>
+                            <td>告警通知</td>
+                            <td>数据库监控</td>
+                            <td>
+                                <div class="action-buttons">
+                                    <button class="btn btn-primary">详情</button>
+                                </div>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+                <div class="pagination">
+                    <button>上一页</button>
+                    <button class="active">1</button>
+                    <button>2</button>
+                    <button>3</button>
+                    <button>4</button>
+                    <button>...</button>
+                    <button>13</button>
+                    <button>下一页</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 页脚 -->
+    <div class="footer">
+        © 2026 飞书AI通知系统. 所有权利保留. | 前端 v1.0.0 | 后端 v1.0.0
+    </div>
+</body>
+</html>

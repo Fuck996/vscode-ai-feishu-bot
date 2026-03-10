@@ -1,0 +1,20 @@
+{
+  "name": "@feishu-bot/sdk",
+  "version": "1.0.0",
+  "description": "TypeScript SDK for Feishu AI Notifier",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": ["dist"],
+  "scripts": {
+    "build": "tsc",
+    "watch": "tsc --watch",
+    "test": "jest"
+  },
+  "dependencies": {
+    "axios": "^1.4.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "typescript": "^5.0.0"
+  }
+}

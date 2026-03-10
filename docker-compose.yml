@@ -1,0 +1,50 @@
+version: '3.8'
+
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: feishu-bot-backend
+    # 后端不暴露外部端口，只在容器网络内通信
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      FEISHU_WEBHOOK_URL: ${FEISHU_WEBHOOK_URL}
+      JWT_SECRET: ${JWT_SECRET:-change-me-in-production}
+      DATABASE_PATH: /app/data/notifications.db
+      CORS_ORIGIN: ${CORS_ORIGIN:-*}
+    volumes:
+      - ./backend/data:/app/data
+    networks:
+      - feishu-net
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.prod
+    container_name: feishu-bot-frontend
+    ports:
+      - "45173:3000"
+    environment:
+      VITE_API_URL: http://backend:3000
+    depends_on:
+      - backend
+    networks:
+      - feishu-net
+    restart: unless-stopped
+
+networks:
+  feishu-net:
+    driver: bridge
+
+volumes:
+  backend_data:
+    driver: local

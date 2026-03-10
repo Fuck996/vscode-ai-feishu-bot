@@ -1,0 +1,509 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>飞书AI通知系统 - 设置预览</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background-color: #f3f4f6;
+            color: #1f2937;
+        }
+
+        .navbar {
+            background: white;
+            box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .navbar-brand {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 1.25rem;
+            font-weight: bold;
+            color: #1f2937;
+        }
+
+        .navbar-nav {
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+        }
+
+        .nav-item {
+            padding: 0.5rem 1rem;
+            cursor: pointer;
+            border-radius: 0.375rem;
+            transition: background-color 0.2s;
+            text-decoration: none;
+            color: #6b7280;
+            font-size: 0.875rem;
+        }
+
+        .nav-item:hover {
+            background-color: #f3f4f6;
+            color: #1f2937;
+        }
+
+        .nav-item.active {
+            background-color: #dbeafe;
+            color: #1e40af;
+            font-weight: 500;
+        }
+
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            color: #6b7280;
+            font-size: 0.875rem;
+        }
+
+        .logout-btn {
+            padding: 0.5rem 1rem;
+            background-color: #ef4444;
+            color: white;
+            border: none;
+            border-radius: 0.375rem;
+            cursor: pointer;
+            font-size: 0.875rem;
+            transition: background-color 0.2s;
+        }
+
+        .logout-btn:hover {
+            background-color: #dc2626;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        .page-title {
+            font-size: 1.875rem;
+            font-weight: bold;
+            margin-bottom: 2rem;
+            color: #1f2937;
+        }
+
+        .settings-layout {
+            display: grid;
+            grid-template-columns: 200px 1fr;
+            gap: 2rem;
+        }
+
+        .settings-menu {
+            background: white;
+            border-radius: 0.5rem;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+
+        .menu-item {
+            padding: 0.875rem 1rem;
+            border-left: 3px solid transparent;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 0.875rem;
+            color: #6b7280;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        .menu-item:hover {
+            background-color: #f3f4f6;
+            color: #1f2937;
+        }
+
+        .menu-item.active {
+            background-color: #dbeafe;
+            border-left-color: #1e40af;
+            color: #1e40af;
+            font-weight: 500;
+        }
+
+        .settings-content {
+            background: white;
+            border-radius: 0.5rem;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+
+        .settings-section {
+            padding: 1.5rem;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        .settings-section:last-child {
+            border-bottom: none;
+        }
+
+        .section-title {
+            font-size: 1.125rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            color: #1f2937;
+        }
+
+        .section-description {
+            font-size: 0.875rem;
+            color: #6b7280;
+            margin-bottom: 1rem;
+        }
+
+        .setting-item {
+            margin-bottom: 1.5rem;
+        }
+
+        .setting-item:last-child {
+            margin-bottom: 0;
+        }
+
+        .setting-label {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 0.5rem;
+        }
+
+        .label-text {
+            font-weight: 500;
+            font-size: 0.875rem;
+            color: #1f2937;
+        }
+
+        .label-help {
+            font-size: 0.75rem;
+            color: #9ca3af;
+        }
+
+        input[type="text"],
+        input[type="email"],
+        input[type="password"],
+        select {
+            width: 100%;
+            padding: 0.5rem;
+            border: 1px solid #d1d5db;
+            border-radius: 0.375rem;
+            font-size: 0.875rem;
+        }
+
+        input:focus,
+        select:focus {
+            outline: none;
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+
+        .toggle-switch {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .switch {
+            width: 50px;
+            height: 28px;
+            background-color: #cbd5e1;
+            border-radius: 14px;
+            position: relative;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        .switch.active {
+            background-color: #10b981;
+        }
+
+        .switch-thumb {
+            width: 24px;
+            height: 24px;
+            background-color: white;
+            border-radius: 12px;
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            transition: left 0.2s;
+        }
+
+        .switch.active .switch-thumb {
+            left: 24px;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 0.5rem;
+            margin-top: 1.5rem;
+        }
+
+        .btn {
+            padding: 0.5rem 1rem;
+            border: none;
+            border-radius: 0.375rem;
+            font-size: 0.875rem;
+            cursor: pointer;
+            font-weight: 500;
+            transition: background-color 0.2s;
+        }
+
+        .btn-primary {
+            background-color: #3b82f6;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background-color: #2563eb;
+        }
+
+        .btn-secondary {
+            background-color: #e5e7eb;
+            color: #374151;
+        }
+
+        .btn-secondary:hover {
+            background-color: #d1d5db;
+        }
+
+        .btn-danger {
+            background-color: #fee2e2;
+            color: #dc2626;
+        }
+
+        .btn-danger:hover {
+            background-color: #fecaca;
+        }
+
+        .danger-zone {
+            background-color: #fef2f2;
+            border: 1px solid #fecaca;
+            border-radius: 0.375rem;
+            padding: 1rem;
+            margin-top: 2rem;
+        }
+
+        .footer {
+            text-align: center;
+            padding: 2rem;
+            color: #9ca3af;
+            font-size: 0.875rem;
+        }
+
+        @media (max-width: 768px) {
+            .navbar {
+                flex-direction: column;
+                gap: 1rem;
+            }
+
+            .settings-layout {
+                grid-template-columns: 1fr;
+            }
+
+            .settings-menu {
+                display: none;
+            }
+
+            .container {
+                padding: 1rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- 顶部导航栏 -->
+    <div class="navbar">
+        <div class="navbar-brand">
+            <span>🔔</span>
+            <span>飞书AI通知系统</span>
+        </div>
+        <div class="navbar-nav">
+            <a href="#" class="nav-item">📊 仪表板</a>
+            <a href="#" class="nav-item">🤖 机器人</a>
+            <a href="#" class="nav-item">📜 历史</a>
+            <a href="#" class="nav-item active">⚙️ 设置</a>
+        </div>
+        <div class="user-info">
+            <span>👤 admin</span>
+            <button class="logout-btn">退出</button>
+        </div>
+    </div>
+
+    <!-- 主容器 -->
+    <div class="container">
+        <h1 class="page-title">设置</h1>
+
+        <div class="settings-layout">
+            <!-- 设置菜单 -->
+            <div class="settings-menu">
+                <div class="menu-item active">🔐 账户信息</div>
+                <div class="menu-item">🔔 通知设置</div>
+                <div class="menu-item">🛡️ 安全设置</div>
+                <div class="menu-item">🎨 界面设置</div>
+                <div class="menu-item">📊 高级设置</div>
+            </div>
+
+            <!-- 设置内容 -->
+            <div class="settings-content">
+                <!-- 账户信息 -->
+                <div class="settings-section">
+                    <h2 class="section-title">🔐 账户信息</h2>
+                    <p class="section-description">管理你的账户和个人信息</p>
+
+                    <div class="setting-item">
+                        <div class="setting-label">
+                            <span class="label-text">用户名</span>
+                        </div>
+                        <input type="text" value="admin" readonly>
+                    </div>
+
+                    <div class="setting-item">
+                        <div class="setting-label">
+                            <span class="label-text">邮箱地址</span>
+                        </div>
+                        <input type="email" placeholder="admin@example.com" value="admin@example.com">
+                    </div>
+
+                    <div class="setting-item">
+                        <div class="setting-label">
+                            <span class="label-text">手机号码</span>
+                        </div>
+                        <input type="text" placeholder="输入手机号码">
+                    </div>
+
+                    <div class="setting-item">
+                        <div class="setting-label">
+                            <span class="label-text">昵称</span>
+                        </div>
+                        <input type="text" placeholder="输入昵称" value="系统管理员">
+                    </div>
+
+                    <div class="button-group">
+                        <button class="btn btn-primary">保存更改</button>
+                        <button class="btn btn-secondary">取消</button>
+                    </div>
+                </div>
+
+                <!-- 密码设置 -->
+                <div class="settings-section">
+                    <h2 class="section-title">更改密码</h2>
+                    <p class="section-description">定期更改密码以保护账户安全</p>
+
+                    <div class="setting-item">
+                        <div class="setting-label">
+                            <span class="label-text">当前密码</span>
+                        </div>
+                        <input type="password" placeholder="输入当前密码">
+                    </div>
+
+                    <div class="setting-item">
+                        <div class="setting-label">
+                            <span class="label-text">新密码</span>
+                        </div>
+                        <input type="password" placeholder="输入新密码">
+                    </div>
+
+                    <div class="setting-item">
+                        <div class="setting-label">
+                            <span class="label-text">确认新密码</span>
+                        </div>
+                        <input type="password" placeholder="再次输入新密码">
+                    </div>
+
+                    <div class="button-group">
+                        <button class="btn btn-primary">更改密码</button>
+                    </div>
+                </div>
+
+                <!-- 通知设置 -->
+                <div class="settings-section">
+                    <h2 class="section-title">🔔 飞书通知配置</h2>
+                    <p class="section-description">配置飞书机器人的通知行为和群组</p>
+
+                    <div class="setting-item">
+                        <div class="setting-label">
+                            <span class="label-text">默认飞书群组</span>
+                        </div>
+                        <input type="text" placeholder="输入群组 ID 或群组名称" value="团队通知">
+                    </div>
+
+                    <div class="setting-item">
+                        <div class="setting-label">
+                            <span class="label-text">机器人错误回调地址</span>
+                        </div>
+                        <input type="text" placeholder="https://..." value="https://feishu-bot.example.com/webhook/error">
+                    </div>
+
+                    <div class="setting-item">
+                        <div class="setting-label">
+                            <span class="label-text">启用失败重试</span>
+                            <div class="toggle-switch">
+                                <div class="switch active">
+                                    <div class="switch-thumb"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="setting-item">
+                        <div class="setting-label">
+                            <span class="label-text">重试次数</span>
+                        </div>
+                        <input type="text" placeholder="请输入重试次数" value="3">
+                    </div>
+
+                    <div class="setting-item">
+                        <div class="setting-label">
+                            <span class="label-text">启用消息批处理</span>
+                            <div class="toggle-switch">
+                                <div class="switch">
+                                    <div class="switch-thumb"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="setting-item">
+                        <div class="setting-label">
+                            <span class="label-text">批处理时间间隔（秒）</span>
+                        </div>
+                        <input type="text" placeholder="请输入时间间隔" value="60">
+                    </div>
+
+                    <div class="button-group">
+                        <button class="btn btn-primary">保存飞书配置</button>
+                        <button class="btn btn-secondary">取消</button>
+                    </div>
+                </div>
+
+                <!-- 危险区域 -->
+                <div class="danger-zone">
+                    <h3 style="color: #dc2626; margin-bottom: 0.5rem;">⚠️ 危险区域</h3>
+                    <p style="font-size: 0.875rem; color: #6b7280; margin-bottom: 1rem;">这些操作不可逆转，请谨慎操作</p>
+                    
+                    <div class="setting-item">
+                        <button class="btn btn-danger">🔄 重置所有设置</button>
+                    </div>
+
+                    <div class="setting-item">
+                        <button class="btn btn-danger">🗑️ 清空所有数据</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 页脚 -->
+    <div class="footer">
+        © 2026 飞书AI通知系统. 所有权利保留. | 前端 v1.0.0 | 后端 v1.0.0
+    </div>
+</body>
+</html>
