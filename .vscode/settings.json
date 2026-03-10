@@ -35,6 +35,18 @@
         "/^git add -A ; git commit -m \"initial: Feishu AI Notification System with Add Robot feature\n\n- Implemented complete backend API with users, robots, and webhooks\n- Added React frontend with Robots management and Add Robot modal\n- Implemented JWT authentication and authorization\n- Added form validation and error handling\n- Created Admin user initialization\n- Support for Feishu webhook-based notifications\"$/": {
             "approve": true,
             "matchCommandLine": true
+        },
+        "/^git remote -v$/": {
+            "approve": true,
+            "matchCommandLine": true
+        },
+        "/^git push -u origin main$/": {
+            "approve": true,
+            "matchCommandLine": true
+        },
+        "/^git config user\\.name \"Feishu Bot\" ; git config user\\.email \"bot@feishu\\.dev\" ; git push -u origin main 2>&1$/": {
+            "approve": true,
+            "matchCommandLine": true
         }
     }
 }
