@@ -326,10 +326,10 @@
             <span>飞书AI通知系统</span>
         </div>
         <div class="navbar-nav">
-            <a href="#" class="nav-item">📊 仪表板</a>
-            <a href="#" class="nav-item">🤖 机器人</a>
-            <a href="#" class="nav-item">📜 历史</a>
-            <a href="#" class="nav-item active">⚙️ 设置</a>
+            <a href="#" class="nav-item" onclick="return navigateParent('dashboard')">📊 仪表板</a>
+            <a href="#" class="nav-item" onclick="return navigateParent('robots')">🤖 机器人</a>
+            <a href="#" class="nav-item" onclick="return navigateParent('history')">📜 历史</a>
+            <a href="#" class="nav-item active" onclick="return navigateParent('settings')">⚙️ 设置</a>
         </div>
         <div class="user-info">
             <span>👤 admin</span>
@@ -345,10 +345,9 @@
             <!-- 设置菜单 -->
             <div class="settings-menu">
                 <div class="menu-item active">🔐 账户信息</div>
-                <div class="menu-item">🔔 通知设置</div>
-                <div class="menu-item">🛡️ 安全设置</div>
-                <div class="menu-item">🎨 界面设置</div>
-                <div class="menu-item">📊 高级设置</div>
+                <div class="menu-item">� 修改密码</div>
+                <div class="menu-item">🎨 界面偏好</div>
+                <div class="menu-item">⚠️ 危险操作</div>
             </div>
 
             <!-- 设置内容 -->
@@ -423,67 +422,6 @@
                     </div>
                 </div>
 
-                <!-- 通知设置 -->
-                <div class="settings-section">
-                    <h2 class="section-title">🔔 飞书通知配置</h2>
-                    <p class="section-description">配置飞书机器人的通知行为和群组</p>
-
-                    <div class="setting-item">
-                        <div class="setting-label">
-                            <span class="label-text">默认飞书群组</span>
-                        </div>
-                        <input type="text" placeholder="输入群组 ID 或群组名称" value="团队通知">
-                    </div>
-
-                    <div class="setting-item">
-                        <div class="setting-label">
-                            <span class="label-text">机器人错误回调地址</span>
-                        </div>
-                        <input type="text" placeholder="https://..." value="https://feishu-bot.example.com/webhook/error">
-                    </div>
-
-                    <div class="setting-item">
-                        <div class="setting-label">
-                            <span class="label-text">启用失败重试</span>
-                            <div class="toggle-switch">
-                                <div class="switch active">
-                                    <div class="switch-thumb"></div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="setting-item">
-                        <div class="setting-label">
-                            <span class="label-text">重试次数</span>
-                        </div>
-                        <input type="text" placeholder="请输入重试次数" value="3">
-                    </div>
-
-                    <div class="setting-item">
-                        <div class="setting-label">
-                            <span class="label-text">启用消息批处理</span>
-                            <div class="toggle-switch">
-                                <div class="switch">
-                                    <div class="switch-thumb"></div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="setting-item">
-                        <div class="setting-label">
-                            <span class="label-text">批处理时间间隔（秒）</span>
-                        </div>
-                        <input type="text" placeholder="请输入时间间隔" value="60">
-                    </div>
-
-                    <div class="button-group">
-                        <button class="btn btn-primary">保存飞书配置</button>
-                        <button class="btn btn-secondary">取消</button>
-                    </div>
-                </div>
-
                 <!-- 危险区域 -->
                 <div class="danger-zone">
                     <h3 style="color: #dc2626; margin-bottom: 0.5rem;">⚠️ 危险区域</h3>
@@ -505,5 +443,15 @@
     <div class="footer">
         © 2026 飞书AI通知系统. 所有权利保留. | 前端 v1.0.0 | 后端 v1.0.0
     </div>
+
+<script>
+    // 父框架通信（在 INDEX.html 可动原型中作为 iframe 使用时生效）
+    function navigateParent(page) {
+        if (window.parent !== window && typeof window.parent.navigateTo === 'function') {
+            window.parent.navigateTo(page);
+        }
+        return false;
+    }
+</script>
 </body>
 </html>

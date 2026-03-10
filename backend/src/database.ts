@@ -29,6 +29,22 @@ export interface Robot {
   userId: string;
 }
 
+export interface Integration {
+  id: string;
+  robotId: string;
+  projectName: string;
+  projectSubName?: string;               // 子项目名/分支等
+  projectType: 'vercel' | 'railway' | 'github' | 'gitlab' | 'vscode-chat' | 'api' | 'custom';
+  config: Record<string, unknown>;       // 项目类型特定配置（仓库地址、AI 配置等）
+  webhookSecret: string;                 // 自动生成，用于验证外部平台推送的签名
+  triggeredEvents: string[];             // 触发事件类型
+  notifyOn: 'success' | 'failure' | 'always' | 'changes';
+  messageTemplate?: string;
+  status: 'active' | 'inactive';
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface Notification {
   id?: number;
   title: string;
@@ -46,6 +62,7 @@ class DatabaseService {
   private notifications: (Notification & { id: number; createdAt: string })[] = [];
   private users: User[] = [];
   private robots: Robot[] = [];
+  private integrations: Integration[] = [];
   private nextId: number = 1;
 
   constructor() {
@@ -68,6 +85,7 @@ class DatabaseService {
         this.notifications = parsed.notifications || [];
         this.users = parsed.users || [];
         this.robots = parsed.robots || [];
+        this.integrations = parsed.integrations || [];
         this.nextId = parsed.nextId || 1;
         
         // 找到最大的ID
@@ -141,6 +159,7 @@ class DatabaseService {
     const data = {
       users: this.users,
       robots: this.robots,
+      integrations: this.integrations,
       notifications: this.notifications,
       nextId: this.nextId,
       lastUpdated: new Date().toISOString(),
@@ -249,6 +268,53 @@ class DatabaseService {
     
     this.robots.splice(index, 1);
     await this.saveToFile();
+  }
+
+  // ===== Integration 相关操作 =====
+
+  async createIntegration(integration: Omit<Integration, 'id' | 'createdAt' | 'updatedAt' | 'webhookSecret'> & { webhookSecret?: string }): Promise<Integration> {
+    const newIntegration: Integration = {
+      ...integration,
+      id: crypto.randomUUID(),
+      // 若调用方未传入 secret，则自动生成 48 字符十六进制串
+      webhookSecret: integration.webhookSecret || crypto.randomBytes(24).toString('hex'),
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+    this.integrations.push(newIntegration);
+    await this.saveToFile();
+    return newIntegration;
+  }
+
+  async getIntegrationsByRobotId(robotId: string): Promise<Integration[]> {
+    return this.integrations.filter(i => i.robotId === robotId);
+  }
+
+  async getIntegrationById(integrationId: string): Promise<Integration | null> {
+    return this.integrations.find(i => i.id === integrationId) || null;
+  }
+
+  async updateIntegration(integrationId: string, updates: Partial<Integration>): Promise<Integration> {
+    const integration = this.integrations.find(i => i.id === integrationId);
+    if (!integration) {
+      throw new Error('Integration not found');
+    }
+    Object.assign(integration, updates, { updatedAt: new Date().toISOString() });
+    await this.saveToFile();
+    return integration;
+  }
+
+  async deleteIntegration(integrationId: string): Promise<void> {
+    const index = this.integrations.findIndex(i => i.id === integrationId);
+    if (index === -1) {
+      throw new Error('Integration not found');
+    }
+    this.integrations.splice(index, 1);
+    await this.saveToFile();
+  }
+
+  async getIntegrationCount(robotId: string): Promise<number> {
+    return this.integrations.filter(i => i.robotId === robotId).length;
   }
 
   // ===== Notification 相关操作 =====

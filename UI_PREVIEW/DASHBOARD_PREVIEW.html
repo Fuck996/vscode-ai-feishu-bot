@@ -385,10 +385,10 @@
             <span>飞书AI通知系统</span>
         </div>
         <div class="navbar-nav">
-            <a href="#" class="nav-item active">📊 仪表板</a>
-            <a href="#" class="nav-item">🤖 机器人</a>
-            <a href="#" class="nav-item">📜 历史</a>
-            <a href="#" class="nav-item">⚙️ 设置</a>
+            <a href="#" class="nav-item active" onclick="return navigateParent('dashboard')">📊 仪表板</a>
+            <a href="#" class="nav-item" onclick="return navigateParent('robots')">🤖 机器人</a>
+            <a href="#" class="nav-item" onclick="return navigateParent('history')">📜 历史</a>
+            <a href="#" class="nav-item" onclick="return navigateParent('settings')">⚙️ 设置</a>
         </div>
         <div class="user-info">
             <span>👤 admin</span>
@@ -623,5 +623,15 @@
     <div class="footer">
         © 2026 飞书AI通知系统. 所有权利保留. | 前端 v1.0.0 | 后端 v1.0.0
     </div>
+
+<script>
+    // 父框架通信（在 INDEX.html 可动原型中作为 iframe 使用时生效）
+    function navigateParent(page) {
+        if (window.parent !== window && typeof window.parent.navigateTo === 'function') {
+            window.parent.navigateTo(page);
+        }
+        return false;
+    }
+</script>
 </body>
 </html>

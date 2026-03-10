@@ -13,6 +13,7 @@ import Dashboard from './pages/Dashboard';
 import History from './pages/History';
 import Settings from './pages/Settings';
 import Robots from './pages/Robots';
+import Integrations from './pages/Integrations';
 import Login from './pages/Login';
 import ForceChangePassword from './pages/ForceChangePassword';
 import './index.css';
@@ -233,11 +234,12 @@ function AppContent() {
   return (
     <MainLayout>
       <Routes>
-        <Route path="/" element={<ProtectedRoute><Dashboard serverUrl="http://localhost:3000" /></ProtectedRoute>} />
-        <Route path="/dashboard" element={<ProtectedRoute><Dashboard serverUrl="http://localhost:3000" /></ProtectedRoute>} />
+        <Route path="/" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+        <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
         <Route path="/robots" element={<ProtectedRoute><Robots /></ProtectedRoute>} />
-        <Route path="/history" element={<ProtectedRoute><History serverUrl="http://localhost:3000" /></ProtectedRoute>} />
-        <Route path="/settings" element={<ProtectedRoute><Settings serverUrl="http://localhost:3000" onServerUrlChange={() => {}} /></ProtectedRoute>} />
+        <Route path="/robots/:robotId/integrations" element={<ProtectedRoute><Integrations /></ProtectedRoute>} />
+        <Route path="/history" element={<ProtectedRoute><History /></ProtectedRoute>} />
+        <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
         <Route path="/login" element={<Login />} />
         <Route path="/force-change-password" element={<ForceChangePassword />} />
         <Route path="*" element={<Navigate to="/" />} />

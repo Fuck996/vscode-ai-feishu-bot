@@ -501,10 +501,10 @@
             <span>飞书AI通知系统</span>
         </div>
         <div class="navbar-nav">
-            <a href="#" class="nav-item">📊 仪表板</a>
-            <a href="#" class="nav-item active">🤖 机器人</a>
-            <a href="#" class="nav-item">📜 历史</a>
-            <a href="#" class="nav-item">⚙️ 设置</a>
+            <a href="#" class="nav-item" onclick="return navigateParent('dashboard')">📊 仪表板</a>
+            <a href="#" class="nav-item active" onclick="return navigateParent('robots')">🤖 机器人</a>
+            <a href="#" class="nav-item" onclick="return navigateParent('history')">📜 历史</a>
+            <a href="#" class="nav-item" onclick="return navigateParent('settings')">⚙️ 设置</a>
         </div>
         <div class="user-info">
             <span>👤 admin</span>
@@ -520,7 +520,7 @@
         </div>
 
         <div class="info-box">
-            💡 在此管理飞书机器人，可以创建、编辑、删除和测试机器人。每个机器人可接收来自不同应用的通知。
+            💡 在此管理飞书机器人，可以创建、编辑、删除和测试机器人。点击机器人名称或「🔗 集成」按钮可配置该机器人关联的 Jenkins、GitHub 等项目来源。
         </div>
 
         <!-- 机器人列表 -->
@@ -532,17 +532,20 @@
                 <table>
                     <thead>
                         <tr>
-                            <th style="width: 20%;">机器人名称</th>
-                            <th style="width: 20%;">App ID</th>
+                            <th style="width: 18%;">机器人名称</th>
+                            <th style="width: 16%;">App ID</th>
                             <th style="width: 12%;">快捷开关</th>
-                            <th style="width: 13%;">创建时间</th>
-                            <th style="width: 12%;">消息数</th>
-                            <th style="width: 13%;">操作</th>
+                            <th style="width: 11%;">创建时间</th>
+                            <th style="width: 9%;">消息数</th>
+                            <th style="width: 34%;">操作</th>
                         </tr>
                     </thead>
                     <tbody>
                         <tr>
-                            <td>生产部署通知</td>
+                            <td>
+                                <a href="INTEGRATION_PREVIEW.html" style="font-weight:600;color:#1e40af;text-decoration:none;" title="管理项目集成">生产部署通知</a>
+                                <div style="font-size:0.7rem;color:#9ca3af;margin-top:2px;">3 个集成</div>
+                            </td>
                             <td>CLG8N5VE8</td>
                             <td>
                                 <div class="status-toggle">
@@ -557,13 +560,17 @@
                             <td>
                                 <div class="action-buttons">
                                     <button class="btn btn-primary">测试</button>
-                                    <button class="btn btn-secondary">编辑</button>
+                                    <a href="INTEGRATION_PREVIEW.html" class="btn" style="background:#e0e7ff;color:#3730a3;text-decoration:none;">🔗 集成</a>
+                                    <button class="btn btn-secondary" onclick="openEditRobotModal('生产部署通知', '用于部署成功/失败通知', 'https://open.feishu.cn/open-apis/bot/v2/hook/CLG8N5VE8', 'active')"> 编辑</button>
                                     <button class="btn btn-danger">删除</button>
                                 </div>
                             </td>
                         </tr>
                         <tr>
-                            <td>测试验证通知</td>
+                            <td>
+                                <a href="INTEGRATION_PREVIEW.html" style="font-weight:600;color:#1e40af;text-decoration:none;" title="管理项目集成">测试验证通知</a>
+                                <div style="font-size:0.7rem;color:#9ca3af;margin-top:2px;">1 个集成</div>
+                            </td>
                             <td>CLG8N5VE9</td>
                             <td>
                                 <div class="status-toggle">
@@ -578,13 +585,17 @@
                             <td>
                                 <div class="action-buttons">
                                     <button class="btn btn-primary">测试</button>
-                                    <button class="btn btn-secondary">编辑</button>
+                                    <a href="INTEGRATION_PREVIEW.html" class="btn" style="background:#e0e7ff;color:#3730a3;text-decoration:none;">🔗 集成</a>
+                                    <button class="btn btn-secondary" onclick="openEditRobotModal('测试验证通知', '用于测试环境验证通知', 'https://open.feishu.cn/open-apis/bot/v2/hook/CLG8N5VE9', 'active')"> 编辑</button>
                                     <button class="btn btn-danger">删除</button>
                                 </div>
                             </td>
                         </tr>
                         <tr>
-                            <td>告警通知</td>
+                            <td>
+                                <a href="INTEGRATION_PREVIEW.html" style="font-weight:600;color:#1e40af;text-decoration:none;" title="管理项目集成">告警通知</a>
+                                <div style="font-size:0.7rem;color:#9ca3af;margin-top:2px;">未配置集成</div>
+                            </td>
                             <td>CLG8N5VF0</td>
                             <td>
                                 <div class="status-toggle">
@@ -599,13 +610,17 @@
                             <td>
                                 <div class="action-buttons">
                                     <button class="btn btn-primary">测试</button>
-                                    <button class="btn btn-secondary">编辑</button>
+                                    <a href="INTEGRATION_PREVIEW.html" class="btn" style="background:#e0e7ff;color:#3730a3;text-decoration:none;">🔗 集成</a>
+                                    <button class="btn btn-secondary" onclick="openEditRobotModal('告警通知', '用于系统异常告警通知', 'https://open.feishu.cn/open-apis/bot/v2/hook/CLG8N5VF0', 'active')"> 编辑</button>
                                     <button class="btn btn-danger">删除</button>
                                 </div>
                             </td>
                         </tr>
                         <tr>
-                            <td>日志收集服务</td>
+                            <td>
+                                <a href="INTEGRATION_PREVIEW.html" style="font-weight:600;color:#1e40af;text-decoration:none;" title="管理项目集成">日志收集服务</a>
+                                <div style="font-size:0.7rem;color:#9ca3af;margin-top:2px;">2 个集成</div>
+                            </td>
                             <td>CLG8N5VF1</td>
                             <td>
                                 <div class="status-toggle">
@@ -620,13 +635,17 @@
                             <td>
                                 <div class="action-buttons">
                                     <button class="btn btn-primary">测试</button>
-                                    <button class="btn btn-secondary">编辑</button>
+                                    <a href="INTEGRATION_PREVIEW.html" class="btn" style="background:#e0e7ff;color:#3730a3;text-decoration:none;">🔗 集成</a>
+                                    <button class="btn btn-secondary" onclick="openEditRobotModal('日志收集服务', '收集应用运行日志并通知', 'https://open.feishu.cn/open-apis/bot/v2/hook/CLG8N5VF1', 'inactive')"> 编辑</button>
                                     <button class="btn btn-danger">删除</button>
                                 </div>
                             </td>
                         </tr>
                         <tr>
-                            <td>性能监控</td>
+                            <td>
+                                <a href="INTEGRATION_PREVIEW.html" style="font-weight:600;color:#1e40af;text-decoration:none;" title="管理项目集成">性能监控</a>
+                                <div style="font-size:0.7rem;color:#9ca3af;margin-top:2px;">5 个集成</div>
+                            </td>
                             <td>CLG8N5VF2</td>
                             <td>
                                 <div class="status-toggle">
@@ -641,7 +660,8 @@
                             <td>
                                 <div class="action-buttons">
                                     <button class="btn btn-primary">测试</button>
-                                    <button class="btn btn-secondary">编辑</button>
+                                    <a href="INTEGRATION_PREVIEW.html" class="btn" style="background:#e0e7ff;color:#3730a3;text-decoration:none;">🔗 集成</a>
+                                    <button class="btn btn-secondary" onclick="openEditRobotModal('性能监控', 'CPU/内存/磁盘性能指标监控', 'https://open.feishu.cn/open-apis/bot/v2/hook/CLG8N5VF2', 'active')"> 编辑</button>
                                     <button class="btn btn-danger">删除</button>
                                 </div>
                             </td>
@@ -652,84 +672,67 @@
         </div>
     </div>
 
-    <!-- 新建机器人模态框 -->
+    <!-- 新建 / 编辑机器人弹窗（复用同一弹窗） -->
     <div class="modal" id="addRobotModal">
         <div class="modal-content">
-            <!-- 模态框头部 -->
             <div class="modal-header">
-                <h2>🤖 创建新的机器人</h2>
-                <button class="modal-close" onclick="closeAddRobotModal()">✕</button>
+                <h2 id="robot-modal-title">🤖 创建新的机器人</h2>
+                <button class="modal-close" onclick="closeRobotModal()">✕</button>
             </div>
-
-            <!-- 模态框内容 -->
             <div class="modal-body">
-                <!-- 提示信息 -->
-                <div class="info-box-modal">
+                <!-- 新建模式提示（编辑时隐藏） -->
+                <div class="info-box-modal" id="robot-modal-info">
                     💡 <strong>提示：</strong> 机器人是连接飞书的桥梁，用于接收和发送通知。每个机器人需要 Webhook URL 来接收回调。
                 </div>
 
-                <!-- 表单 -->
-                <form id="addRobotForm" onsubmit="handleAddRobot(event)">
-                    <!-- 机器人名称 -->
+                <form id="addRobotForm" onsubmit="handleRobotSubmit(event)">
                     <div class="form-group">
-                        <label class="form-label">
-                            机器人名称 <span class="required">*</span>
-                        </label>
-                        <input 
-                            type="text" 
-                            class="form-input" 
-                            name="name" 
-                            id="robotName"
-                            placeholder="例如：代码提交通知"
-                            required
-                        />
-                        <div class="form-hint">用于识别不同的机器人，最多50个字符</div>
+                        <label class="form-label">机器人名称 <span class="required">*</span></label>
+                        <input type="text" class="form-input" id="robotName" placeholder="例如：代码提交通知" required />
+                        <div class="form-hint">用于识别不同的机器人，最多 50 个字符</div>
                     </div>
 
-                    <!-- 机器人描述 -->
                     <div class="form-group">
                         <label class="form-label">描述（可选）</label>
-                        <textarea 
-                            class="form-textarea" 
-                            name="description" 
-                            id="robotDescription"
-                            placeholder="例如：用于发送 Git 提交通知到飞书群组"
-                        ></textarea>
+                        <textarea class="form-textarea" id="robotDescription" placeholder="例如：用于发送 Git 提交通知到飞书群组"></textarea>
                         <div class="form-hint">描述此机器人的用途，帮助识别和管理</div>
                     </div>
 
-                    <!-- Webhook URL -->
                     <div class="form-group">
-                        <label class="form-label">
-                            Webhook URL <span class="required">*</span>
-                        </label>
-                        <input 
-                            type="url" 
-                            class="form-input" 
-                            name="webhookUrl" 
-                            id="robotWebhookUrl"
-                            placeholder="https://open.feishu.cn/open-apis/bot/v2/hook/..."
-                            required
-                        />
+                        <label class="form-label">Webhook URL <span class="required">*</span></label>
+                        <input type="url" class="form-input" id="robotWebhookUrl" placeholder="https://open.feishu.cn/open-apis/bot/v2/hook/..." required />
                         <div class="form-hint">从飞书开发者后台获取的 Webhook URL</div>
                     </div>
 
-                    <!-- 帮助信息 -->
-                    <div class="help-text">
+                    <!-- 编辑模式才显示：启用状态 -->
+                    <div class="form-group" id="robot-status-row" style="display:none;">
+                        <label class="form-label">机器人状态</label>
+                        <div style="display:flex;gap:0.75rem;">
+                            <label style="display:flex;align-items:center;gap:0.5rem;cursor:pointer;font-size:0.875rem;">
+                                <input type="radio" name="robotStatus" id="robotStatusActive" value="active" checked style="accent-color:#10b981;">
+                                <span style="color:#10b981;font-weight:500;">● 启用</span>
+                            </label>
+                            <label style="display:flex;align-items:center;gap:0.5rem;cursor:pointer;font-size:0.875rem;">
+                                <input type="radio" name="robotStatus" id="robotStatusInactive" value="inactive" style="accent-color:#9ca3af;">
+                                <span style="color:#9ca3af;font-weight:500;">○ 停用</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- 新建模式才显示：帮助链接 -->
+                    <div class="help-text" id="robot-help-text">
                         <p>需要帮助？</p>
                         <ul>
-                            <li>如何获取 Webhook URL？ <a href=\"#\">查看文档</a></li>
-                            <li>一个 URL 可以绑定多个机器人吗？ <a href=\"#\">了解更多</a></li>
-                            <li>创建后可以修改 URL 吗？ <a href=\"#\">查看指南</a></li>
+                            <li>如何获取 Webhook URL？ <a href="#">查看文档</a></li>
+                            <li>一个 URL 可以绑定多个机器人吗？ <a href="#">了解更多</a></li>
+                            <li>创建后可以修改 URL 吗？ <a href="#">查看指南</a></li>
                         </ul>
                     </div>
                 </form>
             </div>
-
-            <!-- 模态框底部 -->
             <div class="modal-footer">
-                <button class="btn-cancel" onclick="closeAddRobotModal()">取消</button>
-                <button class="btn-create" onclick="handleAddRobot(event)">✓ 创建机器人</button>
+                <button class="btn-cancel" onclick="closeRobotModal()">取消</button>
+                <button class="btn-create" id="robot-modal-submit" onclick="handleRobotSubmit(event)">✓ 创建机器人</button>
             </div>
         </div>
     </div>
@@ -812,18 +815,10 @@
             closeAddRobotModal();
         }
 
-        /**
-         * 点击模态框外部关闭
-         */
         document.addEventListener('DOMContentLoaded', function() {
-            const modal = document.getElementById('addRobotModal');
-            if (modal) {
-                modal.addEventListener('click', function(event) {
-                    if (event.target === modal) {
-                        closeAddRobotModal();
-                    }
-                });
-            }
+            document.getElementById('addRobotModal').addEventListener('click', function(e) {
+                if (e.target === this) closeRobotModal();
+            });
 
             // 绑定切换开关事件（如需要）
             const switches = document.querySelectorAll('.switch');
@@ -834,5 +829,15 @@
             });
         });
     </script>
+
+<script>
+    // 父框架通信（在 INDEX.html 可动原型中作为 iframe 使用时生效）
+    function navigateParent(page) {
+        if (window.parent !== window && typeof window.parent.navigateTo === 'function') {
+            window.parent.navigateTo(page);
+        }
+        return false;
+    }
+</script>
 </body>
 </html>

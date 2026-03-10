@@ -36,7 +36,7 @@ router.post('/login', async (req: Request, res: Response) => {
     if (!username || !password) {
       return res.status(400).json({
         success: false,
-        error: 'Username and password are required',
+        error: '用户名和密码为必需',
       });
     }
 
@@ -45,7 +45,7 @@ router.post('/login', async (req: Request, res: Response) => {
     if (!user) {
       return res.status(401).json({
         success: false,
-        error: 'Invalid username or password',
+        error: '用户名或密码无效',
       });
     }
 
@@ -54,7 +54,7 @@ router.post('/login', async (req: Request, res: Response) => {
     if (!isValidPassword) {
       return res.status(401).json({
         success: false,
-        error: 'Invalid username or password',
+        error: '用户名或密码无效',
       });
     }
 
@@ -85,10 +85,10 @@ router.post('/login', async (req: Request, res: Response) => {
       requiresPasswordChange: !user.passwordChanged,
     });
   } catch (error) {
-    console.error('Login error:', error);
+    console.error('登录错误:', error);
     res.status(500).json({
       success: false,
-      error: 'Internal server error',
+      error: '内部服务器错误',
     });
   }
 });
@@ -104,7 +104,7 @@ router.post('/change-password', async (req: Request, res: Response) => {
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
       return res.status(401).json({
         success: false,
-        error: 'Missing or invalid authorization header',
+        error: '缺少或无效的授权标头',
       });
     }
 
@@ -116,7 +116,7 @@ router.post('/change-password', async (req: Request, res: Response) => {
     } catch (error) {
       return res.status(401).json({
         success: false,
-        error: 'Invalid or expired token',
+        error: '无效或过期的令牌',
       });
     }
 
@@ -126,7 +126,7 @@ router.post('/change-password', async (req: Request, res: Response) => {
     if (!newPassword || newPassword.length < 8 || newPassword.length > 20) {
       return res.status(400).json({
         success: false,
-        error: 'Password must be between 8 and 20 characters',
+        error: '密码必须在 8 到 20 个字符之间',
       });
     }
 
@@ -135,7 +135,7 @@ router.post('/change-password', async (req: Request, res: Response) => {
     if (!user) {
       return res.status(404).json({
         success: false,
-        error: 'User not found',
+        error: '用户不存在',
       });
     }
 
@@ -148,7 +148,7 @@ router.post('/change-password', async (req: Request, res: Response) => {
       if (!isValidPassword) {
         return res.status(401).json({
           success: false,
-          error: 'Current password is incorrect',
+          error: '当前密码不正确',
         });
       }
     }
@@ -164,13 +164,13 @@ router.post('/change-password', async (req: Request, res: Response) => {
 
     res.json({
       success: true,
-      message: 'Password changed successfully',
+      message: '密码已成功修改',
     });
   } catch (error) {
-    console.error('Change password error:', error);
+    console.error('修改密码错误:', error);
     res.status(500).json({
       success: false,
-      error: 'Internal server error',
+      error: '内部服务器错误',
     });
   }
 });
@@ -185,7 +185,7 @@ router.get('/verify', async (req: Request, res: Response) => {
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
       return res.status(401).json({
         success: false,
-        error: 'Missing or invalid authorization header',
+        error: '缺少或无效的授权标头',
       });
     }
 
@@ -200,14 +200,14 @@ router.get('/verify', async (req: Request, res: Response) => {
     } catch (error) {
       return res.status(401).json({
         success: false,
-        error: 'Invalid or expired token',
+        error: '无效或过期的令牌',
       });
     }
   } catch (error) {
-    console.error('Verify error:', error);
+    console.error('验证错误:', error);
     res.status(500).json({
       success: false,
-      error: 'Internal server error',
+      error: '内部服务器错误',
     });
   }
 });

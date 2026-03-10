@@ -1,0 +1,1281 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>飞书AI通知系统 - 项目集成管理预览</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background-color: #f3f4f6;
+            color: #1f2937;
+        }
+
+        /* ===== 导航栏 ===== */
+        .navbar {
+            background: white;
+            box-shadow: 0 1px 3px 0 rgba(0,0,0,0.1);
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .navbar-brand {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 1.25rem;
+            font-weight: bold;
+            color: #1f2937;
+        }
+        .navbar-nav { display: flex; gap: 1rem; align-items: center; }
+        .nav-item {
+            padding: 0.5rem 1rem;
+            cursor: pointer;
+            border-radius: 0.375rem;
+            text-decoration: none;
+            color: #6b7280;
+            font-size: 0.875rem;
+            transition: background-color 0.2s;
+        }
+        .nav-item:hover { background-color: #f3f4f6; color: #1f2937; }
+        .nav-item.active { background-color: #dbeafe; color: #1e40af; font-weight: 500; }
+        .user-info { display: flex; align-items: center; gap: 0.5rem; color: #6b7280; font-size: 0.875rem; }
+        .logout-btn {
+            padding: 0.5rem 1rem;
+            background-color: #ef4444;
+            color: white;
+            border: none;
+            border-radius: 0.375rem;
+            cursor: pointer;
+            font-size: 0.875rem;
+        }
+
+        /* ===== 主容器 ===== */
+        .container { max-width: 1400px; margin: 0 auto; padding: 2rem; }
+
+        /* ===== 面包屑 ===== */
+        .breadcrumb {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-bottom: 1.5rem;
+            font-size: 0.875rem;
+            color: #6b7280;
+        }
+        .breadcrumb a { color: #3b82f6; text-decoration: none; }
+        .breadcrumb a:hover { text-decoration: underline; }
+        .breadcrumb-sep { color: #d1d5db; }
+        .breadcrumb-current { color: #1f2937; font-weight: 500; }
+
+        /* ===== 页头 ===== */
+        .page-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 1.5rem;
+        }
+        .page-title-group {}
+        .page-title { font-size: 1.5rem; font-weight: bold; color: #1f2937; }
+        .page-subtitle { font-size: 0.875rem; color: #6b7280; margin-top: 0.25rem; }
+        .add-btn {
+            padding: 0.5rem 1rem;
+            background-color: #10b981;
+            color: white;
+            border: none;
+            border-radius: 0.375rem;
+            cursor: pointer;
+            font-size: 0.875rem;
+            font-weight: 500;
+            white-space: nowrap;
+            transition: background-color 0.2s;
+        }
+        .add-btn:hover { background-color: #059669; }
+
+        /* ===== 信息框 ===== */
+        .info-box {
+            background-color: #dbeafe;
+            color: #1e40af;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            margin-bottom: 1.5rem;
+            font-size: 0.875rem;
+            line-height: 1.6;
+        }
+
+        /* ===== 机器人概览卡片 ===== */
+        .robot-card {
+            background: white;
+            border-radius: 0.5rem;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            padding: 1.25rem 1.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 1.5rem;
+        }
+        .robot-info { display: flex; align-items: center; gap: 1rem; }
+        .robot-avatar {
+            width: 48px; height: 48px;
+            background: linear-gradient(135deg, #dbeafe, #bfdbfe);
+            border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 1.5rem;
+        }
+        .robot-name { font-weight: 600; font-size: 1rem; color: #1f2937; }
+        .robot-url { font-size: 0.75rem; color: #9ca3af; margin-top: 0.25rem; }
+        .robot-status-badge {
+            display: inline-flex; align-items: center; gap: 0.375rem;
+            background: #d1fae5; color: #065f46;
+            padding: 0.25rem 0.75rem;
+            border-radius: 9999px;
+            font-size: 0.75rem; font-weight: 600;
+        }
+        .status-dot { width: 6px; height: 6px; border-radius: 50%; background: #10b981; }
+
+        /* ===== 集成统计 ===== */
+        .stats-row {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+        .stat-card {
+            background: white;
+            border-radius: 0.5rem;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            padding: 1rem 1.25rem;
+        }
+        .stat-label { font-size: 0.75rem; color: #6b7280; margin-bottom: 0.25rem; }
+        .stat-value { font-size: 1.5rem; font-weight: bold; color: #1f2937; }
+        .stat-sub { font-size: 0.75rem; color: #9ca3af; margin-top: 0.25rem; }
+
+        /* ===== 集成列表 ===== */
+        .section {
+            background: white;
+            border-radius: 0.5rem;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        .section-header {
+            padding: 1.25rem 1.5rem;
+            border-bottom: 1px solid #e5e7eb;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .section-title { font-size: 1rem; font-weight: 600; color: #1f2937; }
+        .section-content { overflow-x: auto; }
+
+        table { width: 100%; border-collapse: collapse; }
+        thead { background-color: #f9fafb; }
+        th {
+            padding: 0.75rem 1rem;
+            text-align: left;
+            font-weight: 600;
+            font-size: 0.8rem;
+            color: #6b7280;
+            border-bottom: 1px solid #e5e7eb;
+            text-transform: uppercase;
+            letter-spacing: 0.03em;
+        }
+        td { padding: 1rem; font-size: 0.875rem; color: #374151; border-bottom: 1px solid #f3f4f6; }
+        tbody tr:hover { background-color: #f9fafb; }
+
+        .type-badge {
+            display: inline-flex; align-items: center; gap: 0.375rem;
+            padding: 0.25rem 0.625rem;
+            border-radius: 0.25rem;
+            font-size: 0.75rem; font-weight: 600;
+        }
+        .type-github   { background: #f3f4f6; color: #1f2937; }
+        .type-gitlab   { background: #fce7f3; color: #9d174d; }
+        .type-vercel   { background: #f0fdf4; color: #065f46; }
+        .type-railway  { background: #ffe4e6; color: #9f1239; }
+        .type-api      { background: #dbeafe; color: #1e40af; }
+        .type-vscode   { background: #eef2ff; color: #3730a3; }
+        .type-custom   { background: #ede9fe; color: #5b21b6; }
+
+        .events-list { display: flex; flex-wrap: wrap; gap: 0.25rem; }
+        .event-tag {
+            background: #f0fdf4; color: #166534;
+            padding: 0.125rem 0.5rem;
+            border-radius: 9999px;
+            font-size: 0.7rem; font-weight: 500;
+        }
+        .event-tag.error { background: #fef2f2; color: #991b1b; }
+
+        .status-active { color: #10b981; font-weight: 600; font-size: 0.8rem; }
+        .status-inactive { color: #9ca3af; font-weight: 600; font-size: 0.8rem; }
+
+        /* ===== 开关 ===== */
+        .toggle-wrapper {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            white-space: nowrap;
+        }
+        .toggle-switch {
+            position: relative;
+            width: 36px;
+            height: 20px;
+            flex-shrink: 0;
+        }
+        .toggle-switch input { opacity: 0; width: 0; height: 0; position: absolute; }
+        .toggle-track {
+            position: absolute;
+            inset: 0;
+            background-color: #d1d5db;
+            border-radius: 9999px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        .toggle-track::after {
+            content: '';
+            position: absolute;
+            left: 3px;
+            top: 3px;
+            width: 14px;
+            height: 14px;
+            background: white;
+            border-radius: 50%;
+            transition: transform 0.2s;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+        }
+        .toggle-switch input:checked + .toggle-track {
+            background-color: #10b981;
+        }
+        .toggle-switch input:checked + .toggle-track::after {
+            transform: translateX(16px);
+        }
+        .toggle-label {
+            font-size: 0.78rem;
+            font-weight: 600;
+            min-width: 2.2rem;
+        }
+        .toggle-label.on  { color: #10b981; }
+        .toggle-label.off { color: #9ca3af; }
+
+        .action-buttons { display: flex; gap: 0.375rem; }
+        .btn {
+            padding: 0.375rem 0.75rem;
+            border: none;
+            border-radius: 0.25rem;
+            font-size: 0.75rem;
+            cursor: pointer;
+            transition: background-color 0.2s;
+            white-space: nowrap;
+        }
+        .btn-primary { background-color: #3b82f6; color: white; }
+        .btn-primary:hover { background-color: #2563eb; }
+        .btn-secondary { background-color: #e5e7eb; color: #374151; }
+        .btn-secondary:hover { background-color: #d1d5db; }
+        .btn-danger { background-color: #f3f4f6; color: #ef4444; }
+        .btn-danger:hover { background-color: #fee2e2; }
+
+        /* ===== 模态框 ===== */
+        .modal {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background-color: rgba(0,0,0,0.5);
+            z-index: 50;
+            align-items: flex-start;
+            justify-content: center;
+            padding: 2rem 1rem;
+            overflow-y: auto;
+        }
+        .modal.active { display: flex; }
+        .modal-content {
+            background: white;
+            border-radius: 0.5rem;
+            box-shadow: 0 20px 25px rgba(0,0,0,0.15);
+            width: 100%;
+            max-width: 600px;
+            margin: auto;
+        }
+        .modal-header {
+            padding: 1.5rem;
+            border-bottom: 1px solid #e5e7eb;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .modal-header h2 { font-size: 1.125rem; font-weight: 600; color: #1f2937; margin: 0; }
+        .modal-close { background: none; border: none; font-size: 1.25rem; cursor: pointer; color: #6b7280; padding: 0.25rem 0.5rem; }
+        .modal-close:hover { color: #1f2937; }
+        .modal-body { padding: 1.5rem; }
+        .modal-footer {
+            padding: 1rem 1.5rem;
+            border-top: 1px solid #e5e7eb;
+            display: flex;
+            gap: 0.75rem;
+            justify-content: flex-end;
+        }
+        .btn-cancel { padding: 0.5rem 1.25rem; background-color: #e5e7eb; color: #374151; border: none; border-radius: 0.375rem; cursor: pointer; font-size: 0.875rem; font-weight: 500; }
+        .btn-cancel:hover { background-color: #d1d5db; }
+        .btn-create { padding: 0.5rem 1.25rem; background-color: #10b981; color: white; border: none; border-radius: 0.375rem; cursor: pointer; font-size: 0.875rem; font-weight: 500; }
+        .btn-create:hover { background-color: #059669; }
+
+        /* 步骤指示器 */
+        .steps-bar {
+            display: flex;
+            align-items: center;
+            margin-bottom: 1.5rem;
+        }
+        .step-item {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.8rem;
+            color: #9ca3af;
+        }
+        .step-item.active { color: #1e40af; }
+        .step-item.done { color: #10b981; }
+        .step-num {
+            width: 24px; height: 24px;
+            border-radius: 50%;
+            background: #e5e7eb; color: #6b7280;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 0.75rem; font-weight: 600;
+        }
+        .step-item.active .step-num { background: #1e40af; color: white; }
+        .step-item.done .step-num { background: #10b981; color: white; }
+        .step-sep { flex: 1; height: 1px; background: #e5e7eb; margin: 0 0.5rem; }
+
+        /* 类型选择卡片 */
+        .type-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 0.75rem;
+            margin-bottom: 1.5rem;
+        }
+        .type-card {
+            border: 2px solid #e5e7eb;
+            border-radius: 0.5rem;
+            padding: 1rem;
+            cursor: pointer;
+            transition: all 0.15s;
+            text-align: center;
+        }
+        .type-card:hover { border-color: #93c5fd; background: #f0f9ff; }
+        .type-card.selected { border-color: #1e40af; background: #eff6ff; }
+        .type-card-icon { font-size: 1.75rem; margin-bottom: 0.5rem; }
+        .type-card-name { font-size: 0.8rem; font-weight: 600; color: #1f2937; }
+        .type-card-desc { font-size: 0.7rem; color: #9ca3af; margin-top: 0.25rem; }
+
+        /* 表单元素 */
+        .form-group { margin-bottom: 1.25rem; }
+        .form-label { display: block; font-weight: 500; font-size: 0.875rem; color: #1f2937; margin-bottom: 0.4rem; }
+        .form-label .required { color: #ef4444; }
+        .form-input, .form-select, .form-textarea {
+            width: 100%;
+            padding: 0.5rem 0.75rem;
+            border: 1px solid #d1d5db;
+            border-radius: 0.375rem;
+            font-size: 0.875rem;
+            font-family: inherit;
+        }
+        .form-input:focus, .form-select:focus, .form-textarea:focus {
+            outline: none;
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59,130,246,0.1);
+        }
+        .form-textarea { min-height: 80px; resize: none; }
+        .form-hint { font-size: 0.75rem; color: #6b7280; margin-top: 0.25rem; }
+        .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+
+        /* 触发事件复选框 */
+        .events-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 0.5rem;
+        }
+        .event-checkbox {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.625rem 0.75rem;
+            border: 1px solid #e5e7eb;
+            border-radius: 0.375rem;
+            cursor: pointer;
+            transition: all 0.15s;
+            font-size: 0.8rem;
+        }
+        .event-checkbox:hover { border-color: #93c5fd; background: #f0f9ff; }
+        .event-checkbox.checked { border-color: #3b82f6; background: #eff6ff; color: #1e40af; }
+        .event-checkbox input { display: none; }
+        .check-icon { width: 16px; height: 16px; border: 2px solid #d1d5db; border-radius: 3px; display: flex; align-items: center; justify-content: center; font-size: 10px; }
+        .event-checkbox.checked .check-icon { background: #3b82f6; border-color: #3b82f6; color: white; }
+
+        /* 通知时机 */
+        .notify-options { display: flex; gap: 0.75rem; }
+        .notify-option {
+            flex: 1;
+            border: 2px solid #e5e7eb;
+            border-radius: 0.375rem;
+            padding: 0.75rem;
+            cursor: pointer;
+            text-align: center;
+            transition: all 0.15s;
+        }
+        .notify-option:hover { border-color: #93c5fd; }
+        .notify-option.selected { border-color: #3b82f6; background: #eff6ff; }
+        .notify-option-title { font-size: 0.8rem; font-weight: 600; color: #1f2937; }
+        .notify-option-desc { font-size: 0.7rem; color: #9ca3af; margin-top: 0.2rem; }
+
+        /* 动态配置区域 */
+        .config-section {
+            background: #f9fafb;
+            border: 1px solid #e5e7eb;
+            border-radius: 0.5rem;
+            padding: 1.25rem;
+            margin-bottom: 1.25rem;
+        }
+        .config-title { font-size: 0.875rem; font-weight: 600; color: #374151; margin-bottom: 1rem; }
+
+        .footer {
+            text-align: center;
+            padding: 1.5rem 2rem;
+            color: #9ca3af;
+            font-size: 0.875rem;
+            background: white;
+            border-top: 1px solid #e5e7eb;
+            margin-top: 2rem;
+        }
+
+        @media (max-width: 768px) {
+            .navbar { flex-direction: column; gap: 1rem; }
+            .container { padding: 1rem; }
+            .stats-row { grid-template-columns: repeat(2, 1fr); }
+            .type-grid { grid-template-columns: repeat(2, 1fr); }
+            .events-grid { grid-template-columns: 1fr; }
+            .form-row { grid-template-columns: 1fr; }
+            .notify-options { flex-wrap: wrap; }
+        }
+    </style>
+</head>
+<body>
+
+<!-- 顶部导航栏 -->
+<div class="navbar">
+    <div class="navbar-brand">
+        <span>🔔</span>
+        <span>飞书AI通知系统</span>
+    </div>
+    <div class="navbar-nav">
+        <a href="#" class="nav-item" onclick="return navigateParent('dashboard')">📊 仪表板</a>
+        <a href="#" class="nav-item active" onclick="return navigateParent('robots')">🤖 机器人</a>
+        <a href="#" class="nav-item" onclick="return navigateParent('history')">📜 历史</a>
+        <a href="#" class="nav-item" onclick="return navigateParent('settings')">⚙️ 设置</a>
+    </div>
+    <div class="user-info">
+        <span>👤 admin</span>
+        <button class="logout-btn">退出</button>
+    </div>
+</div>
+
+<!-- 主容器 -->
+<div class="container">
+
+    <!-- 面包屑 -->
+    <div class="breadcrumb">
+        <a href="#">🤖 机器人管理</a>
+        <span class="breadcrumb-sep">›</span>
+        <a href="#">生产部署通知</a>
+        <span class="breadcrumb-sep">›</span>
+        <span class="breadcrumb-current">项目集成</span>
+    </div>
+
+    <!-- 页头 -->
+    <div class="page-header">
+        <div class="page-title-group">
+            <h1 class="page-title">🔗 项目集成管理</h1>
+            <p class="page-subtitle">为机器人配置来自 GitHub、GitLab、Vercel、Railway 等平台的触发源，以及 VS Code Chat 汇报</p>
+        </div>
+        <button class="add-btn" onclick="openAddModal()">➕ 添加集成</button>
+    </div>
+
+    <!-- 信息框 -->
+    <div class="info-box">
+        💡 项目集成定义了哪些外部系统事件会触发此机器人发送飞书<strong>卡片消息</strong>通知。支持 GitHub、GitLab、Vercel、Railway 等平台 Webhook，以及 VS Code Chat 对话汇报。你可以为同一个机器人添加多个集成来源。
+    </div>
+
+    <!-- 机器人概览卡片 -->
+    <div class="robot-card">
+        <div class="robot-info">
+            <div class="robot-avatar">🤖</div>
+            <div>
+                <div class="robot-name">生产部署通知</div>
+                <div class="robot-url">https://open.feishu.cn/open-apis/bot/v2/hook/CLG8N5VE8...</div>
+            </div>
+        </div>
+        <div class="robot-status-badge">
+            <div class="status-dot"></div>
+            运行中
+        </div>
+    </div>
+
+    <!-- 统计卡片 -->
+    <div class="stats-row">
+        <div class="stat-card">
+            <div class="stat-label">集成数量</div>
+            <div class="stat-value">4</div>
+            <div class="stat-sub">项目来源</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-label">已触发事件</div>
+            <div class="stat-value">128</div>
+            <div class="stat-sub">本月累计</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-label">成功通知</div>
+            <div class="stat-value" style="color:#10b981;">119</div>
+            <div class="stat-sub">成功率 92.9%</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-label">失败通知</div>
+            <div class="stat-value" style="color:#ef4444;">9</div>
+            <div class="stat-sub">需要关注</div>
+        </div>
+    </div>
+
+    <!-- 集成列表 -->
+    <div class="section">
+        <div class="section-header">
+            <span class="section-title">已配置的项目集成</span>
+            <span style="font-size:0.875rem;color:#6b7280;">共 4 个</span>
+        </div>
+        <div class="section-content">
+            <table>
+                <thead>
+                    <tr>
+                        <th style="width:16%;">类型</th>
+                        <th style="width:18%;">项目名称</th>
+                        <th style="width:28%;">触发事件</th>
+                        <th style="width:14%;">通知时机</th>
+                        <th style="width:10%;">状态</th>
+                        <th style="width:14%;">操作 / Webhook</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><span class="type-badge type-vercel">▲ Vercel</span></td>
+                        <td>
+                            <div style="font-weight:500;">my-app</div>
+                            <div style="font-size:0.75rem;color:#9ca3af;">production</div>
+                        </td>
+                        <td>
+                            <div class="events-list">
+                                <span class="event-tag">部署成功</span>
+                                <span class="event-tag error">部署失败</span>
+                                <span class="event-tag">已就绪</span>
+                            </div>
+                        </td>
+                        <td style="font-size:0.8rem;color:#6b7280;">始终通知</td>
+                        <td>
+                            <div class="toggle-wrapper">
+                                <label class="toggle-switch">
+                                    <input type="checkbox" checked onchange="toggleIntegrationStatus(this, 'vercel-my-app')">
+                                    <span class="toggle-track"></span>
+                                </label>
+                                <span class="toggle-label on" id="label-vercel-my-app">启用</span>
+                            </div>
+                        </td>
+                        <td>
+                            <div class="action-buttons" style="flex-wrap:wrap;gap:0.3rem;">
+                                <button class="btn btn-secondary" onclick="openEditIntegrationModal('vercel', 'my-app', 'production', ['deploy_success','deploy_error','deployment_ready'], 'always')"> 编辑</button>
+                                <button class="btn btn-danger">删除</button>
+                                <button class="btn btn-secondary" id="copy-url-vercel-my-app" onclick="copyText('http://localhost:5173/api/webhook/int-001', 'copy-url-vercel-my-app')" title="复制 Webhook URL">📋 URL</button>
+                                <button class="btn btn-secondary" id="copy-token-vercel-my-app" onclick="copyText('a3f8c2d1e4b5a6f7c8d9e0a1b2c3d4e5f6a7b8c9', 'copy-token-vercel-my-app')" title="复制 Token">🔑 Token</button>
+                            </div>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td><span class="type-badge type-github">🐙 GitHub</span></td>
+                        <td>
+                            <div style="font-weight:500;">frontend-app</div>
+                        </td>
+                        <td>
+                            <div class="events-list">
+                                <span class="event-tag">PR 合并</span>
+                                <span class="event-tag">版本发布</span>
+                                <span class="event-tag">工作流完成</span>
+                            </div>
+                        </td>
+                        <td style="font-size:0.8rem;color:#6b7280;">变更时通知</td>
+                        <td>
+                            <div class="toggle-wrapper">
+                                <label class="toggle-switch">
+                                    <input type="checkbox" checked onchange="toggleIntegrationStatus(this, 'github-frontend-app')">
+                                    <span class="toggle-track"></span>
+                                </label>
+                                <span class="toggle-label on" id="label-github-frontend-app">启用</span>
+                            </div>
+                        </td>
+                        <td>
+                            <div class="action-buttons" style="flex-wrap:wrap;gap:0.3rem;">
+                                <button class="btn btn-secondary" onclick="openEditIntegrationModal('github', 'frontend-app', 'myorg/frontend', ['pr_merged','version_released','workflow_run'], 'changes')"> 编辑</button>
+                                <button class="btn btn-danger">删除</button>
+                                <button class="btn btn-secondary" id="copy-url-github-frontend" onclick="copyText('http://localhost:5173/api/webhook/int-002', 'copy-url-github-frontend')" title="复制 Webhook URL">📋 URL</button>
+                                <button class="btn btn-secondary" id="copy-token-github-frontend" onclick="copyText('b4e9d3c2a1f8e7d6c5b4a3f2e1d0c9b8a7f6e5d4', 'copy-token-github-frontend')" title="复制 Token">🔑 Token</button>
+                            </div>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td><span class="type-badge type-railway">🚂 Railway</span></td>
+                        <td>
+                            <div style="font-weight:500;">api-service</div>
+                            <div style="font-size:0.75rem;color:#9ca3af;">production</div>
+                        </td>
+                        <td>
+                            <div class="events-list">
+                                <span class="event-tag error">部署失败</span>
+                                <span class="event-tag error">服务崩溃</span>
+                            </div>
+                        </td>
+                        <td style="font-size:0.8rem;color:#6b7280;">仅失败</td>
+                        <td>
+                            <div class="toggle-wrapper">
+                                <label class="toggle-switch">
+                                    <input type="checkbox" checked onchange="toggleIntegrationStatus(this, 'railway-api-service')">
+                                    <span class="toggle-track"></span>
+                                </label>
+                                <span class="toggle-label on" id="label-railway-api-service">启用</span>
+                            </div>
+                        </td>
+                        <td>
+                            <div class="action-buttons" style="flex-wrap:wrap;gap:0.3rem;">
+                                <button class="btn btn-secondary" onclick="openEditIntegrationModal('railway', 'api-service', 'production', ['deploy_failed','service_crash'], 'failure')"> 编辑</button>
+                                <button class="btn btn-danger">删除</button>
+                                <button class="btn btn-secondary" id="copy-url-railway-api" onclick="copyText('http://localhost:5173/api/webhook/int-003', 'copy-url-railway-api')" title="复制 Webhook URL">📋 URL</button>
+                                <button class="btn btn-secondary" id="copy-token-railway-api" onclick="copyText('c5f0e4d3b2a1f0e9d8c7b6a5f4e3d2c1b0a9f8e7', 'copy-token-railway-api')" title="复制 Token">🔑 Token</button>
+                            </div>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td><span class="type-badge type-vscode">💬 VS Code Chat</span></td>
+                        <td>
+                            <div style="font-weight:500;">AI 对话汇报</div>
+                            <div style="font-size:0.75rem;color:#9ca3af;">vscode-copilot</div>
+                        </td>
+                        <td>
+                            <div class="events-list">
+                                <span class="event-tag">会话结束</span>
+                                <span class="event-tag">手动汇报</span>
+                            </div>
+                        </td>
+                        <td style="font-size:0.8rem;color:#6b7280;">手动触发</td>
+                        <td>
+                            <div class="toggle-wrapper">
+                                <label class="toggle-switch">
+                                    <input type="checkbox" onchange="toggleIntegrationStatus(this, 'vscode-chat')">
+                                    <span class="toggle-track"></span>
+                                </label>
+                                <span class="toggle-label off" id="label-vscode-chat">停用</span>
+                            </div>
+                        </td>
+                        <td>
+                            <div class="action-buttons" style="flex-wrap:wrap;gap:0.3rem;">
+                                <button class="btn btn-secondary" onclick="openEditIntegrationModal('vscode', 'AI对话汇报', 'vscode-copilot', ['session_end','manual_report'], 'manual')"> 编辑</button>
+                                <button class="btn btn-danger">删除</button>
+                                <button class="btn btn-secondary" id="copy-url-vscode" onclick="copyText('http://localhost:5173/api/webhook/int-004', 'copy-url-vscode')" title="复制 Webhook URL">📋 URL</button>
+                                <button class="btn btn-secondary" id="copy-token-vscode" onclick="copyText('d6a1f5e4c3b2a1f0e9d8c7b6a5f4e3d2c1b0a9f8', 'copy-token-vscode')" title="复制 Token">🔑 Token</button>
+                            </div>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+</div>
+
+<!-- ===== 添加 / 编辑集成弹窗（复用同一弹窗） ===== -->
+<div class="modal" id="addModal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2 id="integration-modal-title">➕ 添加项目集成</h2>
+            <button class="modal-close" onclick="closeAddModal()">✕</button>
+        </div>
+        <div class="modal-body">
+
+            <!-- 步骤指示器 -->
+            <div class="steps-bar">
+                <div class="step-item done" id="step1-indicator">
+                    <div class="step-num" id="step1-num">✓</div>
+                    <span>选择类型</span>
+                </div>
+                <div class="step-sep"></div>
+                <div class="step-item active" id="step2-indicator">
+                    <div class="step-num" id="step2-num">2</div>
+                    <span>配置参数</span>
+                </div>
+                <div class="step-sep"></div>
+                <div class="step-item" id="step3-indicator">
+                    <div class="step-num" id="step3-num">3</div>
+                    <span>触发规则</span>
+                </div>
+            </div>
+
+            <!-- ===== 步骤1：选择类型 ===== -->
+            <div id="step1" style="display:none;">
+                <!-- 编辑模式：类型已锁定，只读展示 -->
+                <div id="step1-locked" style="display:none;background:#f9fafb;border:1px solid #e5e7eb;border-radius:0.5rem;padding:1.25rem;margin-bottom:1rem;">
+                    <div style="font-size:0.8rem;color:#6b7280;margin-bottom:0.625rem;">集成类型（编辑时不可更改）</div>
+                    <div id="step1-locked-badge" style="display:inline-flex;align-items:center;gap:0.5rem;padding:0.5rem 1rem;border:2px solid #1e40af;border-radius:0.5rem;background:#eff6ff;font-weight:600;font-size:0.875rem;color:#1e40af;"></div>
+                    <div style="font-size:0.75rem;color:#9ca3af;margin-top:0.5rem;">如需更改集成类型，请删除此集成后重新添加。</div>
+                </div>
+                <!-- 新建模式：类型卡片选择 -->
+                <div id="step1-cards">
+                <div class="type-grid">
+                    <div class="type-card selected" onclick="selectType('vercel', this)">
+                        <div class="type-card-icon">▲</div>
+                        <div class="type-card-name">Vercel</div>
+                        <div class="type-card-desc">前端部署平台</div>
+                    </div>
+                    <div class="type-card" onclick="selectType('railway', this)">
+                        <div class="type-card-icon">🚂</div>
+                        <div class="type-card-name">Railway</div>
+                        <div class="type-card-desc">全栈部署平台</div>
+                    </div>
+                    <div class="type-card" onclick="selectType('github', this)">
+                        <div class="type-card-icon">🐙</div>
+                        <div class="type-card-name">GitHub</div>
+                        <div class="type-card-desc">代码托管 Webhook</div>
+                    </div>
+                    <div class="type-card" onclick="selectType('gitlab', this)">
+                        <div class="type-card-icon">🦊</div>
+                        <div class="type-card-name">GitLab</div>
+                        <div class="type-card-desc">代码托管 Webhook</div>
+                    </div>
+                    <div class="type-card" onclick="selectType('vscode', this)">
+                        <div class="type-card-icon">💬</div>
+                        <div class="type-card-name">VS Code Chat</div>
+                        <div class="type-card-desc">AI 对话汇报</div>
+                    </div>
+                    <div class="type-card" onclick="selectType('api', this)">
+                        <div class="type-card-icon">🔌</div>
+                        <div class="type-card-name">Direct API</div>
+                        <div class="type-card-desc">SDK / 脚本直接调用</div>
+                    </div>
+                    <div class="type-card" onclick="selectType('custom', this)">
+                        <div class="type-card-icon">🛠️</div>
+                        <div class="type-card-name">Custom Webhook</div>
+                        <div class="type-card-desc">通用自定义 Webhook</div>
+                    </div>
+                </div>
+                </div><!-- end step1-cards -->
+            </div>
+
+            <!-- ===== 步骤2：配置参数（预览：Vercel 已选中）===== -->
+            <div id="step2">
+                <div class="form-group">
+                    <label class="form-label">项目名称 <span class="required">*</span></label>
+                    <input type="text" class="form-input" placeholder="例如：my-app" value="my-app">
+                    <div class="form-hint">用于识别此集成，不影响实际连接</div>
+                </div>
+
+                <!-- Vercel 专属配置 -->
+                <div class="config-section" id="vercel-config">
+                    <div class="config-title">▲ Vercel Webhook 配置</div>
+                    <div class="form-group">
+                        <label class="form-label">Webhook 接收地址（自动生成）</label>
+                        <div style="display:flex;gap:0.5rem;align-items:center;">
+                            <input type="text" class="form-input" value="https://your-domain.com/api/webhooks/vercel/proj_xxx" readonly style="background:#f9fafb;color:#6b7280;flex:1;">
+                            <button class="btn btn-secondary" style="white-space:nowrap;">📋 复制</button>
+                        </div>
+                        <div class="form-hint">将此地址填写到 Vercel 项目设置 → Webhooks → Add Webhook</div>
+                    </div>
+                    <div style="background:#fffbeb;border:1px solid #fde68a;border-radius:0.375rem;padding:0.875rem;font-size:0.8rem;color:#92400e;line-height:1.7;">
+                        📖 <strong>Vercel Webhook 配置步骤：</strong><br>
+                        1. 前往 Vercel Dashboard → 项目 → Settings → Webhooks<br>
+                        2. 点击 "Add Webhook"，Payload URL 填入上方地址<br>
+                        3. Secret 字段填入创建集成后生成的 Webhook Secret（用于 HMAC-SHA1 签名验证）<br>
+                        4. 勾选 Deployment 相关事件，保存
+                    </div>
+                </div>
+
+                <!-- Railway 专属配置 -->
+                <div class="config-section" id="railway-config" style="display:none;">
+                    <div class="config-title">🚂 Railway Webhook 配置</div>
+                    <div class="form-group">
+                        <label class="form-label">Webhook 接收地址（自动生成）</label>
+                        <div style="display:flex;gap:0.5rem;align-items:center;">
+                            <input type="text" class="form-input" value="https://your-domain.com/api/webhooks/railway/proj_xxx" readonly style="background:#f9fafb;color:#6b7280;flex:1;">
+                            <button class="btn btn-secondary" style="white-space:nowrap;">📋 复制</button>
+                        </div>
+                        <div class="form-hint">将此地址填写到 Railway 项目设置 → Webhooks</div>
+                    </div>
+                    <div style="background:#fff1f2;border:1px solid #fecdd3;border-radius:0.375rem;padding:0.875rem;font-size:0.8rem;color:#9f1239;line-height:1.7;">
+                        📖 <strong>Railway Webhook 配置步骤：</strong><br>
+                        1. 前往 Railway Dashboard → 项目 → Settings → Webhooks<br>
+                        2. 点击 "Add Webhook"，填写上方地址<br>
+                        3. 选择要监听的事件类型（DEPLOY_SUCCESS / DEPLOY_FAILED / SERVICE_CRASH）<br>
+                        4. 保存后，Railway 将向此地址推送部署事件
+                    </div>
+                </div>
+
+                <!-- GitHub 专属配置 -->
+                <div class="config-section" id="github-config" style="display:none;">
+                    <div class="config-title">🐙 GitHub Webhook 配置</div>
+                    <div class="form-group">
+                        <label class="form-label">仓库地址（owner/repo）<span class="required">*</span></label>
+                        <input type="text" class="form-input" placeholder="例如：myorg/frontend-app">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Webhook 接收地址（自动生成）</label>
+                        <div style="display:flex;gap:0.5rem;align-items:center;">
+                            <input type="text" class="form-input" value="https://your-domain.com/api/webhooks/github/proj_xxx" readonly style="background:#f9fafb;color:#6b7280;flex:1;">
+                            <button class="btn btn-secondary" style="white-space:nowrap;">📋 复制</button>
+                        </div>
+                        <div class="form-hint">将此地址填写到 GitHub 仓库 → Settings → Webhooks → Add webhook</div>
+                    </div>
+                </div>
+
+                <!-- GitLab 专属配置 -->
+                <div class="config-section" id="gitlab-config" style="display:none;">
+                    <div class="config-title">🦊 GitLab Webhook 配置</div>
+                    <div class="form-group">
+                        <label class="form-label">GitLab 实例地址</label>
+                        <input type="text" class="form-input" placeholder="https://gitlab.com（留空则使用官方）">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">项目路径（namespace/project）<span class="required">*</span></label>
+                        <input type="text" class="form-input" placeholder="例如：mygroup/backend-service">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Webhook 接收地址（自动生成）</label>
+                        <div style="display:flex;gap:0.5rem;align-items:center;">
+                            <input type="text" class="form-input" value="https://your-domain.com/api/webhooks/gitlab/proj_xxx" readonly style="background:#f9fafb;color:#6b7280;flex:1;">
+                            <button class="btn btn-secondary" style="white-space:nowrap;">📋 复制</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- VS Code Chat 专属配置 -->
+                <div class="config-section" id="vscode-config" style="display:none;">
+                    <div class="config-title">💬 VS Code Chat 汇报配置</div>
+                    <div style="background:#eef2ff;border:1px solid #c7d2fe;border-radius:0.375rem;padding:0.875rem;font-size:0.8rem;color:#3730a3;line-height:1.7;margin-bottom:1rem;">
+                        💡 <strong>工作原理：</strong><br>
+                        VS Code 扩展会监听 Copilot Chat 会话，在会话结束或手动触发时，
+                        调用 AI API 生成摘要并推送到飞书。需要安装配套的 VS Code 扩展后才能工作。
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">触发 Token（自动生成）</label>
+                        <div style="display:flex;gap:0.5rem;align-items:center;">
+                            <input type="text" class="form-input" value="feishu_vsc_xxxxxxxxxxxxxxxx" readonly style="background:#f9fafb;color:#6b7280;flex:1;">
+                            <button class="btn btn-secondary" style="white-space:nowrap;">🔄 重新生成</button>
+                        </div>
+                        <div class="form-hint">在 VS Code 扩展设置中填入此 Token 以完成绑定</div>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">汇报摘要 AI（可选）</label>
+                        <select class="form-select">
+                            <option value="none">不启用摘要（原文推送）</option>
+                            <option value="openai" selected>OpenAI GPT-4o（需要 API Key）</option>
+                            <option value="deepseek">DeepSeek（需要 API Key）</option>
+                        </select>
+                        <div class="form-hint">启用后将使用 AI 对对话内容进行结构化总结，再推送到飞书</div>
+                    </div>
+                    <div class="form-group" id="ai-apikey-group">
+                        <label class="form-label">AI API Key <span class="required">*</span></label>
+                        <input type="password" class="form-input" placeholder="sk-...">
+                    </div>
+                </div>
+
+                <!-- Direct API / Custom Webhook 配置 -->
+                <div class="config-section" id="api-config" style="display:none;">
+                    <div class="config-title">🔌 Direct API / Custom Webhook</div>
+                    <div class="form-group">
+                        <label class="form-label">Webhook 接收地址（自动生成）</label>
+                        <div style="display:flex;gap:0.5rem;align-items:center;">
+                            <input type="text" class="form-input" value="https://your-domain.com/api/webhooks/custom/proj_xxx" readonly style="background:#f9fafb;color:#6b7280;flex:1;">
+                            <button class="btn btn-secondary" style="white-space:nowrap;">📋 复制</button>
+                        </div>
+                        <div class="form-hint">在外部系统中调用此地址推送 JSON 格式的通知</div>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">描述（可选）</label>
+                    <textarea class="form-textarea" placeholder="描述此集成的用途…">用于监听生产环境部署状态</textarea>
+                </div>
+            </div>
+
+            <!-- ===== 步骤3：触发规则 ===== -->
+            <div id="step3" style="display:none;">
+                <div class="form-group">
+                    <label class="form-label">触发事件 <span class="required">*</span>（已按选定平台过滤，只显示实际支持的事件）</label>
+                    <div class="events-grid" id="events-grid">
+                        <!-- 由 renderEvents(selectedType) 动态填充 -->
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">通知时机</label>
+                    <div class="notify-options">
+                        <div class="notify-option selected" onclick="selectNotify(this)">
+                            <div class="notify-option-title">始终通知</div>
+                            <div class="notify-option-desc">无论成败都推送</div>
+                        </div>
+                        <div class="notify-option" onclick="selectNotify(this)">
+                            <div class="notify-option-title">仅失败</div>
+                            <div class="notify-option-desc">只推送失败事件</div>
+                        </div>
+                        <div class="notify-option" onclick="selectNotify(this)">
+                            <div class="notify-option-title">状态变更</div>
+                            <div class="notify-option-desc">状态发生变化时推送</div>
+                        </div>
+                        <div class="notify-option" onclick="selectNotify(this)">
+                            <div class="notify-option-title">仅成功</div>
+                            <div class="notify-option-desc">只推送成功事件</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 飞书卡片消息预览 -->
+                <div style="background:#f0f9ff;border:1px solid #bae6fd;border-radius:0.5rem;padding:1rem;margin-bottom:1.25rem;">
+                    <div style="font-size:0.8rem;font-weight:600;color:#0369a1;margin-bottom:0.75rem;">📱 飞书卡片消息预览（示例）</div>
+                    <div style="background:white;border-radius:0.5rem;border:1px solid #e0e7ef;overflow:hidden;font-size:0.8rem;max-width:360px;">
+                        <div style="background:#10b981;color:white;padding:0.75rem 1rem;font-weight:600;">▲ Vercel 部署成功通知</div>
+                        <div style="padding:0.75rem 1rem;color:#374151;line-height:1.6;">
+                            <div>📦 <strong>项目：</strong>my-app</div>
+                            <div>🌿 <strong>环境：</strong>production</div>
+                            <div>🔗 <strong>域名：</strong>my-app.vercel.app</div>
+                            <div>👤 <strong>触发者：</strong>developer</div>
+                            <div>🕐 <strong>时间：</strong>2026-03-10 10:30</div>
+                        </div>
+                        <div style="padding:0.5rem 1rem;border-top:1px solid #f3f4f6;display:flex;gap:0.5rem;">
+                            <div style="flex:1;background:#eff6ff;color:#1d4ed8;border-radius:0.25rem;text-align:center;padding:0.375rem;cursor:pointer;">🔍 查看部署</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">自定义卡片模板（可选）</label>
+                    <textarea class="form-textarea" placeholder="留空使用默认卡片模板。可用变量：\n{{project}} {{status}} {{branch}} {{actor}} {{timestamp}} {{url}} {{message}}">🚀 {{project}} 部署 {{status}}
+分支：{{branch}} | 触发者：{{actor}}
+时间：{{timestamp}}</textarea>
+                    <div class="form-hint">支持 Lark Markdown，留空则使用平台专属默认卡片模板</div>
+                </div>
+            </div>
+
+        </div>
+        <div class="modal-footer">
+            <button class="btn-cancel" onclick="closeAddModal()">取消</button>
+            <button class="btn btn-secondary" id="prev-btn" onclick="prevStep()" style="display:none;">← 上一步</button>
+            <button class="btn-create" id="next-btn" onclick="nextStep()">下一步 →</button>
+            <button class="btn-create" id="save-btn" onclick="saveIntegration()" style="display:none;">✓ 保存集成</button>
+        </div>
+    </div>
+</div>
+
+<!-- 页脚 -->
+<div class="footer">
+    © 2026 飞书AI通知系统. 所有权利保留. | 前端 v1.0.0 | 后端 v1.0.0
+</div>
+
+<!-- 第二个弹窗：Webhook 配置引导（创建成功后展示）-->
+<div class="modal-overlay" id="setup-guide-modal">
+    <div class="modal-container" style="max-width:540px;">
+        <div class="modal-header" style="background:#f0fdf4;border-bottom:1px solid #bbf7d0;">
+            <h3 class="modal-title" style="color:#065f46;">🎉 集成创建成功！</h3>
+            <p style="font-size:0.8rem;color:#059669;margin:0.25rem 0 0;">请将以下信息填入对应平台的 Webhook 设置</p>
+        </div>
+        <div class="modal-body">
+            <!-- Webhook URL -->
+            <div class="form-group">
+                <label class="form-label" style="color:#dc2626;">📡 Webhook 接收地址</label>
+                <div style="display:flex;gap:0.5rem;align-items:center;">
+                    <input id="guide-webhook-url" type="text" class="form-input" readonly
+                        style="background:#f9fafb;color:#374151;font-family:monospace;font-size:0.8rem;flex:1;">
+                    <button class="btn btn-primary" style="white-space:nowrap;"
+                        onclick="copyGuide('guide-webhook-url', this)">📋 复制</button>
+                </div>
+            </div>
+            <!-- Webhook Secret -->
+            <div class="form-group">
+                <label class="form-label" style="color:#dc2626;">🔑 Webhook Secret
+                    <span style="font-weight:400;color:#6b7280;font-size:0.75rem;">（仅此一次，请妥善保存）</span>
+                </label>
+                <div style="display:flex;gap:0.5rem;align-items:center;">
+                    <input id="guide-secret" type="text" class="form-input" readonly
+                        style="background:#fef9c3;color:#374151;font-family:monospace;font-size:0.8rem;flex:1;">
+                    <button class="btn btn-primary" style="white-space:nowrap;"
+                        onclick="copyGuide('guide-secret', this)">📋 复制</button>
+                </div>
+                <div style="font-size:0.75rem;color:#dc2626;margin-top:0.35rem;">⚠️ Secret 只在创建时显示一次，关闭后无法再次查看</div>
+            </div>
+            <!-- 平台步骤 -->
+            <div style="background:#f3f4f6;border-radius:0.5rem;padding:1rem;">
+                <div id="guide-platform-title" style="font-size:0.85rem;font-weight:600;color:#1f2937;margin-bottom:0.5rem;"></div>
+                <ol id="guide-steps" style="margin:0;padding-left:1.25rem;font-size:0.8rem;color:#374151;line-height:1.8;"></ol>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn-create" onclick="closeGuideModal()">✓ 我已完成配置</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    let currentStep = 2;
+    let selectedType = 'vercel';
+    let integrationModalMode = 'create'; // 'create' | 'edit'
+
+    const typeLabels = {
+        vercel:  '▲ Vercel',
+        railway: '🚂 Railway',
+        github:  '🐙 GitHub',
+        gitlab:  '🦊 GitLab',
+        vscode:  '💬 VS Code Chat',
+        api:     '🔌 Direct API',
+        custom:  '🛠️ Custom Webhook'
+    };
+
+    // 各平台 normalizer 实际支持的触发事件
+    const PLATFORM_EVENTS = {
+        github:  ['commit_pushed', 'pr_opened', 'pr_merged', 'workflow_run', 'version_released'],
+        gitlab:  ['commit_pushed', 'pr_opened', 'pr_merged', 'pipeline_done', 'version_released'],
+        vercel:  ['deploy_started', 'deploy_success', 'deploy_failure', 'deployment_ready', 'deploy_canceled'],
+        railway: ['deploy_success', 'deploy_failure', 'service_crash'],
+        vscode:  ['chat_manual', 'chat_session_end'],
+        api:     ['deploy_success', 'deploy_failure', 'deploy_started', 'commit_pushed', 'test_passed', 'test_failed', 'chat_manual', 'version_released'],
+        custom:  null, // null = 全部事件
+    };
+
+    // 全量事件列表
+    const ALL_EVENTS = [
+        { value: 'deploy_success',   label: '🚀 部署成功' },
+        { value: 'deploy_failure',   label: '❌ 部署失败' },
+        { value: 'deploy_started',   label: '⏳ 部署开始' },
+        { value: 'deploy_canceled',  label: '🚫 部署取消' },
+        { value: 'deployment_ready', label: '🌐 域名就绪' },
+        { value: 'service_crash',    label: '💥 服务崩溃' },
+        { value: 'commit_pushed',    label: '📦 代码推送' },
+        { value: 'pr_opened',        label: '🔀 PR/MR 已开启' },
+        { value: 'pr_merged',        label: '✅ PR/MR 已合并' },
+        { value: 'workflow_run',     label: '⚙️ Actions 工作流' },
+        { value: 'pipeline_done',    label: '🔧 Pipeline 完成' },
+        { value: 'version_released', label: '🏷️ 版本发布' },
+        { value: 'test_passed',      label: '🧪 测试通过' },
+        { value: 'test_failed',      label: '🔴 测试失败' },
+        { value: 'chat_manual',      label: '📋 手动汇报' },
+        { value: 'chat_session_end', label: '💬 Chat 会话结束' },
+    ];
+
+    /** 根据平台类型动态渲染事件列表 */
+    function renderEvents(type) {
+        const allowed = PLATFORM_EVENTS[type]; // null 表示全量
+        const filtered = allowed ? ALL_EVENTS.filter(e => allowed.includes(e.value)) : ALL_EVENTS;
+        const grid = document.getElementById('events-grid');
+        if (!grid) return;
+        grid.innerHTML = filtered.map((e, i) => `
+            <div class="event-checkbox${i < 2 ? ' checked' : ''}" onclick="toggleEvent(this)" data-value="${e.value}">
+                <div class="check-icon">${i < 2 ? '✓' : ''}</div>
+                <span>${e.label}</span>
+            </div>
+        `).join('');
+    }
+
+    /** 根据选择的类型，显示对应的配置区域 */
+    function showConfigByType(type) {
+        const configs = ['vercel-config', 'railway-config', 'github-config', 'gitlab-config', 'vscode-config', 'api-config'];
+        configs.forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.style.display = 'none';
+        });
+        const show = document.getElementById(`${type}-config`) || document.getElementById('api-config');
+        if (show) show.style.display = 'block';
+    }
+
+    /** 复制文本到剤贴板，临时反馈 */
+    function copyText(text, btnId) {
+        navigator.clipboard.writeText(text).then(() => {
+            const btn = document.getElementById(btnId);
+            if (!btn) return;
+            const original = btn.textContent;
+            btn.textContent = '✓ 已复制';
+            btn.style.background = '#d1fae5';
+            btn.style.color = '#065f46';
+            setTimeout(() => {
+                btn.textContent = original;
+                btn.style.background = '';
+                btn.style.color = '';
+            }, 2000);
+        }).catch(() => {
+            // 降级方案：选中文本
+            const ta = document.createElement('textarea');
+            ta.value = text;
+            document.body.appendChild(ta);
+            ta.select();
+            document.execCommand('copy');
+            document.body.removeChild(ta);
+        });
+    }
+
+    /** 打开【新建】集成弹窗 */
+    function openAddModal() {
+        integrationModalMode = 'create';
+        currentStep = 1;
+        selectedType = 'vercel';
+        document.getElementById('integration-modal-title').textContent = '➕ 添加项目集成';
+        document.getElementById('save-btn').textContent = '✓ 保存集成';
+        document.getElementById('step1-locked').style.display = 'none';
+        document.getElementById('step1-cards').style.display = 'block';
+        renderEvents('vercel'); // 初始化默认事件列表
+        renderStep();
+        document.getElementById('addModal').classList.add('active');
+    }
+
+    /** 打开【编辑】集成弹窗，跳过类型选择直接进入步骤2 */
+    function openEditIntegrationModal(type, name, subname, events, notifyOn) {
+        integrationModalMode = 'edit';
+        selectedType = type;
+        currentStep = 2;
+        document.getElementById('integration-modal-title').textContent = '✏️ 编辑集成配置';
+        document.getElementById('save-btn').textContent = '✓ 保存更改';
+        // 步骤1：显示锁定的类型，隐藏卡片选择
+        document.getElementById('step1-locked').style.display = 'block';
+        document.getElementById('step1-locked-badge').textContent = typeLabels[type] || type;
+        document.getElementById('step1-cards').style.display = 'none';
+        // 显示对应的配置区域
+        showConfigByType(type);
+        renderEvents(type); // 初始化对应平台的事件列表
+        // 预填步骤2数据（示意）
+        renderStep();
+        document.getElementById('addModal').classList.add('active');
+    }
+
+    function closeAddModal() {
+        document.getElementById('addModal').classList.remove('active');
+    }
+
+    function renderStep() {
+        document.getElementById('step1').style.display = currentStep === 1 ? 'block' : 'none';
+        document.getElementById('step2').style.display = currentStep === 2 ? 'block' : 'none';
+        document.getElementById('step3').style.display = currentStep === 3 ? 'block' : 'none';
+
+        document.getElementById('prev-btn').style.display = currentStep > 1 ? 'inline-block' : 'none';
+        document.getElementById('next-btn').style.display = currentStep < 3 ? 'inline-block' : 'none';
+        document.getElementById('save-btn').style.display = currentStep === 3 ? 'inline-block' : 'none';
+
+        // 更新步骤指示器
+        for (let i = 1; i <= 3; i++) {
+            const indicator = document.getElementById(`step${i}-indicator`);
+            const num = document.getElementById(`step${i}-num`);
+            indicator.classList.remove('active', 'done');
+            if (i < currentStep) {
+                indicator.classList.add('done');
+                num.textContent = '✓';
+            } else if (i === currentStep) {
+                indicator.classList.add('active');
+                num.textContent = i;
+            } else {
+                num.textContent = i;
+            }
+        }
+    }
+
+    function nextStep() {
+        if (currentStep < 3) {
+            currentStep++;
+            if (currentStep === 2) showConfigByType(selectedType);
+            if (currentStep === 3) renderEvents(selectedType);
+            renderStep();
+        }
+    }
+
+    function prevStep() {
+        if (currentStep > 1) { currentStep--; renderStep(); }
+    }
+
+    function selectType(type, el) {
+        selectedType = type;
+        document.querySelectorAll('.type-card').forEach(c => c.classList.remove('selected'));
+        el.classList.add('selected');
+    }
+
+    function toggleEvent(el) {
+        el.classList.toggle('checked');
+        const icon = el.querySelector('.check-icon');
+        icon.textContent = el.classList.contains('checked') ? '✓' : '';
+    }
+
+    function selectNotify(el) {
+        document.querySelectorAll('.notify-option').forEach(o => o.classList.remove('selected'));
+        el.classList.add('selected');
+    }
+
+    function saveIntegration() {
+        closeAddModal();
+        // 展示 Webhook 配置引导弹窗
+        const mockId = 'int_' + Math.random().toString(36).substring(2, 10);
+        const mockSecret = Array.from({length: 48}, () => Math.floor(Math.random()*16).toString(16)).join('');
+        document.getElementById('guide-webhook-url').value = `https://your-domain.com/api/webhook/${mockId}`;
+        document.getElementById('guide-secret').value = mockSecret;
+        // 平台步骤
+        const guideMap = {
+            vercel:  { title: '\u25b2 Vercel \u914d\u7f6e\u6b65\u9aa4', steps: ['\u8fdb\u5165 Vercel \u9879\u76ee \u2192 Settings \u2192 Webhooks \u2192 Add Webhook', '\u586b\u5165\u4e0a\u65b9 Webhook URL', '\u52fe\u9009\u6240\u9700\u4e8b\u4ef6\uff08\u63a8\u8350\uff1aDeployment\uff09', '\u4fdd\u5b58\u5373\u53ef\uff08\u65e0\u9700\u586b\u5199 Secret\uff09'], cls: 'guide-vercel' },
+            railway: { title: '\ud83d\ude82 Railway \u914d\u7f6e\u6b65\u9aa4', steps: ['\u8fdb\u5165 Railway \u9879\u76ee \u2192 Settings \u2192 Webhooks', '\u586b\u5165\u4e0a\u65b9 Webhook URL', '\u5728\u8bf7\u6c42\u5934\u4f20\u5165 X-Webhook-Secret: &lt;secret&gt;'], cls: 'guide-railway' },
+            github:  { title: '\ud83d\udc19 GitHub \u914d\u7f6e\u6b65\u9aa4', steps: ['\u8fdb\u5165 GitHub \u4ed3\u5e93 \u2192 Settings \u2192 Webhooks \u2192 Add webhook', 'Payload URL \u586b\u5165\u4e0a\u65b9\u5730\u5740', 'Content type \u9009 application/json', 'Secret \u586b\u5165\u4e0a\u65b9 Webhook Secret', '\u9009\u62e9\u6240\u9700\u4e8b\u4ef6\u5e76\u4fdd\u5b58'], cls: 'guide-github' },
+            gitlab:  { title: '\ud83e\udd8a GitLab \u914d\u7f6e\u6b65\u9aa4', steps: ['\u8fdb\u5165 GitLab \u9879\u76ee \u2192 Settings \u2192 Integrations', 'URL \u586b\u5165\u4e0a\u65b9 Webhook URL', 'Secret Token \u586b\u5165\u4e0a\u65b9 Webhook Secret', '\u52fe\u9009\u89e6\u53d1\u5668\u5e76\u4fdd\u5b58'], cls: 'guide-gitlab' },
+            vscode:  { title: '\ud83d\udcac VS Code Chat \u914d\u7f6e\u6b65\u9aa4', steps: ['\u5b89\u88c5\u914d\u5957 VS Code \u6269\u5c55', '\u6253\u5f00\u8bbe\u7f6e \u2192 \u641c\u7d22 feishu', 'Webhook Endpoint \u586b\u5165\u4e0a\u65b9 Webhook URL', 'Trigger Token \u586b\u5165\u4e0a\u65b9 Secret'], cls: 'guide-vscode' },
+            api:     { title: '\ud83d\udd0c Direct API \u8c03\u7528\u65b9\u5f0f', steps: ['\u5411\u4e0a\u65b9 Webhook URL \u53d1\u9001 POST \u8bf7\u6c42', '\u8bf7\u6c42\u4f53\uff1a{ title, summary, status, url? }', '\u8bf7\u6c42\u5934\uff1aX-Webhook-Secret: &lt;secret&gt;'], cls: 'guide-api' },
+            custom:  { title: '\ud83d\udee0\ufe0f Custom Webhook \u914d\u7f6e', steps: ['\u5411\u4e0a\u65b9 Webhook URL \u53d1\u9001 POST \u8bf7\u6c42', '\u8bf7\u6c42\u4f53\uff1a{ title, summary, status, event?, url? }', '\u8bf7\u6c42\u5934\uff1aX-Webhook-Secret: &lt;secret&gt;'], cls: 'guide-api' },
+        };
+        const guide = guideMap[selectedType] || guideMap['custom'];
+        document.getElementById('guide-platform-title').textContent = guide.title;
+        document.getElementById('guide-steps').innerHTML = guide.steps.map(s => `<li>${s}</li>`).join('');
+        document.getElementById('setup-guide-modal').classList.add('active');
+    }
+
+    function closeGuideModal() {
+        document.getElementById('setup-guide-modal').classList.remove('active');
+    }
+
+    function toggleIntegrationStatus(checkbox, id) {
+        const label = document.getElementById('label-' + id);
+        if (checkbox.checked) {
+            label.textContent = '\u542f\u7528';
+            label.className = 'toggle-label on';
+        } else {
+            label.textContent = '\u505c\u7528';
+            label.className = 'toggle-label off';
+        }
+    }
+
+    function copyGuide(inputId, btn) {
+        const val = document.getElementById(inputId).value;
+        navigator.clipboard.writeText(val).then(() => {
+            const orig = btn.textContent;
+            btn.textContent = '\u2713 \u5df2\u590d\u5236';
+            btn.style.background = '#10b981';
+            setTimeout(() => { btn.textContent = orig; btn.style.background = ''; }, 2000);
+        });
+    }
+
+    // 初始化：预览展示步骤2（Vercel 配置），模态框关闭状态
+    document.addEventListener('DOMContentLoaded', function () {
+        showConfigByType('vercel');
+        renderStep();
+        document.getElementById('addModal').addEventListener('click', function (e) {
+            if (e.target === this) closeAddModal();
+        });
+    });
+</script>
+
+<script>
+    // 父框架通信（在 INDEX.html 可动原型中作为 iframe 使用时生效）
+    function navigateParent(page) {
+        if (window.parent !== window && typeof window.parent.navigateTo === 'function') {
+            window.parent.navigateTo(page);
+        }
+        return false;
+    }
+</script>
+</body>
+</html>

@@ -26,7 +26,7 @@ router.post('/notify', async (req: Request, res: Response) => {
     if (!title || !summary || !status) {
       return res.status(400).json({
         success: false,
-        error: 'title, summary, and status are required',
+        error: '标题、摘要和状态为必需',
       });
     }
 
@@ -39,7 +39,7 @@ router.post('/notify', async (req: Request, res: Response) => {
       details: details ? JSON.stringify(details) : undefined,
     });
 
-    logger.info(`Notification saved with ID: ${notificationId}`, {
+    logger.info(`已保存通知，ID: ${notificationId}`, {
       title,
       status,
       action,
@@ -53,13 +53,13 @@ router.post('/notify', async (req: Request, res: Response) => {
     res.status(200).json({
       success: true,
       notificationId,
-      message: 'Notification processed successfully',
+      message: '通知已成功处理',
     });
   } catch (error) {
-    logger.error('Notify error', error);
+    logger.error('通知错误', error);
     res.status(500).json({
       success: false,
-      error: 'Internal server error',
+      error: '内部服务器错误',
     });
   }
 });
@@ -83,10 +83,10 @@ router.get('/notifications', async (req: Request, res: Response) => {
       offset,
     });
   } catch (error) {
-    logger.error('Get notifications error', error);
+    logger.error('获取通知列表错误', error);
     res.status(500).json({
       success: false,
-      error: 'Internal server error',
+      error: '内部服务器错误',
     });
   }
 });
@@ -104,10 +104,10 @@ router.get('/stats', async (req: Request, res: Response) => {
       stats,
     });
   } catch (error) {
-    logger.error('Get stats error', error);
+    logger.error('获取统计信息错误', error);
     res.status(500).json({
       success: false,
-      error: 'Internal server error',
+      error: '内部服务器错误',
     });
   }
 });

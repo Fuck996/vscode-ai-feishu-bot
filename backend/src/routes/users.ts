@@ -18,7 +18,7 @@ router.get('/me', authMiddleware, async (req: Request, res: Response) => {
     if (!user) {
       return res.status(404).json({
         success: false,
-        error: 'User not found',
+        error: '用户不存在',
       });
     }
 
@@ -31,10 +31,10 @@ router.get('/me', authMiddleware, async (req: Request, res: Response) => {
       status: user.status,
     });
   } catch (error) {
-    console.error('Get user error:', error);
+    console.error('获取用户信息错误:', error);
     res.status(500).json({
       success: false,
-      error: 'Internal server error',
+      error: '内部服务器错误',
     });
   }
 });
@@ -52,13 +52,13 @@ router.put('/profile', authMiddleware, async (req: Request, res: Response) => {
 
     res.json({
       success: true,
-      message: 'Profile updated successfully',
+      message: '用户信息已成功更新',
     });
   } catch (error) {
-    console.error('Update profile error:', error);
+    console.error('更新用户信息错误:', error);
     res.status(500).json({
       success: false,
-      error: 'Internal server error',
+      error: '内部服务器错误',
     });
   }
 });
@@ -75,14 +75,14 @@ router.post('/change-password', authMiddleware, async (req: Request, res: Respon
     if (!currentPassword || !newPassword) {
       return res.status(400).json({
         success: false,
-        error: 'Current password and new password are required',
+        error: '当前密码和新密码为必需',
       });
     }
 
     if (newPassword.length < 6) {
       return res.status(400).json({
         success: false,
-        error: 'New password must be at least 6 characters',
+        error: '新密码至少为 6 个字符',
       });
     }
 
@@ -90,7 +90,7 @@ router.post('/change-password', authMiddleware, async (req: Request, res: Respon
     if (!user) {
       return res.status(404).json({
         success: false,
-        error: 'User not found',
+        error: '用户不存在',
       });
     }
 
@@ -99,7 +99,7 @@ router.post('/change-password', authMiddleware, async (req: Request, res: Respon
     if (!isValid) {
       return res.status(401).json({
         success: false,
-        error: 'Current password is incorrect',
+        error: '当前密码不正确',
       });
     }
 
@@ -108,13 +108,13 @@ router.post('/change-password', authMiddleware, async (req: Request, res: Respon
 
     res.json({
       success: true,
-      message: 'Password changed successfully',
+      message: '密码已成功修改',
     });
   } catch (error) {
-    console.error('Change password error:', error);
+    console.error('修改密码错误:', error);
     res.status(500).json({
       success: false,
-      error: 'Internal server error',
+      error: '内部服务器错误',
     });
   }
 });
@@ -132,7 +132,7 @@ router.post('/system/restore', authMiddleware, async (req: Request, res: Respons
     if (!user || user.role !== 'admin') {
       return res.status(403).json({
         success: false,
-        error: 'Only admin can perform system restore',
+        error: '仅管理员可以执行系统还原',
       });
     }
 
@@ -147,13 +147,13 @@ router.post('/system/restore', authMiddleware, async (req: Request, res: Respons
 
     res.json({
       success: true,
-      message: 'System restored successfully',
+      message: '系统已成功还原',
     });
   } catch (error) {
-    console.error('System restore error:', error);
+    console.error('系统还原错误:', error);
     res.status(500).json({
       success: false,
-      error: 'Internal server error',
+      error: '内部服务器错误',
     });
   }
 });

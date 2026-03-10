@@ -1,0 +1,1100 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>飞书AI通知系统 - 高级功能预览</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background-color: #f3f4f6;
+            color: #1f2937;
+        }
+
+        /* ===== 导航栏 ===== */
+        .navbar {
+            background: white;
+            box-shadow: 0 1px 3px 0 rgba(0,0,0,0.1);
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .navbar-brand { display: flex; align-items: center; gap: 0.5rem; font-size: 1.25rem; font-weight: bold; color: #1f2937; }
+        .navbar-nav { display: flex; gap: 1rem; align-items: center; }
+        .nav-item { padding: 0.5rem 1rem; cursor: pointer; border-radius: 0.375rem; text-decoration: none; color: #6b7280; font-size: 0.875rem; transition: background-color 0.2s; }
+        .nav-item:hover { background-color: #f3f4f6; color: #1f2937; }
+        .nav-item.active { background-color: #dbeafe; color: #1e40af; font-weight: 500; }
+        .user-info { display: flex; align-items: center; gap: 0.5rem; color: #6b7280; font-size: 0.875rem; }
+        .logout-btn { padding: 0.5rem 1rem; background-color: #ef4444; color: white; border: none; border-radius: 0.375rem; cursor: pointer; font-size: 0.875rem; }
+
+        /* ===== 主容器 ===== */
+        .container { max-width: 1400px; margin: 0 auto; padding: 2rem; }
+
+        /* ===== 侧边标签栏 ===== */
+        .admin-layout {
+            display: grid;
+            grid-template-columns: 220px 1fr;
+            gap: 1.5rem;
+        }
+        .admin-menu {
+            background: white;
+            border-radius: 0.5rem;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            overflow: hidden;
+            height: fit-content;
+        }
+        .admin-menu-title {
+            padding: 1rem 1.25rem;
+            font-size: 0.75rem;
+            font-weight: 700;
+            color: #9ca3af;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            border-bottom: 1px solid #f3f4f6;
+            background: #f9fafb;
+        }
+        .menu-item {
+            padding: 0.875rem 1.25rem;
+            cursor: pointer;
+            border-left: 3px solid transparent;
+            font-size: 0.875rem;
+            color: #6b7280;
+            border-bottom: 1px solid #f3f4f6;
+            transition: all 0.15s;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .menu-item:hover { background: #f3f4f6; color: #1f2937; }
+        .menu-item.active { background: #dbeafe; border-left-color: #1e40af; color: #1e40af; font-weight: 500; }
+        .menu-badge {
+            margin-left: auto;
+            background: #ef4444; color: white;
+            font-size: 0.65rem; font-weight: 700;
+            padding: 0.1rem 0.4rem;
+            border-radius: 9999px;
+        }
+
+        /* ===== 内容区 ===== */
+        .admin-content { min-width: 0; }
+        .page-title { font-size: 1.5rem; font-weight: bold; color: #1f2937; margin-bottom: 0.25rem; }
+        .page-subtitle { font-size: 0.875rem; color: #6b7280; margin-bottom: 1.5rem; }
+
+        /* ===== 卡片 ===== */
+        .card {
+            background: white;
+            border-radius: 0.5rem;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            margin-bottom: 1.5rem;
+            overflow: hidden;
+        }
+        .card-header {
+            padding: 1.25rem 1.5rem;
+            border-bottom: 1px solid #e5e7eb;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .card-title { font-size: 1rem; font-weight: 600; color: #1f2937; }
+        .card-body { padding: 1.5rem; }
+
+        /* ===== 用户管理 ===== */
+        table { width: 100%; border-collapse: collapse; }
+        thead { background: #f9fafb; }
+        th { padding: 0.75rem 1rem; text-align: left; font-weight: 600; font-size: 0.8rem; color: #6b7280; border-bottom: 1px solid #e5e7eb; text-transform: uppercase; letter-spacing: 0.03em; }
+        td { padding: 0.875rem 1rem; font-size: 0.875rem; color: #374151; border-bottom: 1px solid #f3f4f6; }
+        tbody tr:hover { background: #f9fafb; }
+
+        .role-badge {
+            padding: 0.2rem 0.625rem;
+            border-radius: 9999px;
+            font-size: 0.75rem; font-weight: 600;
+        }
+        .role-admin { background: #fef3c7; color: #92400e; }
+        .role-user  { background: #dbeafe; color: #1e40af; }
+        .status-chip {
+            display: inline-flex; align-items: center; gap: 0.3rem;
+            font-size: 0.75rem; font-weight: 600;
+        }
+        .status-dot-green { width: 6px; height: 6px; border-radius: 50%; background: #10b981; }
+        .status-dot-gray  { width: 6px; height: 6px; border-radius: 50%; background: #9ca3af; }
+        .status-text-green { color: #10b981; }
+        .status-text-gray  { color: #9ca3af; }
+
+        .btn {
+            padding: 0.375rem 0.75rem;
+            border: none;
+            border-radius: 0.25rem;
+            font-size: 0.75rem;
+            cursor: pointer;
+            transition: background-color 0.2s;
+            white-space: nowrap;
+        }
+        .btn-primary { background: #3b82f6; color: white; }
+        .btn-primary:hover { background: #2563eb; }
+        .btn-secondary { background: #e5e7eb; color: #374151; }
+        .btn-secondary:hover { background: #d1d5db; }
+        .btn-danger { background: #fef2f2; color: #ef4444; }
+        .btn-danger:hover { background: #fee2e2; }
+        .btn-green { background: #10b981; color: white; }
+        .btn-green:hover { background: #059669; }
+        .action-buttons { display: flex; gap: 0.375rem; }
+
+        /* ===== 审计日志 ===== */
+        .log-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 1rem;
+            padding: 0.875rem 0;
+            border-bottom: 1px solid #f3f4f6;
+        }
+        .log-item:last-child { border-bottom: none; }
+        .log-icon {
+            width: 32px; height: 32px;
+            border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 0.875rem;
+            flex-shrink: 0;
+        }
+        .log-icon-green { background: #d1fae5; }
+        .log-icon-red   { background: #fee2e2; }
+        .log-icon-blue  { background: #dbeafe; }
+        .log-icon-yellow{ background: #fef3c7; }
+        .log-icon-gray  { background: #f3f4f6; }
+        .log-body { flex: 1; min-width: 0; }
+        .log-title { font-size: 0.875rem; font-weight: 500; color: #1f2937; }
+        .log-desc { font-size: 0.8rem; color: #6b7280; margin-top: 0.125rem; }
+        .log-meta { font-size: 0.75rem; color: #9ca3af; margin-top: 0.25rem; }
+        .log-time { font-size: 0.75rem; color: #9ca3af; white-space: nowrap; }
+
+        /* ===== 通知模板 ===== */
+        .template-card {
+            border: 1px solid #e5e7eb;
+            border-radius: 0.5rem;
+            overflow: hidden;
+            margin-bottom: 1rem;
+            transition: box-shadow 0.15s;
+        }
+        .template-card:hover { box-shadow: 0 4px 6px rgba(0,0,0,0.07); }
+        .template-header {
+            padding: 1rem 1.25rem;
+            background: #f9fafb;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .template-name { font-weight: 600; font-size: 0.875rem; color: #1f2937; }
+        .template-type-badge {
+            padding: 0.2rem 0.625rem;
+            border-radius: 0.25rem;
+            font-size: 0.7rem; font-weight: 600;
+        }
+        .tmpl-success { background: #d1fae5; color: #065f46; }
+        .tmpl-error   { background: #fee2e2; color: #991b1b; }
+        .tmpl-warning { background: #fef3c7; color: #92400e; }
+        .tmpl-info    { background: #dbeafe; color: #1e40af; }
+        .template-body { padding: 1rem 1.25rem; }
+        .template-preview {
+            background: #1e1e2e;
+            color: #cdd6f4;
+            border-radius: 0.375rem;
+            padding: 0.875rem 1rem;
+            font-family: 'Consolas', 'Monaco', monospace;
+            font-size: 0.775rem;
+            line-height: 1.6;
+            margin-bottom: 0.875rem;
+            white-space: pre-wrap;
+        }
+        .template-vars { display: flex; flex-wrap: wrap; gap: 0.375rem; }
+        .var-tag {
+            background: #ede9fe; color: #5b21b6;
+            padding: 0.15rem 0.5rem;
+            border-radius: 0.25rem;
+            font-size: 0.7rem; font-family: monospace;
+        }
+        .template-actions { display: flex; gap: 0.5rem; }
+
+        /* ===== 统计卡片 ===== */
+        .stats-row {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+        .stat-card {
+            background: white;
+            border-radius: 0.5rem;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            padding: 1rem 1.25rem;
+        }
+        .stat-label { font-size: 0.75rem; color: #6b7280; margin-bottom: 0.25rem; }
+        .stat-value { font-size: 1.75rem; font-weight: bold; color: #1f2937; }
+        .stat-sub { font-size: 0.75rem; color: #9ca3af; margin-top: 0.25rem; }
+
+        /* ===== 分页 ===== */
+        .pagination {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 0.375rem;
+            margin-top: 1.25rem;
+        }
+        .page-btn {
+            padding: 0.375rem 0.75rem;
+            border: 1px solid #e5e7eb;
+            border-radius: 0.25rem;
+            background: white;
+            font-size: 0.8rem;
+            cursor: pointer;
+            color: #374151;
+        }
+        .page-btn.active { background: #3b82f6; color: white; border-color: #3b82f6; }
+        .page-btn:hover:not(.active) { background: #f3f4f6; }
+
+        /* ===== 搜索栏 ===== */
+        .search-bar {
+            display: flex;
+            gap: 0.75rem;
+            margin-bottom: 1.25rem;
+        }
+        .search-input {
+            flex: 1;
+            padding: 0.5rem 0.75rem;
+            border: 1px solid #d1d5db;
+            border-radius: 0.375rem;
+            font-size: 0.875rem;
+        }
+        .search-input:focus { outline: none; border-color: #3b82f6; box-shadow: 0 0 0 3px rgba(59,130,246,0.1); }
+        .filter-select {
+            padding: 0.5rem 0.75rem;
+            border: 1px solid #d1d5db;
+            border-radius: 0.375rem;
+            font-size: 0.875rem;
+            background: white;
+        }
+
+        /* ===== 模态框 ===== */
+        .modal {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.5);
+            z-index: 50;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem 1rem;
+        }
+        .modal.active { display: flex; }
+        .modal-content {
+            background: white;
+            border-radius: 0.5rem;
+            box-shadow: 0 20px 25px rgba(0,0,0,0.15);
+            width: 100%;
+            max-width: 520px;
+        }
+        .modal-header {
+            padding: 1.25rem 1.5rem;
+            border-bottom: 1px solid #e5e7eb;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .modal-header h2 { font-size: 1.125rem; font-weight: 600; color: #1f2937; margin: 0; }
+        .modal-close { background: none; border: none; font-size: 1.25rem; cursor: pointer; color: #6b7280; padding: 0.25rem 0.5rem; }
+        .modal-body { padding: 1.5rem; }
+        .modal-footer { padding: 1rem 1.5rem; border-top: 1px solid #e5e7eb; display: flex; gap: 0.75rem; justify-content: flex-end; }
+        .form-group { margin-bottom: 1.25rem; }
+        .form-label { display: block; font-weight: 500; font-size: 0.875rem; color: #1f2937; margin-bottom: 0.4rem; }
+        .form-label .required { color: #ef4444; }
+        .form-input, .form-select {
+            width: 100%;
+            padding: 0.5rem 0.75rem;
+            border: 1px solid #d1d5db;
+            border-radius: 0.375rem;
+            font-size: 0.875rem;
+            font-family: inherit;
+        }
+        .form-input:focus, .form-select:focus { outline: none; border-color: #3b82f6; box-shadow: 0 0 0 3px rgba(59,130,246,0.1); }
+        .form-hint { font-size: 0.75rem; color: #6b7280; margin-top: 0.25rem; }
+        .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+
+        .btn-cancel { padding: 0.5rem 1.25rem; background: #e5e7eb; color: #374151; border: none; border-radius: 0.375rem; cursor: pointer; font-size: 0.875rem; font-weight: 500; }
+        .btn-cancel:hover { background: #d1d5db; }
+        .btn-create { padding: 0.5rem 1.25rem; background: #3b82f6; color: white; border: none; border-radius: 0.375rem; cursor: pointer; font-size: 0.875rem; font-weight: 500; }
+        .btn-create:hover { background: #2563eb; }
+
+        /* ===== tab 切换 ===== */
+        .tab-bar {
+            display: flex;
+            border-bottom: 2px solid #e5e7eb;
+            margin-bottom: 1.5rem;
+        }
+        .tab-item {
+            padding: 0.75rem 1.25rem;
+            font-size: 0.875rem;
+            color: #6b7280;
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+            margin-bottom: -2px;
+            transition: all 0.15s;
+            display: flex;
+            align-items: center;
+            gap: 0.375rem;
+        }
+        .tab-item:hover { color: #1f2937; }
+        .tab-item.active { color: #1e40af; border-bottom-color: #1e40af; font-weight: 500; }
+
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+
+        .footer {
+            text-align: center;
+            padding: 1.5rem 2rem;
+            color: #9ca3af;
+            font-size: 0.875rem;
+            background: white;
+            border-top: 1px solid #e5e7eb;
+            margin-top: 2rem;
+        }
+
+        @media (max-width: 968px) {
+            .admin-layout { grid-template-columns: 1fr; }
+            .admin-menu { display: none; }
+            .stats-row { grid-template-columns: repeat(2, 1fr); }
+        }
+        @media (max-width: 640px) {
+            .navbar { flex-direction: column; gap: 1rem; }
+            .container { padding: 1rem; }
+            .stats-row { grid-template-columns: 1fr 1fr; }
+            .form-row { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+
+<!-- 顶部导航栏 -->
+<div class="navbar">
+    <div class="navbar-brand">
+        <span>🔔</span>
+        <span>飞书AI通知系统</span>
+    </div>
+    <div class="navbar-nav">
+        <a href="#" class="nav-item">📊 仪表板</a>
+        <a href="#" class="nav-item">🤖 机器人</a>
+        <a href="#" class="nav-item">📜 历史</a>
+        <a href="#" class="nav-item active">⚙️ 设置</a>
+    </div>
+    <div class="user-info">
+        <span>👤 admin</span>
+        <button class="logout-btn">退出</button>
+    </div>
+</div>
+
+<!-- 主容器 -->
+<div class="container">
+    <div class="admin-layout">
+
+        <!-- 左侧菜单 -->
+        <div class="admin-menu">
+            <div class="admin-menu-title">高级管理</div>
+            <div class="menu-item" onclick="switchTab('users')" id="menu-users">👥 用户管理</div>
+            <div class="menu-item active" onclick="switchTab('templates')" id="menu-templates">📄 通知模板</div>
+            <div class="menu-item" onclick="switchTab('audit')" id="menu-audit">
+                🔍 审计日志
+                <span class="menu-badge">3</span>
+            </div>
+            <div class="admin-menu-title" style="margin-top:0.5rem;">系统配置</div>
+            <div class="menu-item" onclick="switchTab('notify-settings')" id="menu-notify-settings">🔔 飞书通知配置</div>
+        </div>
+
+        <!-- 右侧内容 -->
+        <div class="admin-content">
+
+            <!-- ===== 用户管理 Tab ===== -->
+            <div class="tab-content" id="tab-users">
+                <h1 class="page-title">👥 用户管理</h1>
+                <p class="page-subtitle">管理系统账户、角色与访问权限</p>
+
+                <div class="stats-row" style="grid-template-columns:repeat(3,1fr)">
+                    <div class="stat-card">
+                        <div class="stat-label">总用户数</div>
+                        <div class="stat-value">5</div>
+                        <div class="stat-sub">已注册账户</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">管理员</div>
+                        <div class="stat-value" style="color:#f59e0b;">1</div>
+                        <div class="stat-sub">拥有所有权限</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">活跃用户</div>
+                        <div class="stat-value" style="color:#10b981;">4</div>
+                        <div class="stat-sub">最近7天登录</div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <span class="card-title">所有用户</span>
+                        <button class="btn btn-green" onclick="openUserModal()">➕ 新建用户</button>
+                    </div>
+                    <div>
+                        <div style="padding:1rem 1.5rem;border-bottom:1px solid #e5e7eb;">
+                            <div class="search-bar" style="margin-bottom:0;">
+                                <input type="text" class="search-input" placeholder="🔍 搜索用户名或邮箱…">
+                                <select class="filter-select">
+                                    <option>所有角色</option>
+                                    <option>管理员</option>
+                                    <option>普通用户</option>
+                                </select>
+                                <select class="filter-select">
+                                    <option>所有状态</option>
+                                    <option>活跃</option>
+                                    <option>停用</option>
+                                </select>
+                            </div>
+                        </div>
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>用户名</th>
+                                    <th>邮箱</th>
+                                    <th>角色</th>
+                                    <th>状态</th>
+                                    <th>最后登录</th>
+                                    <th>操作</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>
+                                        <div style="font-weight:500;">admin</div>
+                                        <div style="font-size:0.75rem;color:#9ca3af;">系统管理员</div>
+                                    </td>
+                                    <td>admin@company.com</td>
+                                    <td><span class="role-badge role-admin">管理员</span></td>
+                                    <td>
+                                        <span class="status-chip">
+                                            <span class="status-dot-green"></span>
+                                            <span class="status-text-green">活跃</span>
+                                        </span>
+                                    </td>
+                                    <td>刚刚</td>
+                                    <td>
+                                        <div class="action-buttons">
+                                            <button class="btn btn-secondary">编辑</button>
+                                            <button class="btn btn-danger" disabled style="opacity:0.4;cursor:not-allowed;">删除</button>
+                                        </div>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>
+                                        <div style="font-weight:500;">zhangwei</div>
+                                        <div style="font-size:0.75rem;color:#9ca3af;">张伟</div>
+                                    </td>
+                                    <td>zhangwei@company.com</td>
+                                    <td><span class="role-badge role-user">普通用户</span></td>
+                                    <td>
+                                        <span class="status-chip">
+                                            <span class="status-dot-green"></span>
+                                            <span class="status-text-green">活跃</span>
+                                        </span>
+                                    </td>
+                                    <td>2小时前</td>
+                                    <td>
+                                        <div class="action-buttons">
+                                            <button class="btn btn-secondary">编辑</button>
+                                            <button class="btn btn-danger">删除</button>
+                                        </div>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>
+                                        <div style="font-weight:500;">lina</div>
+                                        <div style="font-size:0.75rem;color:#9ca3af;">李娜</div>
+                                    </td>
+                                    <td>lina@company.com</td>
+                                    <td><span class="role-badge role-user">普通用户</span></td>
+                                    <td>
+                                        <span class="status-chip">
+                                            <span class="status-dot-green"></span>
+                                            <span class="status-text-green">活跃</span>
+                                        </span>
+                                    </td>
+                                    <td>1天前</td>
+                                    <td>
+                                        <div class="action-buttons">
+                                            <button class="btn btn-secondary">编辑</button>
+                                            <button class="btn btn-danger">删除</button>
+                                        </div>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>
+                                        <div style="font-weight:500;">wanggang</div>
+                                        <div style="font-size:0.75rem;color:#9ca3af;">王刚</div>
+                                    </td>
+                                    <td>wanggang@company.com</td>
+                                    <td><span class="role-badge role-user">普通用户</span></td>
+                                    <td>
+                                        <span class="status-chip">
+                                            <span class="status-dot-gray"></span>
+                                            <span class="status-text-gray">停用</span>
+                                        </span>
+                                    </td>
+                                    <td>14天前</td>
+                                    <td>
+                                        <div class="action-buttons">
+                                            <button class="btn btn-secondary">编辑</button>
+                                            <button class="btn btn-danger">删除</button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                        <div class="pagination" style="padding-bottom:1rem;">
+                            <button class="page-btn">‹</button>
+                            <button class="page-btn active">1</button>
+                            <button class="page-btn">2</button>
+                            <button class="page-btn">›</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ===== 通知模板 Tab ===== -->
+            <div class="tab-content active" id="tab-templates">
+                <h1 class="page-title">📄 通知模板</h1>
+                <p class="page-subtitle">自定义不同事件类型的消息格式与内容</p>
+
+                <div class="card">
+                    <div class="card-header">
+                        <span class="card-title">消息模板库</span>
+                        <button class="btn btn-green" onclick="openNewTemplateModal()">➕ 新建模板</button>
+                    </div>
+                    <div class="card-body">
+
+                        <!-- 模板1：部署成功 -->
+                        <div class="template-card">
+                            <div class="template-header">
+                                <div>
+                                    <span class="template-name">🚀 部署成功通知</span>
+                                    <span style="font-size:0.75rem;color:#6b7280;margin-left:0.75rem;">deploy_success</span>
+                                </div>
+                                <span class="template-type-badge tmpl-success">成功</span>
+                            </div>
+                            <div class="template-body">
+                                <div class="template-preview">🚀 **{{project}}** 部署成功！
+
+环境：{{environment}}
+版本：{{version}}
+分支：{{branch}}
+触发者：{{actor}}
+耗时：{{duration}}
+时间：{{timestamp}}</div>
+                                <div style="display:flex;justify-content:space-between;align-items:center;">
+                                    <div>
+                                        <div style="font-size:0.75rem;color:#6b7280;margin-bottom:0.375rem;">可用变量</div>
+                                        <div class="template-vars">
+                                            <span class="var-tag">{{project}}</span>
+                                            <span class="var-tag">{{environment}}</span>
+                                            <span class="var-tag">{{version}}</span>
+                                            <span class="var-tag">{{branch}}</span>
+                                            <span class="var-tag">{{actor}}</span>
+                                            <span class="var-tag">{{duration}}</span>
+                                            <span class="var-tag">{{timestamp}}</span>
+                                        </div>
+                                    </div>
+                                    <div class="template-actions">
+                                        <button class="btn btn-secondary">预览</button>
+                                        <button class="btn btn-primary">编辑</button>
+                                        <button class="btn btn-danger">删除</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 模板2：部署失败 -->
+                        <div class="template-card">
+                            <div class="template-header">
+                                <div>
+                                    <span class="template-name">❌ 部署失败告警</span>
+                                    <span style="font-size:0.75rem;color:#6b7280;margin-left:0.75rem;">deploy_failure</span>
+                                </div>
+                                <span class="template-type-badge tmpl-error">失败</span>
+                            </div>
+                            <div class="template-body">
+                                <div class="template-preview">🚨 **{{project}}** 部署失败！请立即处理
+
+环境：{{environment}}  |  分支：{{branch}}
+错误：{{error_message}}
+触发者：{{actor}}  |  时间：{{timestamp}}
+
+[查看构建日志]({{build_url}})</div>
+                                <div style="display:flex;justify-content:space-between;align-items:center;">
+                                    <div>
+                                        <div style="font-size:0.75rem;color:#6b7280;margin-bottom:0.375rem;">可用变量</div>
+                                        <div class="template-vars">
+                                            <span class="var-tag">{{project}}</span>
+                                            <span class="var-tag">{{environment}}</span>
+                                            <span class="var-tag">{{branch}}</span>
+                                            <span class="var-tag">{{error_message}}</span>
+                                            <span class="var-tag">{{actor}}</span>
+                                            <span class="var-tag">{{build_url}}</span>
+                                            <span class="var-tag">{{timestamp}}</span>
+                                        </div>
+                                    </div>
+                                    <div class="template-actions">
+                                        <button class="btn btn-secondary">预览</button>
+                                        <button class="btn btn-primary">编辑</button>
+                                        <button class="btn btn-danger">删除</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 模板3：PR 合并 -->
+                        <div class="template-card">
+                            <div class="template-header">
+                                <div>
+                                    <span class="template-name">🔀 PR 合并通知</span>
+                                    <span style="font-size:0.75rem;color:#6b7280;margin-left:0.75rem;">pr_merged</span>
+                                </div>
+                                <span class="template-type-badge tmpl-info">信息</span>
+                            </div>
+                            <div class="template-body">
+                                <div class="template-preview">🔀 PR 已合并：{{pr_title}}
+
+仓库：{{repo}}
+分支：{{source_branch}} → {{target_branch}}
+合并者：{{actor}}  |  时间：{{timestamp}}</div>
+                                <div style="display:flex;justify-content:space-between;align-items:center;">
+                                    <div>
+                                        <div style="font-size:0.75rem;color:#6b7280;margin-bottom:0.375rem;">可用变量</div>
+                                        <div class="template-vars">
+                                            <span class="var-tag">{{pr_title}}</span>
+                                            <span class="var-tag">{{repo}}</span>
+                                            <span class="var-tag">{{source_branch}}</span>
+                                            <span class="var-tag">{{target_branch}}</span>
+                                            <span class="var-tag">{{actor}}</span>
+                                            <span class="var-tag">{{timestamp}}</span>
+                                        </div>
+                                    </div>
+                                    <div class="template-actions">
+                                        <button class="btn btn-secondary">预览</button>
+                                        <button class="btn btn-primary">编辑</button>
+                                        <button class="btn btn-danger">删除</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+
+            <!-- ===== 审计日志 Tab ===== -->
+            <div class="tab-content" id="tab-audit">
+                <h1 class="page-title">🔍 审计日志</h1>
+                <p class="page-subtitle">系统操作记录，追踪所有关键变更</p>
+
+                <div class="card">
+                    <div class="card-header">
+                        <span class="card-title">操作记录</span>
+                        <button class="btn btn-secondary">📥 导出日志</button>
+                    </div>
+                    <div class="card-body">
+                        <div class="search-bar">
+                            <input type="text" class="search-input" placeholder="🔍 搜索操作或用户…">
+                            <select class="filter-select">
+                                <option>所有操作</option>
+                                <option>用户操作</option>
+                                <option>机器人操作</option>
+                                <option>集成操作</option>
+                                <option>通知发送</option>
+                            </select>
+                            <select class="filter-select">
+                                <option>最近7天</option>
+                                <option>最近30天</option>
+                                <option>最近90天</option>
+                            </select>
+                        </div>
+
+                        <div class="log-item">
+                            <div class="log-icon log-icon-red">🚫</div>
+                            <div class="log-body">
+                                <div class="log-title">通知发送失败</div>
+                                <div class="log-desc">机器人「告警通知」向飞书发送消息失败 — Webhook 超时（5s）</div>
+                                <div class="log-meta">IP: 192.168.1.45 &nbsp;·&nbsp; 来源: api-service</div>
+                            </div>
+                            <div class="log-time">5分钟前</div>
+                        </div>
+
+                        <div class="log-item">
+                            <div class="log-icon log-icon-blue">✏️</div>
+                            <div class="log-body">
+                                <div class="log-title">编辑集成配置</div>
+                                <div class="log-desc">用户「admin」修改了机器人「生产部署通知」的 Jenkins 集成配置</div>
+                                <div class="log-meta">IP: 192.168.1.10</div>
+                            </div>
+                            <div class="log-time">23分钟前</div>
+                        </div>
+
+                        <div class="log-item">
+                            <div class="log-icon log-icon-green">✅</div>
+                            <div class="log-body">
+                                <div class="log-title">通知发送成功</div>
+                                <div class="log-desc">机器人「生产部署通知」成功推送「deploy_success」事件到飞书群组</div>
+                                <div class="log-meta">IP: 10.0.0.3 &nbsp;·&nbsp; 来源: jenkins</div>
+                            </div>
+                            <div class="log-time">1小时前</div>
+                        </div>
+
+                        <div class="log-item">
+                            <div class="log-icon log-icon-yellow">⚠️</div>
+                            <div class="log-body">
+                                <div class="log-title">密码修改</div>
+                                <div class="log-desc">用户「zhangwei」修改了账户密码</div>
+                                <div class="log-meta">IP: 192.168.1.22</div>
+                            </div>
+                            <div class="log-time">2小时前</div>
+                        </div>
+
+                        <div class="log-item">
+                            <div class="log-icon log-icon-blue">➕</div>
+                            <div class="log-body">
+                                <div class="log-title">新建机器人</div>
+                                <div class="log-desc">用户「admin」新建了机器人「测试验证通知」</div>
+                                <div class="log-meta">IP: 192.168.1.10</div>
+                            </div>
+                            <div class="log-time">3小时前</div>
+                        </div>
+
+                        <div class="log-item">
+                            <div class="log-icon log-icon-gray">🔑</div>
+                            <div class="log-body">
+                                <div class="log-title">用户登录</div>
+                                <div class="log-desc">用户「lina」成功登录系统</div>
+                                <div class="log-meta">IP: 192.168.1.35 &nbsp;·&nbsp; 浏览器: Chrome 122</div>
+                            </div>
+                            <div class="log-time">5小时前</div>
+                        </div>
+
+                        <div class="log-item">
+                            <div class="log-icon log-icon-red">🗑️</div>
+                            <div class="log-body">
+                                <div class="log-title">删除机器人</div>
+                                <div class="log-desc">用户「admin」删除了机器人「旧告警机器人」（含 2 个集成配置）</div>
+                                <div class="log-meta">IP: 192.168.1.10</div>
+                            </div>
+                            <div class="log-time">1天前</div>
+                        </div>
+
+                        <div class="pagination">
+                            <button class="page-btn">‹</button>
+                            <button class="page-btn active">1</button>
+                            <button class="page-btn">2</button>
+                            <button class="page-btn">3</button>
+                            <button class="page-btn">›</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ===== 飞书通知配置 Tab ===== -->
+            <div class="tab-content" id="tab-notify-settings">
+                <h1 class="page-title">🔔 飞书通知配置</h1>
+                <p class="page-subtitle">配置通知发送行为与重试策略</p>
+                <div class="card">
+                    <div class="card-header"><span class="card-title">全局配置</span></div>
+                    <div class="card-body">
+                        <div class="form-group">
+                            <label class="form-label">默认飞书群组 ID</label>
+                            <input type="text" class="form-input" placeholder="输入群组 ID" value="oc_4adafc38b1e37ae3d84c1f6b14e8d4b5">
+                            <div class="form-hint">全局默认群组，机器人未指定群组时使用</div>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">错误回调地址</label>
+                            <input type="text" class="form-input" placeholder="https://…" value="https://ops.company.com/webhook/feishu-error">
+                            <div class="form-hint">通知发送失败时触发此回调</div>
+                        </div>
+                        <div style="display:flex;flex-direction:column;gap:1rem;margin-bottom:1.25rem;">
+                            <label style="display:flex;justify-content:space-between;align-items:center;font-size:0.875rem;font-weight:500;color:#1f2937;">
+                                启用失败自动重试
+                                <div style="width:44px;height:24px;background:#10b981;border-radius:12px;position:relative;cursor:pointer;">
+                                    <div style="width:20px;height:20px;background:white;border-radius:10px;position:absolute;top:2px;left:22px;"></div>
+                                </div>
+                            </label>
+                            <div class="form-row">
+                                <div class="form-group" style="margin-bottom:0;">
+                                    <label class="form-label">最大重试次数</label>
+                                    <input type="number" class="form-input" value="3" min="1" max="10">
+                                </div>
+                                <div class="form-group" style="margin-bottom:0;">
+                                    <label class="form-label">重试间隔（秒）</label>
+                                    <input type="number" class="form-input" value="5" min="1">
+                                </div>
+                            </div>
+                            <label style="display:flex;justify-content:space-between;align-items:center;font-size:0.875rem;font-weight:500;color:#1f2937;">
+                                启用消息批处理
+                                <div style="width:44px;height:24px;background:#cbd5e1;border-radius:12px;position:relative;cursor:pointer;">
+                                    <div style="width:20px;height:20px;background:white;border-radius:10px;position:absolute;top:2px;left:2px;"></div>
+                                </div>
+                            </label>
+                        </div>
+                        <button class="btn btn-primary">保存配置</button>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+<!-- ===== 新建模板模态框 ===== -->
+<div class="modal" id="newTemplateModal">
+    <div class="modal-content" style="max-width:680px;">
+        <div class="modal-header">
+            <h2>📄 新建通知模板</h2>
+            <button class="modal-close" onclick="closeNewTemplateModal()">✕</button>
+        </div>
+        <div class="modal-body">
+
+            <!-- 基础信息 -->
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1.25rem;">
+                <div class="form-group" style="margin-bottom:0;">
+                    <label class="form-label">模板名称 <span class="required">*</span></label>
+                    <input type="text" class="form-input" id="tpl-name" placeholder="例如：构建成功通知">
+                    <div class="form-hint">便于识别和管理的友好名称</div>
+                </div>
+                <div class="form-group" style="margin-bottom:0;">
+                    <label class="form-label">事件标识符 <span class="required">*</span></label>
+                    <input type="text" class="form-input" id="tpl-key" placeholder="例如：build_success" style="font-family:monospace;">
+                    <div class="form-hint">集成配置中的事件 key，唯一</div>
+                </div>
+            </div>
+
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1.25rem;">
+                <div class="form-group" style="margin-bottom:0;">
+                    <label class="form-label">消息类型 <span class="required">*</span></label>
+                    <select class="form-select" id="tpl-type">
+                        <option value="success">✅ 成功（绿色）</option>
+                        <option value="error">❌ 失败（红色）</option>
+                        <option value="warning">⚠️ 警告（黄色）</option>
+                        <option value="info">ℹ️ 信息（蓝色）</option>
+                    </select>
+                </div>
+                <div class="form-group" style="margin-bottom:0;">
+                    <label class="form-label">适用集成类型</label>
+                    <select class="form-select" id="tpl-integration">
+                        <option value="all">适用所有集成</option>
+                        <option value="vercel">▲ Vercel</option>
+                        <option value="railway">🚂 Railway</option>
+                        <option value="github">🐙 GitHub</option>
+                        <option value="gitlab">🦊 GitLab</option>
+                        <option value="vscode-chat">💬 VS Code Chat</option>
+                        <option value="api">🔌 Direct API</option>
+                        <option value="custom">🛠️ Custom</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- 模板内容编辑器 -->
+            <div class="form-group">
+                <label class="form-label">模板内容 <span class="required">*</span></label>
+                <textarea id="tpl-content" style="width:100%;min-height:140px;padding:0.75rem;border:1px solid #d1d5db;border-radius:0.375rem;font-family:'Consolas','Monaco',monospace;font-size:0.825rem;line-height:1.6;resize:vertical;background:#1e1e2e;color:#cdd6f4;" placeholder="输入模板内容，使用 {{变量名}} 插入动态值">🚀 **{{project}}** 构建成功！
+
+分支：{{branch}}  |  耗时：{{duration}}
+触发者：{{actor}}  |  时间：{{timestamp}}</textarea>
+                <div class="form-hint">支持 Markdown 格式与飞书富文本语法</div>
+            </div>
+
+            <!-- 可用变量参考 -->
+            <div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:0.5rem;padding:1rem;">
+                <div style="font-size:0.8rem;font-weight:600;color:#374151;margin-bottom:0.625rem;">📌 可用变量（点击插入）</div>
+                <div style="display:flex;flex-wrap:wrap;gap:0.375rem;margin-bottom:0.75rem;">
+                    <span class="var-tag" style="cursor:pointer;" onclick="insertVar('{{project}}')">{{project}}</span>
+                    <span class="var-tag" style="cursor:pointer;" onclick="insertVar('{{environment}}')">{{environment}}</span>
+                    <span class="var-tag" style="cursor:pointer;" onclick="insertVar('{{branch}}')">{{branch}}</span>
+                    <span class="var-tag" style="cursor:pointer;" onclick="insertVar('{{version}}')">{{version}}</span>
+                    <span class="var-tag" style="cursor:pointer;" onclick="insertVar('{{actor}}')">{{actor}}</span>
+                    <span class="var-tag" style="cursor:pointer;" onclick="insertVar('{{duration}}')">{{duration}}</span>
+                    <span class="var-tag" style="cursor:pointer;" onclick="insertVar('{{timestamp}}')">{{timestamp}}</span>
+                    <span class="var-tag" style="cursor:pointer;" onclick="insertVar('{{status}}')">{{status}}</span>
+                    <span class="var-tag" style="cursor:pointer;" onclick="insertVar('{{error_message}}')">{{error_message}}</span>
+                    <span class="var-tag" style="cursor:pointer;" onclick="insertVar('{{build_url}}')">{{build_url}}</span>
+                    <span class="var-tag" style="cursor:pointer;" onclick="insertVar('{{repo}}')">{{repo}}</span>
+                    <span class="var-tag" style="cursor:pointer;" onclick="insertVar('{{pr_title}}')">{{pr_title}}</span>
+                </div>
+                <div style="font-size:0.75rem;color:#9ca3af;">变量将在发送时被实际值替换。未提供的变量将显示为空。</div>
+            </div>
+
+            <!-- 实时预览 -->
+            <div style="margin-top:1.25rem;">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.5rem;">
+                    <span style="font-size:0.8rem;font-weight:600;color:#374151;">👁️ 发送效果预览</span>
+                    <button onclick="refreshPreview()" style="background:none;border:1px solid #d1d5db;border-radius:0.25rem;padding:0.2rem 0.625rem;font-size:0.75rem;cursor:pointer;color:#6b7280;">刷新</button>
+                </div>
+                <div id="tpl-preview-box" style="background:white;border:1px solid #e5e7eb;border-radius:0.5rem;padding:1rem;">
+                    <div style="display:flex;align-items:flex-start;gap:0.75rem;">
+                        <div style="width:36px;height:36px;background:#d1fae5;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:1.125rem;flex-shrink:0;">🚀</div>
+                        <div>
+                            <div style="font-weight:600;font-size:0.9rem;color:#1f2937;margin-bottom:0.375rem;">api-service 构建成功！</div>
+                            <div style="font-size:0.8rem;color:#6b7280;line-height:1.6;">分支：main &nbsp;|&nbsp; 耗时：2m 34s<br>触发者：zhangwei &nbsp;|&nbsp; 时间：2026-03-10 14:23:00</div>
+                        </div>
+                    </div>
+                    <div style="margin-top:0.75rem;padding-top:0.75rem;border-top:1px solid #f3f4f6;font-size:0.75rem;color:#9ca3af;">通过机器人「生产部署通知」发送</div>
+                </div>
+            </div>
+
+        </div>
+        <div class="modal-footer">
+            <button class="btn-cancel" onclick="closeNewTemplateModal()">取消</button>
+            <button class="btn" style="background:#e5e7eb;color:#374151;" onclick="saveTemplateDraft()">💾 保存草稿</button>
+            <button class="btn-create" onclick="saveTemplate()">✓ 创建模板</button>
+        </div>
+    </div>
+</div>
+
+<!-- 新建用户模态框 -->
+<div class="modal" id="userModal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2>👤 新建用户</h2>
+            <button class="modal-close" onclick="closeUserModal()">✕</button>
+        </div>
+        <div class="modal-body">
+            <div class="form-row">
+                <div class="form-group">
+                    <label class="form-label">用户名 <span class="required">*</span></label>
+                    <input type="text" class="form-input" placeholder="例如：zhangsan">
+                    <div class="form-hint">仅允许字母、数字、下划线</div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">昵称</label>
+                    <input type="text" class="form-input" placeholder="例如：张三">
+                </div>
+            </div>
+            <div class="form-group">
+                <label class="form-label">邮箱地址</label>
+                <input type="email" class="form-input" placeholder="user@company.com">
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label class="form-label">初始密码 <span class="required">*</span></label>
+                    <input type="password" class="form-input" placeholder="至少8位">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">角色 <span class="required">*</span></label>
+                    <select class="form-select">
+                        <option value="user" selected>普通用户</option>
+                        <option value="admin">管理员</option>
+                    </select>
+                </div>
+            </div>
+            <div style="background:#fef3c7;border:1px solid #fde68a;border-radius:0.375rem;padding:0.75rem;font-size:0.8rem;color:#92400e;">
+                ⚠️ 新用户首次登录时将被强制要求修改密码。
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn-cancel" onclick="closeUserModal()">取消</button>
+            <button class="btn-create" onclick="createUser()">✓ 创建用户</button>
+        </div>
+    </div>
+</div>
+
+<!-- 页脚 -->
+<div class="footer">
+    © 2026 飞书AI通知系统. 所有权利保留. | 前端 v1.0.0 | 后端 v1.0.0
+</div>
+
+<script>
+    // Tab 切换
+    const tabMap = {
+        'users': 'tab-users',
+        'templates': 'tab-templates',
+        'audit': 'tab-audit',
+        'notify-settings': 'tab-notify-settings',
+    };
+
+    function switchTab(tab) {
+        // 隐藏所有 tab
+        Object.values(tabMap).forEach(id => {
+            document.getElementById(id).classList.remove('active');
+        });
+        // 激活目标 tab
+        document.getElementById(tabMap[tab]).classList.add('active');
+
+        // 更新菜单选中状态
+        Object.keys(tabMap).forEach(key => {
+            const el = document.getElementById('menu-' + key);
+            if (el) el.classList.remove('active');
+        });
+        const menuEl = document.getElementById('menu-' + tab);
+        if (menuEl) menuEl.classList.add('active');
+    }
+
+    function openNewTemplateModal() {
+        document.getElementById('newTemplateModal').classList.add('active');
+    }
+
+    function closeNewTemplateModal() {
+        document.getElementById('newTemplateModal').classList.remove('active');
+    }
+
+    function insertVar(varStr) {
+        const ta = document.getElementById('tpl-content');
+        const start = ta.selectionStart;
+        const end = ta.selectionEnd;
+        ta.value = ta.value.slice(0, start) + varStr + ta.value.slice(end);
+        ta.selectionStart = ta.selectionEnd = start + varStr.length;
+        ta.focus();
+    }
+
+    function refreshPreview() {
+        // 示意刷新动画
+        const box = document.getElementById('tpl-preview-box');
+        box.style.opacity = '0.4';
+        setTimeout(() => { box.style.opacity = '1'; }, 300);
+    }
+
+    function saveTemplateDraft() {
+        alert('💾 草稿已保存！可在模板库中找到（草稿状态）。');
+        closeNewTemplateModal();
+    }
+
+    function saveTemplate() {
+        const name = document.getElementById('tpl-name').value.trim();
+        const key  = document.getElementById('tpl-key').value.trim();
+        const content = document.getElementById('tpl-content').value.trim();
+        if (!name) { alert('请填写模板名称'); document.getElementById('tpl-name').focus(); return; }
+        if (!key)  { alert('请填写事件标识符'); document.getElementById('tpl-key').focus(); return; }
+        if (!content) { alert('请填写模板内容'); document.getElementById('tpl-content').focus(); return; }
+        alert(`✅ 模板「${name}」已创建！\n\n事件标识符：${key}`);
+        closeNewTemplateModal();
+    }
+
+    function openUserModal() {
+        document.getElementById('userModal').classList.add('active');
+    }
+
+    function closeUserModal() {
+        document.getElementById('userModal').classList.remove('active');
+    }
+
+    function createUser() {
+        alert('✅ 用户已创建！\n\n该用户首次登录时将被要求修改密码。');
+        closeUserModal();
+    }
+
+    document.addEventListener('DOMContentLoaded', function () {
+        document.getElementById('userModal').addEventListener('click', function (e) {
+            if (e.target === this) closeUserModal();
+        });
+    });
+</script>
+</body>
+</html>

@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import authService from '../services/auth';
 
 interface Robot {
@@ -19,14 +20,18 @@ interface RobotsResponse {
 }
 
 export default function Robots() {
+  const navigate = useNavigate();
   const [robots, setRobots] = useState<Robot[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [testingRobotId, setTestingRobotId] = useState<string | null>(null);
   const [testMessage, setTestMessage] = useState<string | null>(null);
   const [isAddRobotModalOpen, setIsAddRobotModalOpen] = useState(false);
+  const [isEditRobotModalOpen, setIsEditRobotModalOpen] = useState(false);
+  const [editingRobot, setEditingRobot] = useState<Robot | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState({ name: '', description: '', webhookUrl: '' });
+  const [editFormData, setEditFormData] = useState({ name: '', description: '', webhookUrl: '' });
 
   const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
@@ -179,6 +184,56 @@ export default function Robots() {
   const handleFormInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
+  };
+
+  const handleEditFormInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { name, value } = e.target;
+    setEditFormData(prev => ({ ...prev, [name]: value }));
+  };
+
+  const handleOpenEditModal = (robot: Robot) => {
+    setEditingRobot(robot);
+    setEditFormData({ name: robot.name, description: robot.description || '', webhookUrl: robot.webhookUrl });
+    setIsEditRobotModalOpen(true);
+  };
+
+  const handleUpdateRobot = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingRobot) return;
+    if (!editFormData.name.trim()) { setError('请输入机器人名称'); return; }
+    if (!editFormData.webhookUrl.trim()) { setError('请输入 Webhook URL'); return; }
+    try {
+      new URL(editFormData.webhookUrl);
+    } catch {
+      setError('请输入有效的 URL 格式');
+      return;
+    }
+    try {
+      setIsSubmitting(true);
+      setError(null);
+      const token = authService.getToken();
+      if (!token) { setError('未授权，请重新登录'); return; }
+      const response = await fetch(`${API_BASE_URL}/api/robots/${editingRobot.id}`, {
+        method: 'PUT',
+        headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...editingRobot, ...editFormData }),
+      });
+      const data = await response.json();
+      if (response.ok && data.success) {
+        setRobots(robots.map(r => r.id === editingRobot.id ? { ...r, ...editFormData } : r));
+        setIsEditRobotModalOpen(false);
+        setEditingRobot(null);
+        setTestMessage('✅ 机器人已更新');
+        setTimeout(() => setTestMessage(null), 3000);
+      } else {
+        setError(data.error || '更新机器人失败');
+      }
+    } catch (err) {
+      console.error('Update robot error:', err);
+      setError('网络错误，请稍后重试');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleAddRobot = async (e: React.FormEvent) => {
@@ -494,7 +549,25 @@ export default function Robots() {
                             {testingRobotId === robot.id ? '测试中...' : '测试'}
                           </button>
                           <button
-                            onClick={() => {/* TODO: 实现编辑机器人 */}}
+                            onClick={() => navigate(`/robots/${robot.id}/integrations`)}
+                            style={{
+                              padding: '0.375rem 0.75rem',
+                              backgroundColor: '#a855f7',
+                              color: 'white',
+                              border: 'none',
+                              borderRadius: '0.25rem',
+                              cursor: 'pointer',
+                              transition: 'background-color 0.2s',
+                              whiteSpace: 'nowrap',
+                            }}
+                            onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#9333ea')}
+                            onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = '#a855f7')}
+                            title="管理集成"
+                          >
+                            🔗 集成
+                          </button>
+                          <button
+                            onClick={() => handleOpenEditModal(robot)}
                             style={{
                               padding: '0.375rem 0.75rem',
                               backgroundColor: '#e5e7eb',
@@ -537,6 +610,54 @@ export default function Robots() {
           </div>
         )}
       </div>
+
+      {/* 编辑机器人模态框 */}
+      {isEditRobotModalOpen && editingRobot && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0, 0, 0, 0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50 }}
+          onClick={() => setIsEditRobotModalOpen(false)}>
+          <div style={{ backgroundColor: 'white', borderRadius: '0.5rem', boxShadow: '0 20px 25px rgba(0,0,0,0.15)', width: '90%', maxWidth: '450px', maxHeight: '90vh', overflow: 'auto' }}
+            onClick={(e) => e.stopPropagation()}>
+            <div style={{ padding: '1.5rem', borderBottom: '1px solid #e5e7eb', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <h2 style={{ fontSize: '1.25rem', fontWeight: 600, color: '#1f2937', margin: 0 }}>✏️ 编辑机器人</h2>
+              <button onClick={() => setIsEditRobotModalOpen(false)} style={{ background: 'none', border: 'none', fontSize: '1.5rem', cursor: 'pointer', color: '#6b7280', padding: '0.25rem 0.5rem' }}
+                onMouseEnter={(e) => (e.currentTarget.style.color = '#1f2937')} onMouseLeave={(e) => (e.currentTarget.style.color = '#6b7280')}>✕</button>
+            </div>
+            <div style={{ padding: '1.5rem' }}>
+              {error && (
+                <div style={{ backgroundColor: '#fee2e2', color: '#dc2626', padding: '0.75rem', borderRadius: '0.375rem', marginBottom: '1.5rem', fontSize: '0.875rem' }}>❌ {error}</div>
+              )}
+              <form onSubmit={handleUpdateRobot}>
+                <div style={{ marginBottom: '1.5rem' }}>
+                  <label style={{ display: 'block', fontWeight: 500, fontSize: '0.875rem', color: '#1f2937', marginBottom: '0.5rem' }}>机器人名称 <span style={{ color: '#ef4444' }}>*</span></label>
+                  <input type="text" name="name" value={editFormData.name} onChange={handleEditFormInputChange} placeholder="例如：代码提交通知"
+                    style={{ width: '100%', padding: '0.5rem', border: '1px solid #d1d5db', borderRadius: '0.375rem', fontSize: '0.875rem', boxSizing: 'border-box', fontFamily: 'inherit' }} />
+                </div>
+                <div style={{ marginBottom: '1.5rem' }}>
+                  <label style={{ display: 'block', fontWeight: 500, fontSize: '0.875rem', color: '#1f2937', marginBottom: '0.5rem' }}>描述（可选）</label>
+                  <textarea name="description" value={editFormData.description} onChange={handleEditFormInputChange} placeholder="例如：用于发送 Git 提交通知到飞书群组"
+                    style={{ width: '100%', padding: '0.5rem', border: '1px solid #d1d5db', borderRadius: '0.375rem', fontSize: '0.875rem', boxSizing: 'border-box', fontFamily: 'inherit', minHeight: '80px', resize: 'none' }} />
+                </div>
+                <div style={{ marginBottom: '1.5rem' }}>
+                  <label style={{ display: 'block', fontWeight: 500, fontSize: '0.875rem', color: '#1f2937', marginBottom: '0.5rem' }}>Webhook URL <span style={{ color: '#ef4444' }}>*</span></label>
+                  <input type="url" name="webhookUrl" value={editFormData.webhookUrl} onChange={handleEditFormInputChange} placeholder="https://open.feishu.cn/open-apis/bot/v2/hook/..."
+                    style={{ width: '100%', padding: '0.5rem', border: '1px solid #d1d5db', borderRadius: '0.375rem', fontSize: '0.875rem', boxSizing: 'border-box', fontFamily: 'monospace' }} />
+                  <p style={{ fontSize: '0.75rem', color: '#6b7280', margin: '0.25rem 0 0 0' }}>从飞书开发者后台获取的群机器人 Webhook URL</p>
+                </div>
+              </form>
+              <div style={{ marginTop: '1.5rem', paddingTop: '1.5rem', borderTop: '1px solid #e5e7eb', display: 'flex', gap: '0.75rem', justifyContent: 'flex-end' }}>
+                <button onClick={() => setIsEditRobotModalOpen(false)}
+                  style={{ padding: '0.5rem 1.5rem', backgroundColor: '#e5e7eb', color: '#374151', border: 'none', borderRadius: '0.375rem', cursor: 'pointer', fontSize: '0.875rem', fontWeight: 500 }}
+                  onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#d1d5db')} onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = '#e5e7eb')}>取消</button>
+                <button onClick={handleUpdateRobot} disabled={isSubmitting}
+                  style={{ padding: '0.5rem 1.5rem', backgroundColor: '#3b82f6', color: 'white', border: 'none', borderRadius: '0.375rem', cursor: isSubmitting ? 'not-allowed' : 'pointer', fontSize: '0.875rem', fontWeight: 500, opacity: isSubmitting ? 0.6 : 1 }}
+                  onMouseEnter={(e) => !isSubmitting && (e.currentTarget.style.backgroundColor = '#2563eb')} onMouseLeave={(e) => !isSubmitting && (e.currentTarget.style.backgroundColor = '#3b82f6')}>
+                  {isSubmitting ? '保存中...' : '✓ 保存修改'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* 新建机器人模态框 */}
       {isAddRobotModalOpen && (

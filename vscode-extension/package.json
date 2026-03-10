@@ -1,103 +1,79 @@
 {
   "name": "feishu-ai-notifier",
-  "displayName": "Feishu AI Notifier",
-  "description": "Send AI work results to Feishu bot directly from VSCode",
-  "version": "1.0.0",
+  "displayName": "飞书 AI 汇报器",
+  "description": "将 GitHub Copilot Chat 工作内容自动汇报到飞书群组",
+  "version": "1.1.0",
   "publisher": "yourself",
   "engines": {
-    "vscode": "^1.70.0"
+    "vscode": "^1.90.0"
   },
-  "categories": [
-    "Other",
-    "Productivity"
-  ],
-  "activationEvents": [
-    "onStartupFinished",
-    "onCommand:feishu-notifier.sendNotification",
-    "onCommand:feishu-notifier.showPanel",
-    "onCommand:feishu-notifier.settings"
-  ],
+  "categories": ["Other", "Productivity"],
+  "activationEvents": ["onStartupFinished"],
   "main": "./dist/extension.js",
   "contributes": {
+    "chatParticipants": [
+      {
+        "id": "feishu-notifier.report",
+        "name": "feishu",
+        "description": "将 Copilot Chat 工作内容汇报到飞书群组",
+        "isSticky": false,
+        "commands": [
+          { "name": "test", "description": "发送测试通知验证配置" },
+          { "name": "end", "description": "结束工作会话，发送本次全部汇报的汇总到飞书" }
+        ]
+      }
+    ],
     "commands": [
       {
-        "command": "feishu-notifier.sendNotification",
-        "title": "Feishu: Send Notification",
-        "description": "Send a notification to Feishu"
+        "command": "feishu-notifier.reportNow",
+        "title": "Feishu: 发送工作汇报",
+        "description": "不依赖 Chat，直接输入汇报内容并发送到飞书"
       },
       {
-        "command": "feishu-notifier.sendPullResult",
-        "title": "Feishu: Notify Pull Result",
-        "description": "Send pull result to Feishu"
+        "command": "feishu-notifier.testConnection",
+        "title": "Feishu: 测试连接",
+        "description": "验证 Webhook 连接是否正常"
       },
       {
-        "command": "feishu-notifier.sendPushResult",
-        "title": "Feishu: Notify Push Result",
-        "description": "Send push result to Feishu"
-      },
-      {
-        "command": "feishu-notifier.sendDeployResult",
-        "title": "Feishu: Notify Deploy Result",
-        "description": "Send deploy result to Feishu"
+        "command": "feishu-notifier.endSession",
+        "title": "Feishu: 结束会话并汇总",
+        "description": "将本次会话中所有汇报整合成总结发到飞书"
       },
       {
         "command": "feishu-notifier.settings",
-        "title": "Feishu: Settings",
-        "description": "Open Feishu Notifier settings"
-      },
-      {
-        "command": "feishu-notifier.testWebhook",
-        "title": "Feishu: Test Connection",
-        "description": "Test connection to Feishu notification server"
+        "title": "Feishu: 打开设置",
+        "description": "打开 feishuNotifier 设置页"
       }
     ],
     "keybindings": [
       {
-        "command": "feishu-notifier.sendNotification",
+        "command": "feishu-notifier.reportNow",
         "key": "ctrl+shift+f",
-        "mac": "cmd+shift+f",
-        "when": "editorTextFocus"
+        "mac": "cmd+shift+f"
       }
     ],
     "menus": {
       "commandPalette": [
-        {
-          "command": "feishu-notifier.sendNotification"
-        },
-        {
-          "command": "feishu-notifier.sendPullResult"
-        },
-        {
-          "command": "feishu-notifier.sendPushResult"
-        },
-        {
-          "command": "feishu-notifier.sendDeployResult"
-        },
-        {
-          "command": "feishu-notifier.settings"
-        },
-        {
-          "command": "feishu-notifier.testWebhook"
-        }
+        { "command": "feishu-notifier.reportNow" },
+        { "command": "feishu-notifier.endSession" },
+        { "command": "feishu-notifier.testConnection" },
+        { "command": "feishu-notifier.settings" }
       ]
     },
     "configuration": {
-      "title": "Feishu Notifier",
+      "title": "飞书 AI 汇报器",
       "properties": {
-        "feishu-notifier.serverUrl": {
+        "feishuNotifier.webhookEndpoint": {
           "type": "string",
-          "default": "http://localhost:3000",
-          "description": "Feishu notification server URL"
+          "default": "",
+          "description": "Webhook 接收地址，格式：{serverUrl}/api/webhook/{integrationId}。从飞书通知系统 → VS Code Chat 集成创建后的配置引导中获取。",
+          "markdownDescription": "Webhook 接收地址，格式：`{serverUrl}/api/webhook/{integrationId}`。从飞书通知系统的 VS Code Chat 集成创建后的配置引导中获取。"
         },
-        "feishu-notifier.apiToken": {
+        "feishuNotifier.triggerToken": {
           "type": "string",
-          "description": "API token for authentication (optional)",
-          "markdownDescription": "API token for authentication. Get it from the Feishu Notifier server."
-        },
-        "feishu-notifier.autoSave": {
-          "type": "boolean",
-          "default": true,
-          "description": "Auto save notifications"
+          "default": "",
+          "description": "Webhook Secret Token，即集成的 webhookSecret。从飞书通知系统集成创建后的配置引导中获取，请妥善保存。",
+          "markdownDescription": "Webhook Secret Token，即集成的 `webhookSecret`。扩展将其作为 `X-Trigger-Token` 请求头发送给服务端进行验证。"
         }
       }
     }
@@ -111,14 +87,11 @@
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "devDependencies": {
-    "@types/vscode": "^1.70.0",
+    "@types/vscode": "^1.90.0",
     "@types/node": "^18.0.0",
     "typescript": "^5.0.0",
     "@typescript-eslint/eslint-plugin": "^5.59.0",
     "@typescript-eslint/parser": "^5.59.0",
     "eslint": "^8.40.0"
-  },
-  "dependencies": {
-    "axios": "^1.4.0"
   }
 }
