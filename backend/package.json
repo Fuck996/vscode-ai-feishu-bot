@@ -4,7 +4,7 @@
   "description": "Feishu AI notification webhook service",
   "main": "dist/server.js",
   "scripts": {
-    "dev": "ts-node src/server.ts",
+    "dev": "set NODE_OPTIONS=--no-warnings && ts-node src/server.ts",
     "build": "tsc",
     "start": "node dist/server.js",
     "lint": "eslint src --ext .ts",

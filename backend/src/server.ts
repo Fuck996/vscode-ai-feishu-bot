@@ -14,6 +14,16 @@ import integrationsRouter from './routes/integrations';
 import platformWebhookRouter from './routes/platform-webhook';
 import databaseService from './database';
 
+// 确保 UTF-8 编码
+if (typeof global !== 'undefined') {
+  (global as any).console = {
+    ...console,
+    log: (...args: any[]) => {
+      process.stdout.write(Buffer.from(String(...args), 'utf8').toString('utf8') + '\n');
+    },
+  };
+}
+
 const app: Express = express();
 
 // 中间件配置

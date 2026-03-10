@@ -3141,3 +3141,95 @@
       }
     }
     responseTime: 362
+127.0.0.1 - - [10/Mar/2026:17:00:30 +0000] "POST /api/webhook/b81d4b78-f87c-4afd-b39d-abd6b9763847 HTTP/1.1" 200 44 "-" "Mozilla/5.0 (Windows NT; Windows NT 10.0; zh-CN) WindowsPowerShell/5.1.26100.7705"
+[2026-03-11 01:00:30.519 +0800] [32mINFO[39m: [36m平台 Webhook 处理成功[39m
+[2026-03-11 01:00:30.519 +0800] [32mINFO[39m: [36mrequest completed[39m
+    req: {
+      "id": 62,
+      "method": "POST",
+      "url": "/api/webhook/b81d4b78-f87c-4afd-b39d-abd6b9763847",
+      "query": {},
+      "params": {},
+      "headers": {
+        "x-trigger-token": "4cd8847ce224f31decc20ebeb972392ce9ff478ecb55ead2",
+        "user-agent": "Mozilla/5.0 (Windows NT; Windows NT 10.0; zh-CN) WindowsPowerShell/5.1.26100.7705",
+        "content-type": "application/json",
+        "host": "localhost:3000",
+        "content-length": "421",
+        "expect": "100-continue"
+      },
+      "remoteAddress": "127.0.0.1",
+      "remotePort": 9845
+    }
+    res: {
+      "statusCode": 200,
+      "headers": {
+        "content-security-policy": "default-src 'self';base-uri 'self';font-src 'self' https: data:;form-action 'self';frame-ancestors 'self';img-src 'self' data:;object-src 'none';script-src 'self';script-src-attr 'none';style-src 'self' https: 'unsafe-inline';upgrade-insecure-requests",
+        "cross-origin-opener-policy": "same-origin",
+        "cross-origin-resource-policy": "same-origin",
+        "origin-agent-cluster": "?1",
+        "referrer-policy": "no-referrer",
+        "strict-transport-security": "max-age=15552000; includeSubDomains",
+        "x-content-type-options": "nosniff",
+        "x-dns-prefetch-control": "off",
+        "x-download-options": "noopen",
+        "x-frame-options": "SAMEORIGIN",
+        "x-permitted-cross-domain-policies": "none",
+        "x-xss-protection": "0",
+        "access-control-allow-origin": "*",
+        "x-ratelimit-limit": "100",
+        "x-ratelimit-remaining": "98",
+        "date": "Tue, 10 Mar 2026 17:00:30 GMT",
+        "x-ratelimit-reset": "1773162878",
+        "content-type": "application/json; charset=utf-8",
+        "content-length": "44",
+        "etag": "W/\"2c-3So/dBWefWSjp+18/h0o9vI0Cx8\""
+      }
+    }
+    responseTime: 381
+127.0.0.1 - - [10/Mar/2026:17:00:35 +0000] "POST /api/webhook/b81d4b78-f87c-4afd-b39d-abd6b9763847 HTTP/1.1" 200 44 "-" "Mozilla/5.0 (Windows NT; Windows NT 10.0; zh-CN) WindowsPowerShell/5.1.26100.7705"
+[2026-03-11 01:00:35.544 +0800] [32mINFO[39m: [36m平台 Webhook 处理成功[39m
+[2026-03-11 01:00:35.544 +0800] [32mINFO[39m: [36mrequest completed[39m
+    req: {
+      "id": 63,
+      "method": "POST",
+      "url": "/api/webhook/b81d4b78-f87c-4afd-b39d-abd6b9763847",
+      "query": {},
+      "params": {},
+      "headers": {
+        "x-trigger-token": "4cd8847ce224f31decc20ebeb972392ce9ff478ecb55ead2",
+        "user-agent": "Mozilla/5.0 (Windows NT; Windows NT 10.0; zh-CN) WindowsPowerShell/5.1.26100.7705",
+        "content-type": "application/json",
+        "host": "localhost:3000",
+        "content-length": "421",
+        "expect": "100-continue"
+      },
+      "remoteAddress": "127.0.0.1",
+      "remotePort": 9845
+    }
+    res: {
+      "statusCode": 200,
+      "headers": {
+        "content-security-policy": "default-src 'self';base-uri 'self';font-src 'self' https: data:;form-action 'self';frame-ancestors 'self';img-src 'self' data:;object-src 'none';script-src 'self';script-src-attr 'none';style-src 'self' https: 'unsafe-inline';upgrade-insecure-requests",
+        "cross-origin-opener-policy": "same-origin",
+        "cross-origin-resource-policy": "same-origin",
+        "origin-agent-cluster": "?1",
+        "referrer-policy": "no-referrer",
+        "strict-transport-security": "max-age=15552000; includeSubDomains",
+        "x-content-type-options": "nosniff",
+        "x-dns-prefetch-control": "off",
+        "x-download-options": "noopen",
+        "x-frame-options": "SAMEORIGIN",
+        "x-permitted-cross-domain-policies": "none",
+        "x-xss-protection": "0",
+        "access-control-allow-origin": "*",
+        "x-ratelimit-limit": "100",
+        "x-ratelimit-remaining": "97",
+        "date": "Tue, 10 Mar 2026 17:00:35 GMT",
+        "x-ratelimit-reset": "1773162878",
+        "content-type": "application/json; charset=utf-8",
+        "content-length": "44",
+        "etag": "W/\"2c-3So/dBWefWSjp+18/h0o9vI0Cx8\""
+      }
+    }
+    responseTime: 347

@@ -9,6 +9,9 @@ const logger = pino({
       colorize: true,
       translateTime: 'SYS:standard',
       ignore: 'pid,hostname',
+      // 确保 UTF-8 编码输出
+      singleLine: false,
+      levelFirst: true,
     },
   },
 });

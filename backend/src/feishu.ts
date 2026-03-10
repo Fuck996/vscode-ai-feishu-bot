@@ -83,6 +83,11 @@ ${payload.summary}${detailsMarkdown}
 
 *时间：${new Date(timestamp).toLocaleString('zh-CN')}*`;
 
+    logger.info(
+      { title: payload.title, summaryLen: payload.summary.length },
+      `构建富文本消息 [${emoji} ${payload.title}]`
+    );
+
     return {
       msg_type: 'post',
       content: {
@@ -111,14 +116,17 @@ ${payload.summary}${detailsMarkdown}
 
     for (let attempt = 1; attempt <= this.maxRetries; attempt++) {
       try {
-        await axios.post(this.webhookUrl, message, {
+        const response = await axios.post(this.webhookUrl, message, {
           timeout: config.requestTimeout,
+          headers: {
+            'Content-Type': 'application/json; charset=utf-8',
+          },
         });
-        logger.info(`Feishu notification sent successfully on attempt ${attempt}`);
+        logger.info(`飞书通知发送成功 [attempt=${attempt}]`);
         return;
       } catch (error) {
         lastError = error instanceof AxiosError ? new Error(error.message) : (error as Error);
-        logger.warn(`Attempt ${attempt} failed: ${lastError.message}`);
+        logger.warn(`飞书通知发送失败 [attempt=${attempt}] ${lastError.message}`);
 
         if (attempt < this.maxRetries) {
           // 指数退避
@@ -128,7 +136,7 @@ ${payload.summary}${detailsMarkdown}
       }
     }
 
-    logger.error(`Failed to send Feishu notification after ${this.maxRetries} attempts`);
+    logger.error(`飞书通知发送失败 [尝试=${this.maxRetries}次] ${lastError?.message}`);
     throw new Error(`Failed to send notification: ${lastError?.message}`);
   }
 }

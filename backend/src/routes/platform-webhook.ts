@@ -45,6 +45,7 @@ interface NormalizedEvent {
   title: string;
   summary: string;
   url?: string;
+  projectName?: string;  // 可选：由 MCP Server 或其他来源提供
 }
 
 /** 解析 GitHub Webhook payload */
@@ -153,12 +154,38 @@ function normalizeGitLab(headers: Record<string, any>, body: Record<string, any>
 
 /** 解析通用格式（Direct API / VS Code Chat / Custom Webhook） */
 function normalizeGeneric(body: Record<string, any>): NormalizedEvent {
+  const event = body.event || 'chat_manual';
+  const status = body.status || 'info';
+  const title = body.title || '📩 新通知';
+  let summary = body.summary || body.content || body.message || '（无内容）';
+  const projectName = body.projectName || undefined;  // 优先级：从 MCP 读取
+  
+  // 处理数组格式的 summary（来自 MCP 格式化）
+  if (typeof summary === 'string' && summary.startsWith('[')) {
+    try {
+      const items = JSON.parse(summary);
+      if (Array.isArray(items)) {
+        // 将数组转换为换行分隔的字符串
+        summary = items.join('\n');
+      }
+    } catch (e) {
+      // 如果解析失败，保持原值
+    }
+  }
+  
+  // 添加日志：追踪中文内容是否被正确接收
+  logger.info(
+    {event, status, titleLength: title.length, summaryLength: String(summary).length, projectName},
+    `通用格式 Webhook 已接收 [event=${event}] [projectName=${projectName || '(无)'}]`
+  );
+  
   return {
-    event: body.event || 'chat_manual',
-    status: body.status || 'info',
-    title: body.title || '📩 新通知',
-    summary: body.summary || body.content || body.message || '（无内容）',
+    event,
+    status,
+    title,
+    summary: String(summary),
     url: body.url,
+    projectName,
   };
 }
 
@@ -181,6 +208,20 @@ function shouldNotify(event: string, status: 'success' | 'failure' | 'info', tri
 
 function buildFeishuCard(title: string, summary: string, status: 'success' | 'failure' | 'info', projectName: string, url?: string) {
   const template = status === 'success' ? 'green' : status === 'failure' ? 'red' : 'blue';
+  
+  // 确保 summary 正确处理换行（将 \n 转换为飞书支持的格式）
+  // 飞书的 lark_md 格式支持 \n 但需要确保正确解析
+  const formattedSummary = String(summary)
+    .split('\n')
+    .map(line => line.trim())
+    .filter(line => line.length > 0)
+    .join('\n\n');  // 两个换行来分隔不同的行
+  
+  const timestamp = new Date().toLocaleString('zh-CN');
+  
+  // 构建更清晰的 markdown 格式
+  const markdownContent = `**项目：** ${projectName}\n\n${formattedSummary}\n\n---\n\n🕐 *${timestamp}*`;
+  
   const card: Record<string, any> = {
     msg_type: 'interactive',
     card: {
@@ -193,7 +234,7 @@ function buildFeishuCard(title: string, summary: string, status: 'success' | 'fa
           tag: 'div',
           text: {
             tag: 'lark_md',
-            content: `**项目：** ${projectName}\n\n${summary}\n\n🕐 *${new Date().toLocaleString('zh-CN')}*`,
+            content: markdownContent,
           },
         },
       ],
@@ -291,8 +332,25 @@ router.post('/:integrationId', async (req: Request, res: Response) => {
     }
 
     // 6. 构建飞书卡片并发送到机器人的 Webhook URL
-    const card = buildFeishuCard(normalized.title, normalized.summary, normalized.status, integration.projectName, normalized.url);
-    await axios.post(robot.webhookUrl, card);
+    // 优先级：使用 MCP 提供的项目名称 > 集成中的项目名称
+    const finalProjectName = normalized.projectName || integration.projectName;
+    const card = buildFeishuCard(normalized.title, normalized.summary, normalized.status, finalProjectName, normalized.url);
+    
+    // 添加日志：记录即将发送的飞书卡片（包括中文内容）
+    logger.info(
+      { 
+        robot: robot.name,
+        projectName: integration.projectName,
+        cardContent: JSON.stringify(card, null, 2).substring(0, 300)
+      },
+      `准备发送飞书卡片 [标题="${normalized.title}"]`
+    );
+    
+    await axios.post(robot.webhookUrl, card, {
+      headers: {
+        'Content-Type': 'application/json; charset=utf-8',
+      },
+    });
 
     // 7. 保存通知记录
     const dbStatus = normalized.status === 'failure' ? 'error' : normalized.status === 'success' ? 'success' : 'info';

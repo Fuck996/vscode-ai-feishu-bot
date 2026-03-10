@@ -3,13 +3,15 @@
  *
  * 供 VS Code Copilot Agent 调用，在完成任务后自动发送工作总结到飞书群组。
  *
- * 工具：feishu_notify(summary, title?)
+ * 工具：feishu_notify(summary, title?, projectName?)
  *   → POST /api/webhook/{integrationId}
  *   → X-Trigger-Token: {triggerToken}
+ *   → 自动美化格式为 ✅/🔧 列表形式
  *
  * 环境变量（由 .vscode/mcp.json 注入）：
  *   WEBHOOK_ENDPOINT  — 完整的 Webhook 端点 URL
  *   TRIGGER_TOKEN     — 集成的 webhookSecret
+ *   PROJECT_NAME      — 项目名称（可选，默认从 package.json 读取）
  */
 
 const { Server } = require('@modelcontextprotocol/sdk/server/index.js');
@@ -20,9 +22,27 @@ const {
 } = require('@modelcontextprotocol/sdk/types.js');
 const https = require('https');
 const http = require('http');
+const fs = require('fs');
+const path = require('path');
 
 const WEBHOOK_ENDPOINT = (process.env.WEBHOOK_ENDPOINT || '').trim();
 const TRIGGER_TOKEN    = (process.env.TRIGGER_TOKEN    || '').trim();
+const PROJECT_NAME_ENV = (process.env.PROJECT_NAME     || '').trim();
+
+// 从 backend/package.json 读取项目名称
+let PROJECT_NAME = PROJECT_NAME_ENV;
+if (!PROJECT_NAME) {
+  try {
+    const pkgPath = path.join(__dirname, '../backend/package.json');
+    if (fs.existsSync(pkgPath)) {
+      const pkg = JSON.parse(fs.readFileSync(pkgPath, 'utf8'));
+      // 优先使用 description（用户友好），次序为 description > name > 默认值
+      PROJECT_NAME = pkg.description || pkg.name || 'Feishu AI Notification Service';
+    }
+  } catch (e) {
+    PROJECT_NAME = 'Feishu AI Notification Service';
+  }
+}
 
 // ─────────────────────────────────────────────
 // 创建 MCP Server
@@ -39,17 +59,21 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
     {
       name: 'feishu_notify',
       description:
-        '将工作总结发送到飞书群组。在完成用户任务或阶段性工作后调用，自动推送工作汇报卡片。',
+        '将工作总结发送到飞书群组。在完成用户任务或阶段性工作后调用，自动推送工作汇报卡片（采用 ✅/🔧 列表格式）。',
       inputSchema: {
         type: 'object',
         properties: {
           summary: {
             type: 'string',
-            description: '工作总结内容，用中文描述本次完成的主要事项、改动和结果',
+            description: '工作总结内容。支持两种格式：(1) 纯文本自动美化为列表；(2) 数组格式 ["✅ 完成项A", "🔧 改动B", "📝 说明C"]',
           },
           title: {
             type: 'string',
-            description: '消息标题（可选，默认为"📝 工作总结"）',
+            description: '消息标题（可选，默认根据内容自动生成，如"📝 工作总结"或"🔧 任务完成"）',
+          },
+          projectName: {
+            type: 'string',
+            description: `当前项目名称（可选，默认为 "${PROJECT_NAME}"）。会自动显示在消息中。`,
           },
         },
         required: ['summary'],
@@ -57,6 +81,48 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
     },
   ],
 }));
+
+// 格式化汇报内容
+function formatSummary(summary) {
+  if (typeof summary !== 'string') return summary;
+  
+  // 如果已经是列表形式（包含 ✅ 🔧 等符号），直接返回
+  if (/^[\s\n]*(✅|🔧|📝|⚠️|🐛)/.test(summary)) {
+    return summary;
+  }
+  
+  // 尝试解析为JSON数组
+  if (summary.startsWith('[') && summary.endsWith(']')) {
+    try {
+      const items = JSON.parse(summary);
+      if (Array.isArray(items)) {
+        return items.join('\n');
+      }
+    } catch (e) {}
+  }
+  
+  // 分割超过200字符的纯文本为列表项
+  if (summary.length > 150) {
+    const sentences = summary.split(/(?<=[。！？；])\s*|\n/).filter(s => s.trim());
+    if (sentences.length > 1) {
+      return sentences
+        .map((s, i) => {
+          s = s.trim();
+          if (i === 0) return `✅ ${s}`;
+          if (i === sentences.length - 1) return `📝 ${s}`;
+          return `🔧 ${s}`;
+        })
+        .join('\n');
+    }
+  }
+  
+  // 短文本前缀处理
+  return summary.startsWith('完成') || summary.startsWith('已完成')
+    ? `✅ ${summary}`
+    : summary.startsWith('修复') || summary.startsWith('改进')
+    ? `🔧 ${summary}`
+    : `📝 ${summary}`;
+}
 
 // 处理工具调用
 server.setRequestHandler(CallToolRequestSchema, async (request) => {
@@ -71,8 +137,19 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
   }
 
   const args = request.params.arguments || {};
-  const summary = String(args.summary || '').trim();
-  const title   = String(args.title   || '📝 工作总结').trim();
+  const rawSummary = String(args.summary || '').trim();
+  const summary = formatSummary(rawSummary);
+  const customTitle = String(args.title || '').trim();
+  const projectName = String(args.projectName || PROJECT_NAME || '').trim();
+  
+  // 自动生成标题
+  let title = customTitle;
+  if (!title) {
+    if (summary.includes('✅')) title = '✅ 任务完成';
+    else if (summary.includes('🔧')) title = '🔧 问题修复';
+    else if (summary.includes('🐛')) title = '🐛 Bug 修复';
+    else title = '📝 工作总结';
+  }
 
   if (!summary) {
     throw new Error('summary 不能为空');
@@ -83,7 +160,8 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
     event:   'chat_session_end',
     status:  'info',
     title,
-    summary,
+    summary, // 已格式化的 summary
+    projectName,
   });
 
   // 发送到后端 webhook
@@ -93,7 +171,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
     content: [
       {
         type: 'text',
-        text: `✅ 工作总结已成功发送到飞书！\n\n**标题：** ${title}\n\n**内容：** ${summary.substring(0, 100)}${summary.length > 100 ? '…' : ''}`,
+        text: `✅ 工作总结已成功发送到飞书！\n\n**标题：** ${title}\n\n**项目：** ${projectName}\n\n**内容：**\n${summary.substring(0, 150)}${summary.length > 150 ? '\n...' : ''}`,
       },
     ],
   };
@@ -113,20 +191,26 @@ function postJson(url, token, body) {
     }
 
     const lib = parsed.protocol === 'https:' ? https : http;
+    
+    // 确保 body 是 UTF-8 编码的 Buffer
+    const bodyBuffer = typeof body === 'string' ? Buffer.from(body, 'utf8') : body;
+    
     const options = {
       hostname: parsed.hostname,
       port:     parsed.port || (parsed.protocol === 'https:' ? 443 : 80),
       path:     parsed.pathname + (parsed.search || ''),
       method:   'POST',
       headers:  {
-        'Content-Type':    'application/json',
-        'Content-Length':  Buffer.byteLength(body),
-        'X-Trigger-Token': token,
+        'Content-Type':     'application/json; charset=utf-8',
+        'Content-Length':   bodyBuffer.length,
+        'X-Trigger-Token':  token,
       },
     };
 
     const req = lib.request(options, (res) => {
       let data = '';
+      // 确保响应也以 UTF-8 解码
+      res.setEncoding('utf8');
       res.on('data', (chunk) => (data += chunk));
       res.on('end', () => {
         try {
@@ -148,7 +232,7 @@ function postJson(url, token, body) {
     });
 
     req.on('error', (err) => reject(new Error(`网络请求失败: ${err.message}`)));
-    req.write(body);
+    req.write(bodyBuffer, 'utf8');
     req.end();
   });
 }
