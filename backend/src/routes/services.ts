@@ -1,20 +1,48 @@
 import { Router, Request, Response } from 'express';
+import * as jwt from 'jsonwebtoken';
 import db from '../database';
-import { verifyToken } from '../middleware/auth';
 
 const router = Router();
 
+interface AuthPayload {
+  userId: string;
+  username: string;
+  role: string;
+}
+
+const JWT_SECRET = process.env.JWT_SECRET || 'dev-secret-key';
+
+// 验证 JWT Token 中间件
+function verifyToken(req: Request, res: Response, next: Function) {
+  try {
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return res.status(401).json({ success: false, error: '缺少授权信息' });
+    }
+
+    const token = authHeader.replace('Bearer ', '');
+    const decoded = jwt.verify(token, JWT_SECRET) as AuthPayload;
+
+    (req as any).userId = decoded.userId;
+    (req as any).username = decoded.username;
+    (req as any).role = decoded.role;
+
+    next();
+  } catch (error) {
+    return res.status(401).json({ success: false, error: '无效或过期的 Token' });
+  }
+}
+
 interface AuthRequest extends Request {
-  user?: {
-    userId: string;
-    username: string;
-  };
+  userId?: string;
+  username?: string;
+  role?: string;
 }
 
 // 获取服务列表
 router.get('/', verifyToken, async (req: AuthRequest, res: Response) => {
   try {
-    const userId = req.user?.userId;
+    const userId = (req as any).userId;
     if (!userId) {
       return res.status(401).json({ success: false, error: '未授权' });
     }
@@ -29,7 +57,8 @@ router.get('/', verifyToken, async (req: AuthRequest, res: Response) => {
       totalIntegrations += integrations.length;
     }
 
-    // 构建服务列表
+    // 构建服务列表 - 移除 config 字段，添加定时任务相关字段
+    const now = new Date();
     const services = [
       {
         id: 'mcp-service',
@@ -45,12 +74,9 @@ router.get('/', verifyToken, async (req: AuthRequest, res: Response) => {
           { label: '运行时间', value: '12h 34m' },
           { label: '可用性', value: '99.8%' },
         ],
-        config: [
-          { label: '协议版本', value: '2024-11-05' },
-          { label: '连接数', value: '1 活跃连接' },
-          { label: 'CPU 使用', value: '2.3%' },
-          { label: '内存使用', value: '45 MB / 512 MB' },
-        ],
+        isScheduled: true,
+        nextRunTime: new Date(now.getTime() + 3600 * 1000).toISOString(),
+        uptime: '12h 34m',
       },
       {
         id: 'queue-service',
@@ -66,19 +92,15 @@ router.get('/', verifyToken, async (req: AuthRequest, res: Response) => {
           { label: '队列长度', value: '0' },
           { label: '配置状态', value: '就绪' },
         ],
-        config: [
-          { label: '主机', value: 'localhost:6379' },
-          { label: '数据库', value: 'Redis (In-Memory)' },
-          { label: '认证', value: '禁用' },
-          { label: '最后检查', value: '-' },
-        ],
+        isScheduled: true,
+        nextRunTime: new Date(now.getTime() + 86400 * 1000).toISOString(),
       },
       {
         id: 'notification-service',
         name: '通知中枢',
         type: '飞书消息推送',
         icon: '🔔',
-        description: '负责将所有通知推送到飞书群组，当前因 Webhook 认证失败而异常',
+        description: '负责将所有通知推送到飞书群组，监控通知推送状态',
         status: 'error',
         associatedIntegrations: totalIntegrations,
         stats: [
@@ -87,12 +109,8 @@ router.get('/', verifyToken, async (req: AuthRequest, res: Response) => {
           { label: '重试次数', value: '3 / 3' },
           { label: '最后错误', value: '401 Auth' },
         ],
-        config: [
-          { label: '端点', value: 'open.feishu.cn' },
-          { label: '重试策略', value: '指数退避' },
-          { label: '超时', value: '30s' },
-          { label: '错误详情', value: 'Webhook 已废弃' },
-        ],
+        isScheduled: false,
+        lastError: 'Webhook 返回 401: Unauthorized',
       },
     ];
 
@@ -109,10 +127,10 @@ router.get('/logs', verifyToken, async (req: AuthRequest, res: Response) => {
     // 模拟日志数据
     const logs = [
       { timestamp: '2026-03-11 17:32:15', level: 'info', message: 'MCP SSE 连接建立: sessionId=abc123def456', service: 'MCP 服务' },
-      { timestamp: '2026-03-11 17:31:52', level: 'info', message: 'feishu_notify 工具调用成功，消息已发送到飞书', service: 'MCP 服务' },
-      { timestamp: '2026-03-11 17:31:48', level: 'info', message: 'tools/call 结果: ✅ 工作总结已成功发送到飞书', service: 'MCP 服务' },
-      { timestamp: '2026-03-11 17:25:03', level: 'warn', message: '通知发送延迟 2.3s，建议检查网络连接', service: '通知中枢' },
-      { timestamp: '2026-03-11 17:20:15', level: 'error', message: '飞书 Webhook 返回 401: Unauthorized (已重试 3/3)', service: '通知中枢' },
+      { timestamp: '2026-03-11 17:31:52', level: 'info', message: 'feishu_notify 工具调用成功', service: 'MCP 服务' },
+      { timestamp: '2026-03-11 17:31:48', level: 'info', message: '工作总结已成功发送到飞书', service: 'MCP 服务' },
+      { timestamp: '2026-03-11 17:25:03', level: 'warn', message: '通知发送延迟 2.3s', service: '通知中枢' },
+      { timestamp: '2026-03-11 17:20:15', level: 'error', message: '飞书 Webhook 返回 401', service: '通知中枢' },
     ];
 
     res.json(logs);
