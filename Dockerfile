@@ -40,6 +40,13 @@ COPY --from=backend-builder /app/dist ./dist
 # 拷贝前端静态文件
 COPY --from=backend-builder /app/public ./public
 
+# ─────────────────────────────────────────
+# 数据持久化目录创建
+# ─────────────────────────────────────────
+# 创建数据目录并设置权限
+# 确保容器删除时数据卷中的数据得以保留
+RUN mkdir -p /app/data && chmod 755 /app/data
+
 # 后端将在 3000 端口运行并提供 public 下的前端文件
 EXPOSE 3000
 

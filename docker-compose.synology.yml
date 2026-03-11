@@ -51,7 +51,11 @@ services:
       BACKEND_URL: http://${NAS_HOSTNAME:-localhost}:${APP_PORT:-45173}
       TZ: Asia/Shanghai
     volumes:
-      - feishu-data:/app/data
+      # ✅ 数据持久化到主机路径（而非 Docker 命名卷）
+      # 数据将存储在 docker-compose.yml 所在目录的 data/ 子目录中
+      # 通常为 /volume1/docker/feishu-bot/data
+      # 即使容器或镜像删除，数据也会保留在主机上
+      - ./data:/app/data
     networks:
       - feishu-net
     restart: unless-stopped
@@ -61,10 +65,6 @@ services:
       timeout: 10s
       retries: 3
       start_period: 15s
-
-volumes:
-  feishu-data:
-    driver: local
 
 networks:
   feishu-net:
