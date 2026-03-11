@@ -33,13 +33,18 @@ docker compose -f docker-compose.synology.yml up -d
 
 打开浏览器：
 ```
-http://你的群晖IP:8080
+http://你的群晖IP:45173
 ```
 
 **初始凭证：**
 - 用户名：`admin`
 - 密码：`admin`
 - ⚠️ 首次登录会强制修改密码
+
+**修改端口**：如需使用其他端口，创建 `.env` 文件：
+```env
+APP_PORT=45173  # 改为你需要的端口，默认 45173（8080 常被占用）
+```
 
 ---
 
@@ -65,17 +70,36 @@ docker compose -f docker-compose.synology.yml up -d
 
 ## 🛠️ 常见问题排查
 
-### Q1: 容器启动失败，显示"镜像拉取失败"
-**原因：** GitHub Container Registry 拉取超时或无网络访问
+### Q1: 容器启动失败，显示"镜像拉取失败"或"proxyconnect tcp"
 
-**解决：**
+**原因1：** 网络代理/防火墙阻止访问 GitHub Container Registry
+**原因2：** 群晖网络配置限制
+
+**检查：**
 ```bash
-# 检查网络连接
-ping github.com
-
-# 增加拉取超时时间
-docker compose -f docker-compose.synology.yml pull --no-parallel
+# 在群晖 SSH 中测试
+ping ghcr.io
+curl -I https://ghcr.io/v2/
 ```
+
+如果无法连接，使用**离线部署方案**：
+
+**解决方案**（按顺序尝试）：
+
+1. **方案 A（推荐）**：本地构建 + 离线加载
+   - 在 Windows 本地构建镜像
+   - 导出为 tar 文件
+   - 上传到群晖，用 `docker load` 加载
+   - 详见 [离线部署指南](./SYNOLOGY_OFFLINE_DEPLOYMENT.md)
+
+2. **方案 B**：增加拉取超时
+   ```bash
+   docker compose -f docker-compose.synology.yml pull --no-parallel
+   ```
+
+3. **方案 C**：配置群晖网络
+   - 群晖控制面板 → 系统设置 → 网络 → HTTP 代理
+   - 禁用代理或配置代理不拦截 `*.ghcr.io`
 
 ### Q2: 后端容器异常退出
 **检查日志：**
