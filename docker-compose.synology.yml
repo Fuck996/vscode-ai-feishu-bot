@@ -35,7 +35,7 @@
 
 services:
   backend:
-    image: ghcr.io/Fuck996/feishu-bot-backend:latest
+    image: ghcr.io/fuck996/feishu-bot-backend:latest
     container_name: feishu-bot-backend
     environment:
       NODE_ENV: production
@@ -60,7 +60,7 @@ services:
       start_period: 15s
 
   frontend:
-    image: ghcr.io/Fuck996/feishu-bot-frontend:latest
+    image: ghcr.io/fuck996/feishu-bot-frontend:latest
     container_name: feishu-bot-frontend
     ports:
       - "${APP_PORT:-8080}:3000"
