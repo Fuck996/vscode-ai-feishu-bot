@@ -188,9 +188,9 @@ const History: React.FC = () => {
               onChange={(e) => { setFilterRobot(e.target.value); setCurrentPage(1); }}
               style={{ padding: '0.5rem', border: '1px solid #d1d5db', borderRadius: '0.375rem', fontSize: '0.875rem' }}
             >
-              <option value="">全部</option>
-              {robots.map(robot => (
-                <option key={robot.id} value={robot.name}>{robot.name}</option>
+              <option key="all-robots" value="">全部</option>
+              {robots.map((robot, idx) => (
+                <option key={`robot-${robot.id}-${idx}`} value={robot.name}>{robot.name}</option>
               ))}
             </select>
           </div>
@@ -202,9 +202,9 @@ const History: React.FC = () => {
               onChange={(e) => { setFilterSource(e.target.value); setCurrentPage(1); }}
               style={{ padding: '0.5rem', border: '1px solid #d1d5db', borderRadius: '0.375rem', fontSize: '0.875rem' }}
             >
-              <option value="">全部</option>
-              {getUniqueSources().map(source => (
-                <option key={source} value={source}>{source}</option>
+              <option key="all-sources" value="">全部</option>
+              {getUniqueSources().map((source, idx) => (
+                <option key={`source-${source}-${idx}`} value={source}>{source}</option>
               ))}
             </select>
           </div>
