@@ -14,6 +14,7 @@ import History from './pages/History';
 import Settings from './pages/Settings';
 import Robots from './pages/Robots';
 import Integrations from './pages/Integrations';
+import Services from './pages/Services';
 import Login from './pages/Login';
 import ForceChangePassword from './pages/ForceChangePassword';
 import './index.css';
@@ -153,6 +154,25 @@ function MainLayout({ children }: { children: React.ReactNode }) {
             </button>
             
             <button
+              onClick={() => navigate('/services')}
+              style={{
+                padding: '0.5rem 1rem',
+                cursor: 'pointer',
+                borderRadius: '0.375rem',
+                transition: 'background-color 0.2s',
+                textDecoration: 'none',
+                color: isActive('/services') ? '#1e40af' : '#6b7280',
+                fontSize: '0.875rem',
+                border: 'none',
+                backgroundColor: isActive('/services') ? '#dbeafe' : 'transparent',
+                fontWeight: isActive('/services') ? 500 : 400,
+              }}
+              title="服务管理"
+            >
+              📡 服务
+            </button>
+            
+            <button
               onClick={() => navigate('/settings')}
               style={{
                 padding: '0.5rem 1rem',
@@ -239,6 +259,7 @@ function AppContent() {
         <Route path="/robots" element={<ProtectedRoute><Robots /></ProtectedRoute>} />
         <Route path="/robots/:robotId/integrations" element={<ProtectedRoute><Integrations /></ProtectedRoute>} />
         <Route path="/history" element={<ProtectedRoute><History /></ProtectedRoute>} />
+        <Route path="/services" element={<ProtectedRoute><Services /></ProtectedRoute>} />
         <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
         <Route path="/login" element={<Login />} />
         <Route path="/force-change-password" element={<ForceChangePassword />} />

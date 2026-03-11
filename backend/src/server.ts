@@ -14,6 +14,7 @@ import integrationsRouter from './routes/integrations';
 import platformWebhookRouter from './routes/platform-webhook';
 import mcpConfigRouter from './routes/mcp-config';
 import mcpEndpointRouter from './routes/mcp-endpoint';
+import servicesRouter from './routes/services';
 import databaseService from './database';
 
 // 确保 UTF-8 编码
@@ -70,6 +71,7 @@ app.use('/api/auth', authRouter);
 app.use('/api/robots', robotsRouter);
 app.use('/api/robots/:robotId/integrations', integrationsRouter);
 app.use('/api/users', usersRouter);
+app.use('/api/services', servicesRouter);
 app.use('/api/webhook', platformWebhookRouter);  // 平台 Webhook 接收
 app.use('/api/mcp', mcpEndpointRouter);  // MCP HTTP SSE 服务器（远端连接）
 app.use('/api/mcp', mcpConfigRouter);    // MCP 配置读取
@@ -97,6 +99,24 @@ app.get('/', (req: Request, res: Response) => {
       test: 'POST /api/webhooks/test',
     },
   });
+});
+
+// 提供前端静态文件
+app.use(express.static('public', { 
+  index: 'index.html',
+  maxAge: '1h'
+}));
+
+// SPA 历史模式支持 - 所有非 API 路由都返回 index.html
+app.get('*', (req: Request, res: Response) => {
+  if (!req.path.startsWith('/api/')) {
+    res.sendFile('public/index.html', { root: process.cwd() });
+  } else {
+    res.status(404).json({
+      error: '未找到',
+      path: req.path,
+    });
+  }
 });
 
 // 404 处理
