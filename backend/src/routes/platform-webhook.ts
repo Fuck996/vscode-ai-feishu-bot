@@ -206,7 +206,7 @@ function shouldNotify(event: string, status: 'success' | 'failure' | 'info', tri
 
 // ===== 构建飞书卡片消息 =====
 
-function buildFeishuCard(title: string, summary: string, status: 'success' | 'failure' | 'info', projectName: string, url?: string) {
+export function buildFeishuCard(title: string, summary: string, status: 'success' | 'failure' | 'info', projectName: string, url?: string) {
   const template = status === 'success' ? 'green' : status === 'failure' ? 'red' : 'blue';
   
   // 确保 summary 正确处理换行（将 \n 转换为飞书支持的格式）

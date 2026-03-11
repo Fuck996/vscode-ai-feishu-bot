@@ -10,12 +10,23 @@ const Settings: React.FC = () => {
   const [message, setMessage] = useState('');
   const [activeMenu, setActiveMenu] = useState('account');
   const [loading, setLoading] = useState(false);
+  const [mcpConfig, setMcpConfig] = useState<{ triggerToken: string; projectName: string } | null>(null);
+  const [mcpCopied, setMcpCopied] = useState(false);
 
   const API_BASE_URL = '';
 
   useEffect(() => {
     loadUserSettings();
   }, []);
+
+  useEffect(() => {
+    if (activeMenu === 'mcp' && !mcpConfig) {
+      fetch('/api/mcp/config')
+        .then(r => r.json())
+        .then(data => { if (data.success) setMcpConfig(data.data); })
+        .catch(() => {});
+    }
+  }, [activeMenu]);
 
   const loadUserSettings = async () => {
     try {
@@ -180,7 +191,7 @@ const Settings: React.FC = () => {
         <div style={{ display: 'grid', gridTemplateColumns: '200px 1fr', gap: '2rem' }}>
           {/* 设置菜单 */}
           <div style={{ background: 'white', borderRadius: '0.5rem', boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)', overflow: 'hidden', height: 'fit-content' }}>
-            {['account', 'danger'].map((menu) => (
+            {['account', 'mcp', 'danger'].map((menu) => (
               <div
                 key={menu}
                 onClick={() => setActiveMenu(menu)}
@@ -198,6 +209,7 @@ const Settings: React.FC = () => {
                 }}
               >
                 {menu === 'account' && '🔐 账户信息'}
+                {menu === 'mcp' && '🤖 MCP 配置'}
                 {menu === 'danger' && '⚠️ 系统还原'}
               </div>
             ))}
@@ -258,6 +270,86 @@ const Settings: React.FC = () => {
                 </div>
               </div>
             )}
+
+            {/* MCP 远端配置 */}
+            {activeMenu === 'mcp' && (() => {
+              const mcpUrl = `${window.location.origin}/api/mcp/sse`;
+              const token = mcpConfig?.triggerToken || '';
+              const mcpJson = JSON.stringify({
+                servers: {
+                  'feishu-notifier': {
+                    type: 'sse',
+                    url: `${mcpUrl}?token=${token}`,
+                  }
+                }
+              }, null, 2);
+
+              const copyMcpJson = () => {
+                navigator.clipboard.writeText(mcpJson).then(() => {
+                  setMcpCopied(true);
+                  setTimeout(() => setMcpCopied(false), 2000);
+                });
+              };
+
+              return (
+                <div style={{ padding: '1.5rem' }}>
+                  <h3 style={{ color: '#1e40af', fontWeight: 600, marginBottom: '0.5rem' }}>🤖 MCP 远端配置</h3>
+                  <p style={{ fontSize: '0.875rem', color: '#6b7280', marginBottom: '1.5rem' }}>
+                    将系统部署到远端后，VS Code 通过以下配置连接此 MCP 服务。无需暴露后端端口。
+                  </p>
+
+                  {!mcpConfig ? (
+                    <div style={{ padding: '1rem', background: '#fef3c7', borderRadius: '0.375rem', fontSize: '0.875rem', color: '#92400e' }}>
+                      ⚠️ 未找到活跃的集成。请先到「机器人管理」→「🔗 集成」创建一个集成，才能使用 MCP 远端功能。
+                    </div>
+                  ) : (
+                    <>
+                      <div style={{ marginBottom: '1rem' }}>
+                        <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 500, color: '#374151', marginBottom: '0.25rem' }}>
+                          MCP 端点 URL（通过前端访问，无需后端端口）
+                        </label>
+                        <div style={{ fontFamily: 'monospace', fontSize: '0.8rem', background: '#f3f4f6', padding: '0.5rem 0.75rem', borderRadius: '0.375rem', color: '#374151', wordBreak: 'break-all' }}>
+                          {mcpUrl}
+                        </div>
+                      </div>
+
+                      <div style={{ marginBottom: '1rem' }}>
+                        <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 500, color: '#374151', marginBottom: '0.25rem' }}>
+                          认证 Token（集成的 webhookSecret，不同项目各不相同）
+                        </label>
+                        <div style={{ fontFamily: 'monospace', fontSize: '0.8rem', background: '#f3f4f6', padding: '0.5rem 0.75rem', borderRadius: '0.375rem', color: '#374151', wordBreak: 'break-all' }}>
+                          {token}
+                        </div>
+                        <p style={{ fontSize: '0.7rem', color: '#9ca3af', marginTop: '0.25rem' }}>
+                          当前为项目「{mcpConfig.projectName}」的 Token。其他集成的 Token 可在「机器人 → 集成」中查看。
+                        </p>
+                      </div>
+
+                      <div style={{ marginBottom: '1rem' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.25rem' }}>
+                          <label style={{ fontSize: '0.75rem', fontWeight: 500, color: '#374151' }}>
+                            复制到你的项目 <code style={{ background: '#e5e7eb', padding: '0 3px', borderRadius: '3px' }}>.vscode/mcp.json</code>
+                          </label>
+                          <button
+                            onClick={copyMcpJson}
+                            style={{ fontSize: '0.75rem', padding: '0.25rem 0.75rem', background: mcpCopied ? '#d1fae5' : '#1e40af', color: mcpCopied ? '#047857' : 'white', border: 'none', borderRadius: '0.375rem', cursor: 'pointer' }}
+                          >
+                            {mcpCopied ? '✅ 已复制' : '📋 复制'}
+                          </button>
+                        </div>
+                        <pre style={{ fontFamily: 'monospace', fontSize: '0.75rem', background: '#1e293b', color: '#e2e8f0', padding: '1rem', borderRadius: '0.375rem', overflow: 'auto', margin: 0 }}>
+                          {mcpJson}
+                        </pre>
+                      </div>
+
+                      <div style={{ background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: '0.375rem', padding: '0.75rem', fontSize: '0.8rem', color: '#1e40af' }}>
+                        <strong>使用说明：</strong> 将上方配置粘贴到你的 <strong>其他项目</strong>（如 my-app）的 <code>.vscode/mcp.json</code> 中，Copilot Agent 完成任务后将自动向飞书发送通知。
+                      </div>
+                    </>
+                  )}
+                </div>
+              );
+            })()}
 
             {/* 系统还原 */}
             {activeMenu === 'danger' && (

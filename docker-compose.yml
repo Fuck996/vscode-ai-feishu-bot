@@ -6,8 +6,7 @@ services:
       context: ./backend
       dockerfile: Dockerfile
     container_name: feishu-bot-backend
-    ports:
-      - "3000:3000"
+    # 后端不暴露端口 - 只在内部网络中通过服务名访问
     environment:
       NODE_ENV: production
       PORT: 3000
@@ -17,8 +16,9 @@ services:
       DATABASE_PATH: /app/data/notifications.db
       CORS_ORIGIN: ${CORS_ORIGIN:-*}
       LOG_LEVEL: ${LOG_LEVEL:-info}
+      BACKEND_URL: ${BACKEND_URL:-http://localhost:${APP_PORT:-8080}}
     volumes:
-      - backend-data:/app/data
+      - ./data:/app/data   # 只映射这一个目录，数据不丢失
     networks:
       - feishu-net
     restart: unless-stopped
@@ -33,9 +33,6 @@ services:
         limits:
           memory: 512M
           cpus: '0.5'
-        reservations:
-          memory: 256M
-          cpus: '0.25'
 
   frontend:
     build:
@@ -43,9 +40,7 @@ services:
       dockerfile: Dockerfile.prod
     container_name: feishu-bot-frontend
     ports:
-      - "5173:3000"
-    environment:
-      VITE_API_URL: http://localhost:3000
+      - "${APP_PORT:-8080}:3000"   # 只暴露前端，通过反代访问
     depends_on:
       - backend
     networks:
@@ -56,13 +51,6 @@ services:
         limits:
           memory: 256M
           cpus: '0.25'
-        reservations:
-          memory: 128M
-          cpus: '0.1'
-
-volumes:
-  backend-data:
-    driver: local
 
 networks:
   feishu-net:

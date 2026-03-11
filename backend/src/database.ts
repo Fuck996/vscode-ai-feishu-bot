@@ -317,6 +317,10 @@ class DatabaseService {
     return this.integrations.filter(i => i.robotId === robotId).length;
   }
 
+  async findIntegrationBySecret(secret: string): Promise<Integration | null> {
+    return this.integrations.find(i => i.webhookSecret === secret && i.status === 'active') ?? null;
+  }
+
   // ===== Notification 相关操作 =====
 
 

@@ -1,4 +1,6 @@
 {
+  // 本地开发模式：stdio 传输（当前工作区使用）
+  // 需要后端运行在 localhost:3000，MCP Server 从 /api/mcp/config 自动获取配置
   "servers": {
     "feishu-notifier": {
       "type": "stdio",
@@ -6,5 +8,16 @@
       "args": ["${workspaceFolder}/mcp-server/index.js"]
     }
   }
+
+  // 远端部署模式：在你的"其他项目"的 .vscode/mcp.json 中使用以下格式
+  // Token 和 URL 从部署后的前端【设置 → 🤖 MCP 配置】页面获取
+  //
+  // "servers": {
+  //   "feishu-notifier": {
+  //     "type": "sse",
+  //     "url": "https://your-domain.com/api/mcp/sse?token=<webhookSecret>"
+  //   }
+  // }
 }
+
 

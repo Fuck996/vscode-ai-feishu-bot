@@ -13,6 +13,7 @@ import usersRouter from './routes/users';
 import integrationsRouter from './routes/integrations';
 import platformWebhookRouter from './routes/platform-webhook';
 import mcpConfigRouter from './routes/mcp-config';
+import mcpEndpointRouter from './routes/mcp-endpoint';
 import databaseService from './database';
 
 // 确保 UTF-8 编码
@@ -64,7 +65,8 @@ app.use('/api/robots', robotsRouter);
 app.use('/api/robots/:robotId/integrations', integrationsRouter);
 app.use('/api/users', usersRouter);
 app.use('/api/webhook', platformWebhookRouter);  // 平台 Webhook 接收
-app.use('/api/mcp', mcpConfigRouter);  // MCP 配置（由后端管理）
+app.use('/api/mcp', mcpEndpointRouter);  // MCP HTTP SSE 服务器（远端连接）
+app.use('/api/mcp', mcpConfigRouter);    // MCP 配置读取
 app.use('/api', webhookRouter);
 
 // 版本端点
