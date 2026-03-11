@@ -132,10 +132,10 @@ router.put('/:integrationId', verifyToken, checkRobotOwner, async (req: Request,
       return res.status(404).json({ success: false, error: '集成不存在' });
     }
 
-    const { projectSubName, config, triggeredEvents, notifyOn, messageTemplate } = req.body;
-    // 注意：故意不接受 projectName，确保创建后不可修改
+    const { projectName, projectSubName, config, triggeredEvents, notifyOn, messageTemplate } = req.body;
 
     const updatedIntegration = await database.updateIntegration(integrationId, {
+      ...(projectName !== undefined && { projectName }),
       ...(projectSubName !== undefined && { projectSubName }),
       ...(config !== undefined && { config }),
       ...(triggeredEvents !== undefined && { triggeredEvents }),

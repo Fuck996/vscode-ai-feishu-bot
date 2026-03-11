@@ -6,10 +6,11 @@ services:
       context: ./backend
       dockerfile: Dockerfile
     container_name: feishu-bot-backend
-    # 后端不暴露外部端口，仅容器网络内访问
+    ports:
+      - "3000:3000"
     environment:
       NODE_ENV: production
-      PORT: 3001
+      PORT: 3000
       HOST: 0.0.0.0
       FEISHU_WEBHOOK_URL: ${FEISHU_WEBHOOK_URL}
       JWT_SECRET: ${JWT_SECRET:-dev-secret-key-change-in-production}
@@ -22,12 +23,11 @@ services:
       - feishu-net
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:3001/api/version"]
+      test: ["CMD", "curl", "-f", "http://localhost:3000/api/version"]
       interval: 30s
       timeout: 10s
       retries: 3
       start_period: 10s
-    # 内存/CPU 限制（NAS 资源有限）
     deploy:
       resources:
         limits:
@@ -42,15 +42,15 @@ services:
       context: ./frontend
       dockerfile: Dockerfile.prod
     container_name: feishu-bot-frontend
-    # 前端也不暴露外部端口，由 nginx 代理
+    ports:
+      - "5173:3000"
     environment:
-      VITE_API_URL: /api
+      VITE_API_URL: http://localhost:3000
     depends_on:
       - backend
     networks:
       - feishu-net
     restart: unless-stopped
-    # 内存/CPU 限制
     deploy:
       resources:
         limits:
@@ -60,36 +60,10 @@ services:
           memory: 128M
           cpus: '0.1'
 
-  nginx:
-    image: nginx:alpine
-    container_name: feishu-bot-nginx
-    ports:
-      - "80:80"
-      - "443:443"
-    volumes:
-      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
-      - ./nginx/conf.d:/etc/nginx/conf.d:ro
-      - ./nginx/certs:/etc/nginx/certs:ro
-      - nginx-cache:/var/cache/nginx
-    depends_on:
-      - frontend
-      - backend
-    networks:
-      - feishu-net
-    restart: unless-stopped
-    healthcheck:
-      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 10s
+volumes:
+  backend-data:
+    driver: local
 
 networks:
   feishu-net:
     driver: bridge
-
-volumes:
-  backend-data:
-    driver: local
-  nginx-cache:
-    driver: local

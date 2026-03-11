@@ -3,10 +3,7 @@
     "feishu-notifier": {
       "type": "stdio",
       "command": "node",
-      "args": ["${workspaceFolder}/mcp-server/index.js"],
-      "env": {
-        "BACKEND_URL": "http://localhost:3000"
-      }
+      "args": ["${workspaceFolder}/mcp-server/index.js"]
     }
   }
 }
