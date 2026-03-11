@@ -1,6 +1,6 @@
 # 飞书 AI 通知系统 - Copilot 开发指南
 
-项目版本：v1.0.0 | 最后更新：2026-03-10
+项目版本：v1.0.0 | 最后更新：2026-03-11 | 内容：MCP 实现完善、文档整合
 
 ---
 
@@ -233,7 +233,84 @@ router.post('/endpoint', verifyToken, async (req, res) => {
 
 ---
 
-## 🏗️ 集成管理 (Phase 3) - 关键说明
+## 🤖 MCP 服务器实现细节
+
+### MCP 架构概览
+
+```
+Copilot Agent
+  ↓ (决定何时调用，基于 copilot-instructions.md)
+MCP Server ← → stdio (JSON-RPC 协议)
+  ├─ 读取环境变量：WEBHOOK_ENDPOINT, TRIGGER_TOKEN, PROJECT_NAME
+  ├─ 格式化 summary（✅/🔧/📝）
+  ├─ 自动生成 title
+  └─ HTTP POST → 后端 /api/webhook/:integrationId
+        ↓ (body: {event, status, title, summary, projectName})
+      Express 后端
+        ├─ 签名验证（X-Trigger-Token）
+        ├─ 事件标准化
+        └─ 转发到飞书 Webhook
+```
+
+### MCP 服务器配置
+
+**位置**: `mcp-server/index.js`
+
+**启动方式**: VS Code 通过 `.vscode/mcp.json` 的 stdio 启动
+
+**环境变量注入** (由 `.vscode/mcp.json` 提供):
+```json
+{
+  "WEBHOOK_ENDPOINT": "http://localhost:3000/api/webhook/{integrationId}",
+  "TRIGGER_TOKEN": "集成的 webhookSecret",
+  "PROJECT_NAME": "项目名称（可选）"
+}
+```
+
+### MCP 格式化规则（核心逻辑）
+
+**输入**: 原始 `summary` 文本或数组
+**处理步骤**:
+1. 检测是否已包含符号（✅/🔧/📝）→ 直接返回
+2. 解析 JSON 数组格式 → join('\n')
+3. 按长度和内容分析：
+   - > 150 字符且多句 → 自动分解为列表项
+   - 包含"完成"→ 前缀 ✅  
+   - 包含"修复/改进" → 前缀 🔧
+   - 其他 → 前缀 📝
+4. **输出**: 统一的 `✅/🔧/📝` 列表格式
+
+**重点**: 格式化在 MCP 侧（服务端），所有调用者都受约束
+
+### 后端 Webhook 接收
+
+**路由**: `POST /api/webhook/:integrationId`
+
+**请求头验证**:
+```
+X-Trigger-Token: {integrationId对应的webhookSecret}
+```
+
+**请求体** (来自 MCP):
+```json
+{
+  "event": "chat_session_end",
+  "status": "info",
+  "title": "✅ 任务完成",
+  "summary": "✅ 完成任务\n🔧 修复bug",
+  "projectName": "项目名"
+}
+```
+
+**后端处理**:
+1. 验证签名 (`X-Trigger-Token`)
+2. 通过 `normalizeGeneric()` 标准化事件
+3. 检查 `triggeredEvents` 和 `notifyOn` 规则
+4. 构建飞书卡片并发送
+
+---
+
+## 🏗️ 集成管理 (Phase 1) - 现有功能
 
 ### 前端集成页面
 - **文件**: `frontend/src/pages/Integrations.tsx`
