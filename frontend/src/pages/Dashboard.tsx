@@ -101,7 +101,7 @@ const Dashboard: React.FC = () => {
       // 获取通知列表
       const notificationsResponse = await fetch('/api/notifications', {
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+          'Authorization': `Bearer ${localStorage.getItem('auth_token')}`,
         },
       });
       
@@ -116,7 +116,7 @@ const Dashboard: React.FC = () => {
       let robotsList: Robot[] = [];
       const robotsResponse = await fetch('/api/robots', {
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+          'Authorization': `Bearer ${localStorage.getItem('auth_token')}`,
         },
       });
       if (robotsResponse.ok) {
@@ -162,7 +162,7 @@ const Dashboard: React.FC = () => {
       case 'warning':
         return '⚠️ 警告';
       case 'info':
-        return 'ℹ️ 信息';
+        return '📝 汇报';
       default:
         return status;
     }
@@ -177,7 +177,7 @@ const Dashboard: React.FC = () => {
       const response = await fetch(`/api/robots/${robotId}/test`, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+          'Authorization': `Bearer ${localStorage.getItem('auth_token')}`,
           'Content-Type': 'application/json',
         },
       });
@@ -202,7 +202,7 @@ const Dashboard: React.FC = () => {
       const response = await fetch(`/api/robots/${robotId}`, {
         method: 'DELETE',
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+          'Authorization': `Bearer ${localStorage.getItem('auth_token')}`,
         },
       });
       if (response.ok) {
@@ -285,7 +285,7 @@ const Dashboard: React.FC = () => {
           {/* 信息通知 */}
           <div style={{ background: 'white', borderRadius: '0.5rem', padding: '1.5rem', boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)', transition: 'transform 0.2s, box-shadow 0.2s', cursor: 'pointer' }} onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 4px 6px rgba(0, 0, 0, 0.1)'; }} onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 1px 3px rgba(0, 0, 0, 0.1)'; }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-              <span style={{ fontSize: '0.875rem', color: '#6b7280', fontWeight: 500 }}>ℹ️ 信息通知</span>
+              <span style={{ fontSize: '0.875rem', color: '#6b7280', fontWeight: 500 }}>📝 汇报通知</span>
             </div>
             <div style={{ fontSize: '2rem', fontWeight: 'bold', color: '#1f2937', marginBottom: '0.5rem' }}>{stats.info}</div>
             <div style={{ fontSize: '0.875rem', color: '#1e40af', fontWeight: 500 }}>📈 +{stats.todayInfo} 今天</div>

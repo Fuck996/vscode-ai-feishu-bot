@@ -39,7 +39,7 @@ const History: React.FC = () => {
       // 获取通知列表
       const notificationsResponse = await fetch('/api/notifications', {
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+          'Authorization': `Bearer ${localStorage.getItem('auth_token')}`,
         },
       });
       if (notificationsResponse.ok) {
@@ -50,7 +50,7 @@ const History: React.FC = () => {
       // 获取机器人列表
       const robotsResponse = await fetch('/api/robots', {
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+          'Authorization': `Bearer ${localStorage.getItem('auth_token')}`,
         },
       });
       if (robotsResponse.ok) {
@@ -74,7 +74,7 @@ const History: React.FC = () => {
       case 'warning':
         return '⚠️ 警告';
       case 'info':
-        return 'ℹ️ 信息';
+        return '📝 汇报';
       default:
         return status;
     }
@@ -132,7 +132,7 @@ const History: React.FC = () => {
               <option value="success">✅ 成功</option>
               <option value="error">❌ 失败</option>
               <option value="warning">⚠️ 警告</option>
-              <option value="info">ℹ️ 信息</option>
+              <option value="info">📝 汇报</option>
             </select>
           </div>
 
