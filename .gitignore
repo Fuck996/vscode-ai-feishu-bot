@@ -1,3 +1,22 @@
+# Ignore local IDE and secret config
+.vscode/mcp.json
+
+# Logs and databases
+*.log
+backend.log
+backend/data/*.db
+
+# Temporary and test scripts
+scripts/*.ps1
+testfile/**/*.ps1
+
+# Node modules and build outputs
+node_modules/
+dist/
+frontend/dist/
+
+# Docker compose overrides
+docker-compose.override.yml
 # Dependencies
 node_modules/
 .pnp

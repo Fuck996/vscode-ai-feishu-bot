@@ -144,7 +144,7 @@ const logger = pino({
    
    $headers = @{
      "Content-Type" = "application/json; charset=utf-8"
-     "X-Trigger-Token" = "4cd8847ce224f31decc20ebeb972392ce9ff478ecb55ead2"
+     "X-Trigger-Token" = "REDACTED_TRIGGER_TOKEN"
    }
    
    Invoke-WebRequest -Uri "http://localhost:3000/api/webhook/b81d4b78-f87c-4afd-b39d-abd6b9763847" `
