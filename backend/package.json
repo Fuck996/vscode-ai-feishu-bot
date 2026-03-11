@@ -1,7 +1,7 @@
 {
   "name": "feishu-notifier-backend",
-  "version": "0.1.0",
-  "description": "Feishu AI notification webhook service",
+  "version": "0.1.1",
+  "description": "Feishu AI notification webhook service with nginx proxy and charset fixes",
   "main": "dist/server.js",
   "scripts": {
     "dev": "set NODE_OPTIONS=--no-warnings && ts-node src/server.ts",
