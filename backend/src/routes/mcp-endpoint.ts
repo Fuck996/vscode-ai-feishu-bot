@@ -123,8 +123,11 @@ router.get('/sse', async (req: Request, res: Response) => {
   const context = await validateMCPToken(token);
 
   if (!context) {
-    return res.status(401).json({
-      error: token ? '无效的 Token，请从【设置 → MCP 配置】中获取正确的 Token' : '缺少认证 Token',
+    // 注意：必须返回 403 而非 401
+    // VS Code MCP 客户端遇到 401 会触发 OAuth 认证流程，打开浏览器页面
+    // 403 表示 Token 无效/缺失，不触发 OAuth，客户端直接报错并停止
+    return res.status(403).json({
+      error: token ? '无效的 Token，请从集成管理页面「📋 MCP配置」中获取正确的 Token' : '缺少认证 Token，请在 .vscode/mcp.json 中配置 FEISHU_MCP_TOKEN 环境变量',
     });
   }
 
@@ -172,7 +175,7 @@ router.post('/message', async (req: Request, res: Response) => {
 
   const context = await validateMCPToken(token);
   if (!context) {
-    return res.status(401).json({ error: '无效 Token' });
+    return res.status(403).json({ error: '无效 Token' });
   }
 
   // 立即返回 202，异步处理
