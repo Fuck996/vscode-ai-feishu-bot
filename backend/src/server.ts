@@ -33,6 +33,12 @@ app.use(helmet());
 app.use(pinoHttp({ logger }));
 app.use(morgan('combined'));
 
+// 设置 UTF-8 字符集响应头
+app.use((req: Request, res: Response, next: NextFunction) => {
+  res.setHeader('Content-Type', 'application/json; charset=utf-8');
+  next();
+});
+
 // CORS 配置
 app.use(
   cors({
