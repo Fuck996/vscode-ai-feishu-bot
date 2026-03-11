@@ -37,8 +37,8 @@ app.use(helmet());
 app.use(pinoHttp({ logger }));
 app.use(morgan('combined'));
 
-// 设置 UTF-8 字符集响应头
-app.use((req: Request, res: Response, next: NextFunction) => {
+// 设置 UTF-8 字符集响应头（仅限 API 路由，避免污染静态文件的 Content-Type）
+app.use('/api', (req: Request, res: Response, next: NextFunction) => {
   res.setHeader('Content-Type', 'application/json; charset=utf-8');
   next();
 });
@@ -84,7 +84,7 @@ app.use('/api', webhookRouter);
 // 版本端点
 app.get('/api/version', (req: Request, res: Response) => {
   res.json({
-    backend: '1.1.0',
+    backend: '1.1.6',
     name: 'Feishu AI Notification Service',
   });
 });
@@ -101,7 +101,7 @@ app.get('/api/health', (req: Request, res: Response) => {
 app.get('/api/status', (req: Request, res: Response) => {
   res.json({
     name: 'Feishu AI Notification Service',
-    version: '1.1.0',
+    version: '1.1.6',
     status: 'running',
     endpoints: {
       health: '/api/health',

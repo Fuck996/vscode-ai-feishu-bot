@@ -37,7 +37,7 @@
 
 services:
   app:
-    image: ghcr.io/fuck996/feishu-bot:${IMAGE_TAG:-1.1.0}
+    image: ghcr.io/fuck996/feishu-bot:${IMAGE_TAG:-1.1.6}
     container_name: feishu-bot
     ports:
       - "${APP_PORT:-45173}:3000"
