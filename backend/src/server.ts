@@ -53,11 +53,12 @@ app.use(
   })
 );
 
-// 速率限制
-const limiter = rateLimit({
+// 速率限制（开发环境下禁用）
+const limiter = config.nodeEnv === 'production' ? rateLimit({
   windowMs: 15 * 60 * 1000, // 15 分钟
   max: 100, // 限制每个 IP 100 个请求
-});
+}) : (req: Request, res: Response, next: NextFunction) => next();
+
 app.use('/api/', limiter);
 
 // 请求体解析（同时捕获 rawBody，用于平台 Webhook 签名验证）
