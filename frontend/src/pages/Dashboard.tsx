@@ -225,8 +225,55 @@ const Dashboard: React.FC = () => {
 
   if (loading) {
     return (
-      <div style={{ textAlign: 'center', padding: '2rem' }}>
-        <p>加载中...</p>
+      <div style={{
+        display: 'flex',
+        flexDirection: 'column',
+        height: '100vh',
+        backgroundColor: '#f3f4f6'
+      }}>
+        {/* 主加载区域 */}
+        <div style={{
+          flex: 1,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          flexDirection: 'column',
+          gap: '1.5rem'
+        }}>
+          {/* 旋转加载器 */}
+          <div style={{
+            width: '60px',
+            height: '60px',
+            border: '4px solid #e5e7eb',
+            borderTop: '4px solid #3b82f6',
+            borderRadius: '50%',
+            animation: 'spin 1s linear infinite',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center'
+          }}>
+          </div>
+          <p style={{ fontSize: '1rem', color: '#6b7280', fontWeight: 500 }}>加载中...</p>
+        </div>
+
+        {/* 固定页脚 */}
+        <div style={{
+          padding: '1.5rem',
+          borderTop: '1px solid #e5e7eb',
+          backgroundColor: 'white',
+          textAlign: 'center',
+          color: '#9ca3af',
+          fontSize: '0.875rem'
+        }}>
+          正在初始化系统数据，请稍候...
+        </div>
+
+        <style>{`
+          @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+          }
+        `}</style>
       </div>
     );
   }

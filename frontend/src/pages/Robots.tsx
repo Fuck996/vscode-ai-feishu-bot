@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import authService from '../services/auth';
+import { useToast } from '../hooks/useToast';
 
 interface Robot {
   id: string;
@@ -21,11 +22,11 @@ interface RobotsResponse {
 
 export default function Robots() {
   const navigate = useNavigate();
+  const toast = useToast();
   const [robots, setRobots] = useState<Robot[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [testingRobotId, setTestingRobotId] = useState<string | null>(null);
-  const [testMessage, setTestMessage] = useState<string | null>(null);
   const [isAddRobotModalOpen, setIsAddRobotModalOpen] = useState(false);
   const [isEditRobotModalOpen, setIsEditRobotModalOpen] = useState(false);
   const [editingRobot, setEditingRobot] = useState<Robot | null>(null);
@@ -76,11 +77,10 @@ export default function Robots() {
   const handleTestRobot = async (robotId: string) => {
     try {
       setTestingRobotId(robotId);
-      setTestMessage(null);
 
       const token = authService.getToken();
       if (!token) {
-        setTestMessage('未授权');
+        toast.error('未授权，请重新登录');
         return;
       }
 
@@ -95,14 +95,13 @@ export default function Robots() {
       const data = await response.json();
 
       if (response.ok && data.success) {
-        setTestMessage('✅ 测试通知已发送成功');
-        setTimeout(() => setTestMessage(null), 3000);
+        toast.success('测试通知已发送成功');
       } else {
-        setTestMessage(`❌ 测试失败: ${data.error || 'Unknown error'}`);
+        toast.error(`测试失败: ${data.error || '未知错误'}`);
       }
     } catch (err) {
       console.error('Test robot error:', err);
-      setTestMessage('❌ 网络错误');
+      toast.error('网络错误，请稍后重试');
     } finally {
       setTestingRobotId(null);
     }
@@ -112,7 +111,7 @@ export default function Robots() {
     try {
       const token = authService.getToken();
       if (!token) {
-        setError('未授权');
+        toast.error('未授权，请重新登录');
         return;
       }
 
@@ -134,14 +133,13 @@ export default function Robots() {
 
       if (response.ok && data.success) {
         setRobots(robots.map(r => r.id === robot.id ? { ...r, status: newStatus } : r));
-        setTestMessage(`✅ 机器人已${newStatus === 'active' ? '启用' : '禁用'}`);
-        setTimeout(() => setTestMessage(null), 2000);
+        toast.success(`机器人已${newStatus === 'active' ? '启用' : '禁用'}`);
       } else {
-        setError(data.error || '更新状态失败');
+        toast.error(data.error || '更新状态失败');
       }
     } catch (err) {
       console.error('Toggle robot status error:', err);
-      setError('网络错误');
+      toast.error('网络错误，请稍后重试');
     }
   };
 
@@ -154,7 +152,7 @@ export default function Robots() {
     try {
       const token = authService.getToken();
       if (!token) {
-        setError('未授权');
+        toast.error('未授权，请重新登录');
         return;
       }
 
@@ -170,14 +168,13 @@ export default function Robots() {
 
       if (response.ok && data.success) {
         setRobots(robots.filter(r => r.id !== robotId));
-        setTestMessage('✅ 机器人已删除');
-        setTimeout(() => setTestMessage(null), 2000);
+        toast.success('机器人已删除');
       } else {
-        setError(data.error || '删除机器人失败');
+        toast.error(data.error || '删除机器人失败');
       }
     } catch (err) {
       console.error('Delete robot error:', err);
-      setError('网络错误');
+      toast.error('网络错误，请稍后重试');
     }
   };
 
@@ -200,19 +197,19 @@ export default function Robots() {
   const handleUpdateRobot = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!editingRobot) return;
-    if (!editFormData.name.trim()) { setError('请输入机器人名称'); return; }
-    if (!editFormData.webhookUrl.trim()) { setError('请输入 Webhook URL'); return; }
+    if (!editFormData.name.trim()) { toast.error('请输入机器人名称'); return; }
+    if (!editFormData.webhookUrl.trim()) { toast.error('请输入 Webhook URL'); return; }
     try {
       new URL(editFormData.webhookUrl);
     } catch {
-      setError('请输入有效的 URL 格式');
+      toast.error('请输入有效的 URL 格式');
       return;
     }
     try {
       setIsSubmitting(true);
       setError(null);
       const token = authService.getToken();
-      if (!token) { setError('未授权，请重新登录'); return; }
+      if (!token) { toast.error('未授权，请重新登录'); return; }
       const response = await fetch(`${API_BASE_URL}/api/robots/${editingRobot.id}`, {
         method: 'PUT',
         headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
@@ -223,14 +220,13 @@ export default function Robots() {
         setRobots(robots.map(r => r.id === editingRobot.id ? { ...r, ...editFormData } : r));
         setIsEditRobotModalOpen(false);
         setEditingRobot(null);
-        setTestMessage('✅ 机器人已更新');
-        setTimeout(() => setTestMessage(null), 3000);
+        toast.success('机器人已更新');
       } else {
-        setError(data.error || '更新机器人失败');
+        toast.error(data.error || '更新机器人失败');
       }
     } catch (err) {
       console.error('Update robot error:', err);
-      setError('网络错误，请稍后重试');
+      toast.error('网络错误，请稍后重试');
     } finally {
       setIsSubmitting(false);
     }
@@ -240,12 +236,12 @@ export default function Robots() {
     e.preventDefault();
 
     if (!formData.name.trim()) {
-      setError('请输入机器人名称');
+      toast.error('请输入机器人名称');
       return;
     }
 
     if (!formData.webhookUrl.trim()) {
-      setError('请输入 Webhook URL');
+      toast.error('请输入 Webhook URL');
       return;
     }
 
@@ -253,7 +249,7 @@ export default function Robots() {
     try {
       new URL(formData.webhookUrl);
     } catch {
-      setError('Webhook URL 格式不正确，请检查后重试');
+      toast.error('Webhook URL 格式不正确，请检查后重试');
       return;
     }
 
@@ -263,7 +259,7 @@ export default function Robots() {
 
       const token = authService.getToken();
       if (!token) {
-        setError('未授权，请重新登录');
+        toast.error('未授权，请重新登录');
         return;
       }
 
@@ -285,16 +281,15 @@ export default function Robots() {
 
       if (response.ok && data.success) {
         setRobots([...robots, data.data]);
-        setTestMessage(`✅ 机器人 "${formData.name}" 创建成功`);
-        setTimeout(() => setTestMessage(null), 3000);
+        toast.success(`机器人 "${formData.name}" 创建成功`);
         setFormData({ name: '', description: '', webhookUrl: '' });
         setIsAddRobotModalOpen(false);
       } else {
-        setError(data.error || '创建机器人失败');
+        toast.error(data.error || '创建机器人失败');
       }
     } catch (err) {
       console.error('Add robot error:', err);
-      setError('网络错误，请稍后重试');
+      toast.error('网络错误，请稍后重试');
     } finally {
       setIsSubmitting(false);
     }
@@ -317,8 +312,52 @@ export default function Robots() {
 
   if (loading) {
     return (
-      <div style={{ textAlign: 'center', padding: '2rem' }}>
-        <p>加载中...</p>
+      <div style={{
+        display: 'flex',
+        flexDirection: 'column',
+        height: '100vh',
+        backgroundColor: '#f3f4f6'
+      }}>
+        {/* 主加载区域 */}
+        <div style={{
+          flex: 1,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          flexDirection: 'column',
+          gap: '1.5rem'
+        }}>
+          {/* 旋转加载器 */}
+          <div style={{
+            width: '60px',
+            height: '60px',
+            border: '4px solid #e5e7eb',
+            borderTop: '4px solid #3b82f6',
+            borderRadius: '50%',
+            animation: 'spin 1s linear infinite'
+          }}>
+          </div>
+          <p style={{ fontSize: '1rem', color: '#6b7280', fontWeight: 500 }}>加载机器人列表中...</p>
+        </div>
+
+        {/* 固定页脚 */}
+        <div style={{
+          padding: '1.5rem',
+          borderTop: '1px solid #e5e7eb',
+          backgroundColor: 'white',
+          textAlign: 'center',
+          color: '#9ca3af',
+          fontSize: '0.875rem'
+        }}>
+          正在获取您的机器人配置，请稍候...
+        </div>
+
+        <style>{`
+          @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+          }
+        `}</style>
       </div>
     );
   }
@@ -365,19 +404,6 @@ export default function Robots() {
         {error && (
           <div style={{ backgroundColor: '#fee2e2', color: '#dc2626', padding: '1rem', borderRadius: '0.5rem', marginBottom: '2rem' }}>
             {error}
-          </div>
-        )}
-
-        {/* 测试消息 */}
-        {testMessage && (
-          <div style={{
-            backgroundColor: testMessage.includes('✅') ? '#d1fae5' : '#fee2e2',
-            color: testMessage.includes('✅') ? '#047857' : '#dc2626',
-            padding: '1rem',
-            borderRadius: '0.5rem',
-            marginBottom: '2rem',
-          }}>
-            {testMessage}
           </div>
         )}
 

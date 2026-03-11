@@ -17,6 +17,9 @@ import mcpEndpointRouter from './routes/mcp-endpoint';
 import servicesRouter from './routes/services';
 import databaseService from './database';
 
+// 设置时区为北京时间
+process.env.TZ = process.env.TZ || 'Asia/Shanghai';
+
 // 确保 UTF-8 编码
 if (typeof global !== 'undefined') {
   (global as any).console = {

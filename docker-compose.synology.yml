@@ -1,5 +1,5 @@
-# 群晖 NAS Docker 部署配置（零配置版）
-# 使用 GitHub Container Registry 预构建镜像，一条命令启动
+# 群晖 NAS Docker 部署配置（前后端分离版）
+# 使用 GitHub Container Registry 预构建镜像
 #
 # ═══════════════════════════════════════════
 # 超快速部署（1 条命令）
@@ -18,8 +18,9 @@
 # 
 # 如需修改前端端口或添加飞书 Webhook，创建 .env 文件：
 #
-#   APP_PORT=45173          # 默认端口，如已占用可改为其他
+#   APP_PORT=45173          # 前端端口，如已占用可改为其他
 #   FEISHU_WEBHOOK_URL=https://open.feishu.cn/open-apis/bot/v2/hook/...
+#   JWT_SECRET=your-strong-secret-key-here
 #
 # 不创建 .env 文件也可以，应用会使用内置默认值启动。
 # 飞书 Webhook 可在完成登录后于系统内部添加。
@@ -35,11 +36,9 @@
 # ═══════════════════════════════════════════
 
 services:
-  feishu-bot:
-    image: ghcr.io/fuck996/feishu-bot:latest
-    container_name: feishu-bot
-    ports:
-      - "${APP_PORT:-45173}:3000"
+  backend:
+    image: ghcr.io/fuck996/feishu-bot-backend:1.0.0
+    container_name: feishu-bot-backend
     environment:
       NODE_ENV: production
       PORT: 3000
@@ -49,6 +48,8 @@ services:
       DATABASE_PATH: /app/data/notifications.db
       CORS_ORIGIN: "*"
       LOG_LEVEL: info
+      BACKEND_URL: http://localhost:${APP_PORT:-45173}
+      TZ: Asia/Shanghai
     volumes:
       - feishu-data:/app/data
     networks:
@@ -60,6 +61,18 @@ services:
       timeout: 10s
       retries: 3
       start_period: 15s
+
+  frontend:
+    image: ghcr.io/fuck996/feishu-bot-frontend:1.0.0
+    container_name: feishu-bot-frontend
+    ports:
+      - "${APP_PORT:-45173}:3000"
+    depends_on:
+      backend:
+        condition: service_healthy
+    networks:
+      - feishu-net
+    restart: unless-stopped
 
 volumes:
   feishu-data:

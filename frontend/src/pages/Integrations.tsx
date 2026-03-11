@@ -103,7 +103,6 @@ const PROJECT_TYPES: Array<{ type: string; icon: string; name: string; desc: str
   { type: 'github',       icon: '🐙', name: 'GitHub',        desc: 'Webhook 集成' },
   { type: 'gitlab',       icon: '🦊', name: 'GitLab',        desc: 'Webhook 集成' },
   { type: 'vscode-chat',  icon: '💬', name: 'VS Code Chat',  desc: 'Copilot 汇报' },
-  { type: 'api',          icon: '🔌', name: 'Direct API',    desc: '直接 API 调用' },
   { type: 'custom',       icon: '🛠️', name: 'Custom Webhook', desc: '自定义集成' },
 ];
 
@@ -463,21 +462,25 @@ export default function Integrations() {
                         <div style={{ display: 'flex', gap: '0.3rem', flexWrap: 'wrap' }}>
                           <button onClick={() => openEditModal(integration)} style={btnSecondary}>编辑</button>
                           <button onClick={() => handleDelete(integration)} style={btnDanger}>删除</button>
-                          <button
-                            onClick={() => copyText(`${WEBHOOK_BASE_URL}/api/webhook/${integration.id}`, integration.id + '_url', setCopiedUrlId)}
-                            style={{ ...btnSecondary, background: copiedUrlId === integration.id + '_url' ? '#d1fae5' : undefined, color: copiedUrlId === integration.id + '_url' ? '#065f46' : undefined }}
-                            title={`复制 Webhook URL：${WEBHOOK_BASE_URL}/api/webhook/${integration.id}`}
-                          >
-                            {copiedUrlId === integration.id + '_url' ? '✓ URL' : '📋 URL'}
-                          </button>
-                          {integration.webhookSecret && (
-                            <button
-                              onClick={() => copyText(integration.webhookSecret!, integration.id + '_token', setCopiedTokenId)}
-                              style={{ ...btnSecondary, background: copiedTokenId === integration.id + '_token' ? '#d1fae5' : undefined, color: copiedTokenId === integration.id + '_token' ? '#065f46' : undefined }}
-                              title="复制 Webhook Secret Token"
-                            >
-                              {copiedTokenId === integration.id + '_token' ? '✓ Token' : '🔑 Token'}
-                            </button>
+                          {integration.projectType !== 'vscode-chat' && integration.projectType !== 'api' && (
+                            <>
+                              <button
+                                onClick={() => copyText(`${WEBHOOK_BASE_URL}/api/webhook/${integration.id}`, integration.id + '_url', setCopiedUrlId)}
+                                style={{ ...btnSecondary, background: copiedUrlId === integration.id + '_url' ? '#d1fae5' : undefined, color: copiedUrlId === integration.id + '_url' ? '#065f46' : undefined }}
+                                title={`复制 Webhook URL：${WEBHOOK_BASE_URL}/api/webhook/${integration.id}`}
+                              >
+                                {copiedUrlId === integration.id + '_url' ? '✓ URL' : '📋 URL'}
+                              </button>
+                              {integration.webhookSecret && (
+                                <button
+                                  onClick={() => copyText(integration.webhookSecret!, integration.id + '_token', setCopiedTokenId)}
+                                  style={{ ...btnSecondary, background: copiedTokenId === integration.id + '_token' ? '#d1fae5' : undefined, color: copiedTokenId === integration.id + '_token' ? '#065f46' : undefined }}
+                                  title="复制 Webhook Secret Token"
+                                >
+                                  {copiedTokenId === integration.id + '_token' ? '✓ Token' : '🔑 Token'}
+                                </button>
+                              )}
+                            </>
                           )}
                           {integration.projectType === 'vscode-chat' && (
                             <button

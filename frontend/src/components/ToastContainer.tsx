@@ -66,7 +66,7 @@ const ToastContainer: React.FC = () => {
     <div
       style={{
         position: 'fixed',
-        top: '1rem',
+        bottom: '1rem',
         right: '1rem',
         zIndex: 9999,
         pointerEvents: 'none',
@@ -99,8 +99,8 @@ const ToastContainer: React.FC = () => {
                 border: `1px solid ${colors.border}`,
                 borderRadius: '0.5rem',
                 boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-                minWidth: '280px',
-                maxWidth: '420px',
+                minWidth: '320px',
+                maxWidth: '480px',
                 cursor: 'pointer',
                 transition: 'all 0.2s ease',
               }}
@@ -155,7 +155,7 @@ const ToastContainer: React.FC = () => {
       <style>{`
         @keyframes slideIn {
           from {
-            transform: translateX(420px);
+            transform: translateX(480px);
             opacity: 0;
           }
           to {
