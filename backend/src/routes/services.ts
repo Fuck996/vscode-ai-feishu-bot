@@ -57,8 +57,7 @@ router.get('/', verifyToken, async (req: AuthRequest, res: Response) => {
       totalIntegrations += integrations.length;
     }
 
-    // 构建服务列表 - 移除 config 字段，添加定时任务相关字段
-    const now = new Date();
+    // 构建服务列表
     const services = [
       {
         id: 'mcp-service',
@@ -74,8 +73,7 @@ router.get('/', verifyToken, async (req: AuthRequest, res: Response) => {
           { label: '运行时间', value: '12h 34m' },
           { label: '可用性', value: '99.8%' },
         ],
-        isScheduled: true,
-        nextRunTime: new Date(now.getTime() + 3600 * 1000).toISOString(),
+        isScheduled: false,
         uptime: '12h 34m',
       },
       {
@@ -92,8 +90,7 @@ router.get('/', verifyToken, async (req: AuthRequest, res: Response) => {
           { label: '队列长度', value: '0' },
           { label: '配置状态', value: '就绪' },
         ],
-        isScheduled: true,
-        nextRunTime: new Date(now.getTime() + 86400 * 1000).toISOString(),
+        isScheduled: false,
       },
       {
         id: 'notification-service',

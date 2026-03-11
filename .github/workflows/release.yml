@@ -54,29 +54,4 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-  # ─────────────────────────────────────────
-  # 通知飞书：发布完成
-  # ─────────────────────────────────────────
-  notify:
-    name: 发布通知
-    runs-on: ubuntu-latest
-    needs: [build]
-    if: always()
 
-    steps:
-      - name: 发送飞书通知
-        if: ${{ env.FEISHU_WEBHOOK_URL != '' }}
-        env:
-          FEISHU_WEBHOOK_URL: ${{ secrets.FEISHU_WEBHOOK_URL }}
-        run: |
-          STATUS="${{ needs.build.result == 'success' && '✅ 成功' || '❌ 失败' }}"
-          VERSION="${{ github.event.release.tag_name }}"
-          OWNER="${{ github.repository_owner }}"
-          curl -s -X POST "$FEISHU_WEBHOOK_URL" \
-            -H "Content-Type: application/json" \
-            -d "{
-              \"msg_type\": \"text\",
-              \"content\": {
-                \"text\": \"🐳 Docker 镜像发布 ${STATUS}\n版本：${VERSION}\n镜像：\nghcr.io/${OWNER}/feishu-bot:${VERSION}\"
-              }
-            }"
