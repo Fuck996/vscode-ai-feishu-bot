@@ -6,45 +6,90 @@ services:
       context: ./backend
       dockerfile: Dockerfile
     container_name: feishu-bot-backend
-    # 后端不暴露外部端口，只在容器网络内通信
+    # 后端不暴露外部端口，仅容器网络内访问
     environment:
       NODE_ENV: production
-      PORT: 3000
+      PORT: 3001
+      HOST: 0.0.0.0
       FEISHU_WEBHOOK_URL: ${FEISHU_WEBHOOK_URL}
-      JWT_SECRET: ${JWT_SECRET:-change-me-in-production}
+      JWT_SECRET: ${JWT_SECRET:-dev-secret-key-change-in-production}
       DATABASE_PATH: /app/data/notifications.db
       CORS_ORIGIN: ${CORS_ORIGIN:-*}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
     volumes:
-      - ./backend/data:/app/data
+      - backend-data:/app/data
     networks:
       - feishu-net
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:3000/api/health"]
+      test: ["CMD", "curl", "-f", "http://localhost:3001/api/version"]
       interval: 30s
       timeout: 10s
       retries: 3
       start_period: 10s
+    # 内存/CPU 限制（NAS 资源有限）
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: '0.5'
+        reservations:
+          memory: 256M
+          cpus: '0.25'
 
   frontend:
     build:
       context: ./frontend
       dockerfile: Dockerfile.prod
     container_name: feishu-bot-frontend
-    ports:
-      - "45173:3000"
+    # 前端也不暴露外部端口，由 nginx 代理
     environment:
-      VITE_API_URL: http://backend:3000
+      VITE_API_URL: /api
     depends_on:
       - backend
     networks:
       - feishu-net
     restart: unless-stopped
+    # 内存/CPU 限制
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: '0.25'
+        reservations:
+          memory: 128M
+          cpus: '0.1'
+
+  nginx:
+    image: nginx:alpine
+    container_name: feishu-bot-nginx
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/conf.d:/etc/nginx/conf.d:ro
+      - ./nginx/certs:/etc/nginx/certs:ro
+      - nginx-cache:/var/cache/nginx
+    depends_on:
+      - frontend
+      - backend
+    networks:
+      - feishu-net
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
 
 networks:
   feishu-net:
     driver: bridge
 
 volumes:
-  backend_data:
+  backend-data:
+    driver: local
+  nginx-cache:
     driver: local
