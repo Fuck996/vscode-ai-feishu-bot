@@ -2,7 +2,7 @@
  * 认证服务 - 处理登录、密码修改等API调用
  */
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+const API_BASE_URL = '';
 
 export interface User {
   id: string;
