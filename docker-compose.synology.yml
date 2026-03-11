@@ -1,38 +1,35 @@
-# 群晖 NAS Docker 部署配置（简化版）
+# 群晖 NAS Docker 部署配置（零配置版）
 # 使用 GitHub Container Registry 预构建镜像，一条命令启动
 #
 # ═══════════════════════════════════════════
-# 快速开始（3步）
+# 超快速部署（1 条命令）
 # ═══════════════════════════════════════════
+# 
+# cd /volume1/docker/feishu-bot
+# docker compose -f docker-compose.synology.yml pull
+# docker compose -f docker-compose.synology.yml up -d
 #
-# 1️⃣  创建 .env 文件（以下内容复制到群晖 /volume1/docker/feishu-bot/.env）
-#
-#     # 飞书机器人 Webhook URL（必须）
-#     FEISHU_WEBHOOK_URL=https://open.feishu.cn/open-apis/bot/v2/hook/你的webhook-id
-#     
-#     # JWT 签名密钥（必须，可自定义任意字符串）
-#     JWT_SECRET=your-secret-key-12345
-#     
-#     # （可选）修改前端访问端口，默认 8080
-#     APP_PORT=8080
-#
-# 2️⃣  在群晖 SSH 中运行
-#
-#     cd /volume1/docker/feishu-bot
-#     docker compose -f docker-compose.synology.yml pull
-#     docker compose -f docker-compose.synology.yml up -d
-#
-# 3️⃣  访问应用
-#
-#     http://你的群晖IP:8080
-#     初始账号：admin / admin （首次登录强制修改密码）
+# ✅ 然后访问：http://你的群晖IP:8080
+# ✅ 初始账号：admin / admin
 #
 # ═══════════════════════════════════════════
-# 更新版本
+# 【可选】自定义配置
+# ═══════════════════════════════════════════
+# 
+# 如需修改前端端口或添加飞书 Webhook，创建 .env 文件：
+#
+#   APP_PORT=8080
+#   FEISHU_WEBHOOK_URL=https://open.feishu.cn/open-apis/bot/v2/hook/...
+#
+# 不创建 .env 文件也可以，应用会使用内置默认值启动。
+# 飞书 Webhook 可在完成登录后于系统内部添加。
+#
+# ═══════════════════════════════════════════
+# 升级版本
 # ═══════════════════════════════════════════
 #
-#     docker compose -f docker-compose.synology.yml pull
-#     docker compose -f docker-compose.synology.yml up -d
+#   docker compose -f docker-compose.synology.yml pull
+#   docker compose -f docker-compose.synology.yml up -d
 #
 # ═══════════════════════════════════════════
 

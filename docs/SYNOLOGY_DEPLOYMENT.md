@@ -9,58 +9,27 @@
 - ✅ 群晖 NAS（DSM 7.2+）
 - ✅ 已安装 **Container Manager**（群晖官方应用市场可下载）
 - ✅ SSH 终端访问权限（可选但推荐）
-- ✅ 飞书机器人 Webhook URL
+
+**飞书配置是可选的**，启动后可在系统中添加。
 
 ---
 
-## 🚀 快速部署（3 行命令）
+## 🚀 快速部署（1 条命令，零配置）
 
-### 1. 准备部署文件
+直接启动，无需任何配置文件：
 
-在群晖上创建目录：
 ```bash
 mkdir -p /volume1/docker/feishu-bot
-cd /volume1/docker/feishu-bot
-```
-
-### 2. 创建配置文件
-
-创建文件 `.env`，复制以下内容：
-
-```env
-# 飞书机器人 Webhook URL（必须，从飞书群组 → 机器人 → 获取）
-FEISHU_WEBHOOK_URL=https://open.feishu.cn/open-apis/bot/v2/hook/你的webhook-id
-
-# JWT 签名密钥（必须，可任意字符串）
-JWT_SECRET=your-secret-key-12345
-
-# 前端访问端口（可选，默认 8080）
-APP_PORT=8080
-```
-
-### 3. 复制 Docker Compose 文件
-
-将项目中的 `docker-compose.synology.yml` 复制到 `/volume1/docker/feishu-bot/`
-
-### 4. 启动应用
-
-```bash
 cd /volume1/docker/feishu-bot
 docker compose -f docker-compose.synology.yml pull
 docker compose -f docker-compose.synology.yml up -d
 ```
 
-### 5. 验证运行
-
-```bash
-docker ps | grep feishu-bot
-```
-
-看到两个容器（backend + frontend）说明启动成功 ✅
+**就是这样！** ✅
 
 ---
 
-## 🔗 访问应用
+## 🔗 立即访问
 
 打开浏览器：
 ```
@@ -73,6 +42,26 @@ http://你的群晖IP:8080
 - ⚠️ 首次登录会强制修改密码
 
 ---
+
+## 🔧 【可选】自定义配置
+
+如需修改默认设置，创建 `.env` 文件：
+
+```env
+# 修改前端访问端口（默认 8080）
+APP_PORT=8080
+
+# 添加飞书 Webhook URL（从飞书群组 → 机器人 → 获取）
+FEISHU_WEBHOOK_URL=https://open.feishu.cn/open-apis/bot/v2/hook/你的webhook-id
+```
+
+然后重启服务：
+```bash
+docker compose -f docker-compose.synology.yml up -d
+```
+
+**不创建 .env 文件也完全可以** — 应用会用内置默认值启动，飞书 Webhook 可后续在系统界面中添加。
+
 
 ## 🛠️ 常见问题排查
 
@@ -95,17 +84,16 @@ docker logs feishu-bot-backend
 ```
 
 常见原因：
-- ❌ `FEISHU_WEBHOOK_URL` 未设置或格式错误
-- ❌ `JWT_SECRET` 非 UTF-8 编码
-- ❌ `.env` 文件编码不是 UTF-8（群晖建议用 SSH 创建）
+- ❌ `.env` 文件编码不是 UTF-8（群晖建议用 SSH 创建或不创建）
+- ❌ 磁盘空间不足
 
 **修复：**
 ```bash
 # 删除容器
 docker compose -f docker-compose.synology.yml down
 
-# 编辑 .env（用 nano 编辑）
-nano .env
+# 检查磁盘
+df -h
 
 # 重新启动
 docker compose -f docker-compose.synology.yml up -d
