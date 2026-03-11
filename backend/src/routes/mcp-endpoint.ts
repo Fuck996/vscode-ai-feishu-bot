@@ -260,7 +260,10 @@ async function handleFeishuNotify(
   }
 
   const summary = formatSummary(rawSummary);
-  const projectName = context.integration.projectName;
+
+  // 每次调用时重新从数据库获取最新集成信息（防止缓存过时导致项目名称不同步）
+  const freshIntegration = await database.getIntegrationById(context.integration.id);
+  const projectName = (freshIntegration || context.integration).projectName;
 
   // 自动生成标题（与 mcp-server/index.js 相同逻辑）
   let title = String(args.title || '').trim();

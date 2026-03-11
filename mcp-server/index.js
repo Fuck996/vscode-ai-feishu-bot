@@ -179,6 +179,14 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
   const rawSummary = String(args.summary || '').trim();
   const summary = formatSummary(rawSummary);
   const customTitle = String(args.title || '').trim();
+
+  // 每次调用时重新读取后端最新配置（防止启动后项目名称被修改但未同步到 mcp-server）
+  const freshConfig = await fetchConfigFromBackend();
+  if (freshConfig) {
+    currentConfig.webhookEndpoint = freshConfig.webhookEndpoint;
+    currentConfig.triggerToken    = freshConfig.triggerToken;
+    currentConfig.projectName     = freshConfig.projectName;
+  }
   const projectName = String(args.projectName || currentConfig.projectName || '').trim();
   
   // 自动生成标题
