@@ -60,7 +60,7 @@ jobs:
   notify:
     name: 发布通知
     runs-on: ubuntu-latest
-    needs: [build-backend, build-frontend]
+    needs: [build]
     if: always()
 
     steps:
@@ -69,7 +69,7 @@ jobs:
         env:
           FEISHU_WEBHOOK_URL: ${{ secrets.FEISHU_WEBHOOK_URL }}
         run: |
-          STATUS="${{ needs.build-backend.result == 'success' && needs.build-frontend.result == 'success' && '✅ 成功' || '❌ 失败' }}"
+          STATUS="${{ needs.build.result == 'success' && '✅ 成功' || '❌ 失败' }}"
           VERSION="${{ github.event.release.tag_name }}"
           OWNER="${{ github.repository_owner }}"
           curl -s -X POST "$FEISHU_WEBHOOK_URL" \
@@ -77,6 +77,6 @@ jobs:
             -d "{
               \"msg_type\": \"text\",
               \"content\": {
-                \"text\": \"🐳 Docker 镜像发布 ${STATUS}\n版本：${VERSION}\n镜像：\nghcr.io/${OWNER}/feishu-bot-backend:${VERSION}\nghcr.io/${OWNER}/feishu-bot-frontend:${VERSION}\"
+                \"text\": \"🐳 Docker 镜像发布 ${STATUS}\n版本：${VERSION}\n镜像：\nghcr.io/${OWNER}/feishu-bot:${VERSION}\"
               }
             }"

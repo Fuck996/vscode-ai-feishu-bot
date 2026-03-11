@@ -571,7 +571,7 @@ const Services: React.FC = () => {
               fontSize: '0.75rem',
               padding: '1rem',
               borderRadius: '0.375rem',
-              maxHeight: '320px',
+              maxHeight: '600px',
               overflowY: 'auto',
               lineHeight: 1.6,
             }}

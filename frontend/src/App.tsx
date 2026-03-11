@@ -17,6 +17,7 @@ import Integrations from './pages/Integrations';
 import Services from './pages/Services';
 import Login from './pages/Login';
 import ForceChangePassword from './pages/ForceChangePassword';
+import ToastContainer from './components/ToastContainer';
 import './index.css';
 
 // 受保护的路由组件
@@ -310,6 +311,7 @@ export default function App() {
   return (
     <Router>
       <AppContent />
+      <ToastContainer />
     </Router>
   );
 }
