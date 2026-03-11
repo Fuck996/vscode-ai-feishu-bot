@@ -274,17 +274,38 @@ async function handleFeishuNotify(
   // 使用与 platform-webhook.ts 相同的卡片构建函数
   const card = buildFeishuCard(title, summary, 'info', projectName);
 
-  await axios.post(context.robot.webhookUrl, card, {
-    headers: { 'Content-Type': 'application/json; charset=utf-8' },
-  });
+  // 异步发送飞书通知（不阻塞 MCP 响应）
+  // 使用 setImmediate 让 SSE 响应先发出去，再异步处理下游操作
+  setImmediate(async () => {
+    try {
+      await axios.post(context.robot.webhookUrl, card, {
+        headers: { 'Content-Type': 'application/json; charset=utf-8' },
+        timeout: 5000, // 5秒超时
+      });
+    } catch (err: any) {
+      logger.error(
+        { project: projectName, error: err.message },
+        'MCP feishu_notify 飞书发送失败'
+      );
+    }
 
-  // 保存通知记录
-  await database.saveNotification({
-    title,
-    summary,
-    status: 'info',
-    source: `mcp-remote/${projectName}`,
-    robotName: context.robot.name,
+    // 保存通知记录（即使飞书发送失败也应该记录）
+    try {
+      await database.saveNotification({
+        title,
+        summary,
+        status: 'info',
+        source: `mcp-remote/${projectName}`,
+        robotName: context.robot.name,
+      });
+    } catch (err: any) {
+      logger.error({ error: err.message }, 'MCP 通知记录失败');
+    }
+
+    logger.info(
+      { project: projectName, robot: context.robot.name },
+      'MCP 远端 feishu_notify 异步处理完成'
+    );
   });
 
   logger.info(
