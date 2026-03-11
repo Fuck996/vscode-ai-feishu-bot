@@ -114,6 +114,13 @@ function sendSSE(res: Response, event: string, data: unknown) {
   res.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
 }
 
+// 构建完整的消息端点 URL（给 endpoint 事件用，不能 JSON.stringify）
+function buildMessageUrl(req: Request, sessionId: string, token: string): string {
+  const proto = ((req.headers['x-forwarded-proto'] as string) || req.protocol || 'https').split(',')[0].trim();
+  const host = (req.headers.host as string) || 'localhost';
+  return `${proto}://${host}/api/mcp/message?sessionId=${sessionId}&token=${encodeURIComponent(token)}`;
+}
+
 // ─────────────────────────────────────────────
 // GET /api/mcp/sse?token=<webhookSecret>
 // ─────────────────────────────────────────────
@@ -141,7 +148,10 @@ router.get('/sse', async (req: Request, res: Response) => {
   sessions.set(sessionId, { res, integrationId: context.integration.id });
 
   // 告知客户端 POST 消息的端点
-  sendSSE(res, 'endpoint', `/api/mcp/message?sessionId=${sessionId}&token=${encodeURIComponent(token)}`);
+  // 注意：endpoint 事件必须发送原始 URL 字符串，不能 JSON.stringify
+  // JSON.stringify 会加引号，VS Code 会把引号当相对路径拼接，导致 URL 变形
+  const messageUrl = buildMessageUrl(req, sessionId, token);
+  res.write(`event: endpoint\ndata: ${messageUrl}\n\n`);
 
   logger.info(
     { sessionId, project: context.integration.projectName },
@@ -157,6 +167,18 @@ router.get('/sse', async (req: Request, res: Response) => {
     clearInterval(heartbeat);
     sessions.delete(sessionId);
     logger.info({ sessionId }, 'MCP SSE 连接关闭');
+  });
+});
+
+// ─────────────────────────────────────────────
+// POST /api/mcp/sse?token=  （VS Code 1.99+ Streamable HTTP 新协议）
+// VS Code 先尝试 POST 到 SSE 同一 URL，找不到时回退到 legacy SSE
+// 返回 405 Method Not Allowed 比 404 更语义化，让 VS Code 快速识别并回退
+// ─────────────────────────────────────────────
+
+router.post('/sse', (req: Request, res: Response) => {
+  res.status(405).setHeader('Allow', 'GET').json({
+    error: '本服务使用 legacy SSE 协议，请使用 GET /api/mcp/sse 建立连接',
   });
 });
 

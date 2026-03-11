@@ -30,15 +30,8 @@ vscode-ai-feishu-bot/
 │   ├── package.json
 │   ├── Dockerfile.prod
 │   └── tsconfig.json
-├── vscode-extension/           # VSCode 扩展
-│   ├── src/
-│   │   ├── extension.ts        # 扩展入口
-│   │   ├── feishuNotifier.ts   # 飞书通知器
-│   │   ├── commands.ts         # 命令注册
-│   │   └── config.ts           # 扩展配置
-│   ├── package.json
-│   ├── tsconfig.json
-│   └── vsc-extension-quickstart.md
+├── mcp-server/                 # MCP 服务（stdio 模式备用）
+│   └── index.js
 ├── sdk/                        # 跨工程 SDK（可选）
 │   ├── typescript/
 │   │   ├── dist/
@@ -70,12 +63,11 @@ vscode-ai-feishu-bot/
 - ✅ 日志管理
 - ✅ 健康检查
 
-### 2. VSCode 扩展
-- ✅ 一键发送通知命令
-- ✅ 快捷菜单集成
-- ✅ 工作区日志上传
-- ✅ 配置管理面板
-- ✅ 快快捷键支持
+### 2. MCP 工具集成
+- ✅ Copilot Agent 自动汇报（feishu_notify 工具）
+- ✅ SSE 远端连接（无需本地进程）
+- ✅ Token 认证（基于集成 webhookSecret）
+- ✅ 自动格式化（✅/🔧/📝 列表）
 
 ### 3. 管理前端
 - ✅ 通知历史查看
@@ -135,12 +127,10 @@ npm run dev
 
 例：`NewPass@123`
 
-### 5. VSCode 扩展开发
-```bash
-cd vscode-extension
-npm install
-npm run watch
-# F5 启动调试
+### 5. MCP 配置（Copilot 自动汇报）
+在项目根目录 `.vscode/mcp.json` 已预配置。设置环境变量并重启 VS Code 即可：
+```powershell
+[System.Environment]::SetEnvironmentVariable("FEISHU_MCP_TOKEN", "<集成Token>", "User")
 ```
 
 ## 📦 免费部署方案
@@ -256,7 +246,7 @@ Ctrl+Shift+P -> Feishu: Send Notification
 ### 项目结构说明
 - **backend**：TypeScript + Express + SQLite
 - **frontend**：React + TypeScript + Vite
-- **vscode-extension**：VSCode Extension API
+- **mcp-server**：MCP stdio 服务（备用本地模式）
 - **sdk**：SDK 库（可选）
 
 ### 本地开发

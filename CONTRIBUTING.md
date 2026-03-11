@@ -18,7 +18,6 @@ bash scripts/setup.sh
 # 或手动安装
 cd backend && npm install
 cd ../frontend && npm install
-cd ../vscode-extension && npm install
 cd ../sdk/typescript && npm install
 ```
 
@@ -36,13 +35,6 @@ npm run dev
 ```bash
 cd frontend
 npm run dev
-```
-
-**开发 VSCode 扩展（新终端）**
-```bash
-cd vscode-extension
-npm run watch
-# 按 F5 启动调试
 ```
 
 ## 代码规范

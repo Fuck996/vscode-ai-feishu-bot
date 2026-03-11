@@ -14,12 +14,6 @@ npm install
 npm run build
 cd ..
 
-echo "📦 安装 VSCode 扩展依赖..."
-cd vscode-extension
-npm install
-npm run build
-cd ..
-
 echo "📦 安装 SDK..."
 echo "   TypeScript SDK..."
 cd sdk/typescript
