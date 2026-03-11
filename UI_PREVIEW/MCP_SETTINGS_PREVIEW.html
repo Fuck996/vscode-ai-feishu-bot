@@ -1,0 +1,481 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MCP 通知配置 - 飞书通知系统</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      background-color: #f3f4f6;
+    }
+
+    .container {
+      max-width: 1000px;
+      margin: 0 auto;
+      padding: 2rem;
+    }
+
+    .header {
+      margin-bottom: 2rem;
+    }
+
+    .header h1 {
+      font-size: 1.875rem;
+      font-weight: bold;
+      color: #1f2937;
+      margin-bottom: 0.5rem;
+    }
+
+    .header p {
+      font-size: 0.875rem;
+      color: #6b7280;
+    }
+
+    .cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      gap: 1.5rem;
+      margin-bottom: 2rem;
+    }
+
+    .card {
+      background: white;
+      border-radius: 0.5rem;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+      padding: 1.5rem;
+    }
+
+    .card h2 {
+      font-size: 1.125rem;
+      font-weight: 600;
+      margin-bottom: 1rem;
+      color: #1f2937;
+    }
+
+    .card p {
+      font-size: 0.875rem;
+      color: #6b7280;
+      margin-bottom: 1rem;
+    }
+
+    .form-group {
+      margin-bottom: 1.5rem;
+    }
+
+    .form-group label {
+      display: block;
+      font-weight: 500;
+      font-size: 0.875rem;
+      color: #1f2937;
+      margin-bottom: 0.5rem;
+    }
+
+    .form-group input[type="text"],
+    .form-group input[type="number"],
+    .form-group textarea,
+    .form-group select {
+      width: 100%;
+      padding: 0.5rem;
+      border: 1px solid #d1d5db;
+      border-radius: 0.375rem;
+      font-size: 0.875rem;
+      font-family: inherit;
+    }
+
+    .form-group textarea {
+      resize: vertical;
+      min-height: 80px;
+    }
+
+    .form-group input:focus,
+    .form-group textarea:focus,
+    .form-group select:focus {
+      outline: none;
+      border-color: #3b82f6;
+      box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+    }
+
+    .toggle-group {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 1rem;
+    }
+
+    .toggle-group label {
+      margin-bottom: 0;
+    }
+
+    .toggle-switch {
+      width: 44px;
+      height: 24px;
+      background-color: #cbd5e1;
+      border-radius: 12px;
+      border: none;
+      cursor: pointer;
+      position: relative;
+      transition: background-color 0.2s;
+    }
+
+    .toggle-switch.active {
+      background-color: #10b981;
+    }
+
+    .toggle-switch::after {
+      content: '';
+      position: absolute;
+      width: 20px;
+      height: 20px;
+      background-color: white;
+      border-radius: 10px;
+      top: 2px;
+      left: 2px;
+      transition: left 0.2s;
+    }
+
+    .toggle-switch.active::after {
+      left: 22px;
+    }
+
+    .help-text {
+      font-size: 0.75rem;
+      color: #6b7280;
+      margin-top: 0.25rem;
+    }
+
+    .button-group {
+      display: flex;
+      gap: 0.5rem;
+      margin-top: 2rem;
+    }
+
+    .btn {
+      padding: 0.5rem 1rem;
+      border: none;
+      border-radius: 0.375rem;
+      font-size: 0.875rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .btn-primary {
+      background-color: #3b82f6;
+      color: white;
+    }
+
+    .btn-primary:hover {
+      background-color: #2563eb;
+    }
+
+    .btn-secondary {
+      background-color: #e5e7eb;
+      color: #374151;
+    }
+
+    .btn-secondary:hover {
+      background-color: #d1d5db;
+    }
+
+    .section-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1.5rem;
+      margin-bottom: 2rem;
+    }
+
+    .info-box {
+      background-color: #f0f9ff;
+      border-left: 4px solid #0ea5e9;
+      padding: 1rem;
+      border-radius: 0.375rem;
+      margin-top: 1.5rem;
+    }
+
+    .info-box p {
+      font-size: 0.875rem;
+      color: #0369a1;
+      margin: 0;
+    }
+
+    .warning-box {
+      background-color: #fef2f2;
+      border-left: 4px solid #ef4444;
+      padding: 1rem;
+      border-radius: 0.375rem;
+    }
+
+    .warning-box p {
+      font-size: 0.875rem;
+      color: #dc2626;
+      margin: 0;
+    }
+
+    .advanced-section {
+      background: white;
+      border-radius: 0.5rem;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+      overflow: hidden;
+    }
+
+    .section-header {
+      background-color: #f9fafb;
+      padding: 1.5rem;
+      border-bottom: 1px solid #e5e7eb;
+      cursor: pointer;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      user-select: none;
+    }
+
+    .section-header h3 {
+      font-size: 1rem;
+      font-weight: 600;
+      color: #1f2937;
+      margin: 0;
+    }
+
+    .section-header .arrow {
+      width: 20px;
+      height: 20px;
+      color: #6b7280;
+      transition: transform 0.2s;
+    }
+
+    .section-header.expanded .arrow {
+      transform: rotate(180deg);
+    }
+
+    .section-content {
+      max-height: 0;
+      overflow: hidden;
+      transition: max-height 0.2s ease-out;
+    }
+
+    .section-content.expanded {
+      max-height: 1000px;
+    }
+
+    .section-body {
+      padding: 1.5rem;
+    }
+
+    @media (max-width: 768px) {
+      .section-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .cards {
+        grid-template-columns: 1fr;
+      }
+
+      .container {
+        padding: 1rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>🤖 MCP 通知配置</h1>
+      <p>配置 VS Code Copilot 发送到飞书的自动推送行为</p>
+    </div>
+
+    <!-- 基础配置卡片 -->
+    <div class="cards">
+      <div class="card">
+        <h2>📌 关联集成</h2>
+        <p>选择使用 MCP 功能的集成</p>
+        <div class="form-group">
+          <label>所属机器人 *</label>
+          <select>
+            <option value="">-- 选择机器人 --</option>
+            <option value="robot-1">飞书机器人 #1</option>
+            <option value="robot-2">飞书机器人 #2</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>集成名称 *</label>
+          <input type="text" placeholder="如: VS Code 会话" value="VSCODE会话">
+        </div>
+        <div class="info-box">
+          <p>ℹ️ MCP 配置将应用到此集成的所有通知</p>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>🔄 重试策略</h2>
+        <p>设置推送失败时的重试行为</p>
+        <div class="form-group">
+          <label>启用自动重试</label>
+          <div class="toggle-group">
+            <label style="margin: 0;">失败时自动重试</label>
+            <button class="toggle-switch active" onclick="this.classList.toggle('active')"></button>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>重试次数</label>
+          <input type="number" min="1" max="10" value="3" placeholder="1-10">
+          <div class="help-text">最多重试次数，超过后放弃</div>
+        </div>
+        <div class="form-group">
+          <label>重试延迟（秒）</label>
+          <input type="number" min="1" max="60" value="5" placeholder="秒数">
+          <div class="help-text">每次重试间隔时间</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>📦 批处理设置</h2>
+        <p>多条消息合并发送</p>
+        <div class="form-group">
+          <label>启用消息批处理</label>
+          <div class="toggle-group">
+            <label style="margin: 0;">将多条消息合并成一条发送</label>
+            <button class="toggle-switch" onclick="this.classList.toggle('active')"></button>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>批处理时间窗口（秒）</label>
+          <input type="number" min="5" max="300" value="60" placeholder="秒数">
+          <div class="help-text">相同时间窗口内的消息自动合并</div>
+        </div>
+        <div class="form-group">
+          <label>最大批量消息数</label>
+          <input type="number" min="2" max="50" value="10" placeholder="2-50">
+          <div class="help-text">达到此数量立即发送，无需等待</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>🎨 消息格式</h2>
+        <p>定制通知消息的呈现方式</p>
+        <div class="form-group">
+          <label>默认消息格式</label>
+          <select>
+            <option value="detailed" selected>📝 详细格式</option>
+            <option value="concise">✍️ 简洁格式</option>
+            <option value="compact">📄 紧凑格式</option>
+          </select>
+          <div class="help-text">详细格式: 显示所有信息（默认）</div>
+          <div class="help-text">简洁格式: 仅重点内容</div>
+          <div class="help-text">紧凑格式: 单行摘要</div>
+        </div>
+        <div class="form-group">
+          <label>启用代码块</label>
+          <div class="toggle-group">
+            <label style="margin: 0;">错误消息中显示代码上下文</label>
+            <button class="toggle-switch active" onclick="this.classList.toggle('active')"></button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 高级配置部分 -->
+    <div class="advanced-section">
+      <div class="section-header expanded" onclick="toggleSection(this)">
+        <h3>⚙️ 高级配置</h3>
+        <span class="arrow">▼</span>
+      </div>
+      <div class="section-content expanded">
+        <div class="section-body">
+          <div class="section-grid">
+            <div>
+              <h4 style="margin-bottom: 1rem; color: #1f2937;">超时设置</h4>
+              <div class="form-group">
+                <label>请求超时（毫秒）</label>
+                <input type="number" min="1000" max="30000" value="10000">
+                <div class="help-text">单个请求的最大等待时间</div>
+              </div>
+              <div class="form-group">
+                <label>重试总超时（秒）</label>
+                <input type="number" min="10" max="600" value="60">
+                <div class="help-text">所有重试的总时间限制</div>
+              </div>
+            </div>
+
+            <div>
+              <h4 style="margin-bottom: 1rem; color: #1f2937;">日志和通知</h4>
+              <div class="form-group">
+                <label>启用详细日志</label>
+                <div class="toggle-group">
+                  <label style="margin: 0;">记录 MCP 请求详情</label>
+                  <button class="toggle-switch" onclick="this.classList.toggle('active')"></button>
+                </div>
+              </div>
+              <div class="form-group">
+                <label>失败处理</label>
+                <select>
+                  <option value="silent">静默处理</option>
+                  <option value="notify">发送失败通知</option>
+                  <option value="alert">弹窗提醒</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <div class="info-box" style="margin-top: 1.5rem;">
+            <p>💡 高级配置适合有特殊需求的用户，默认配置已优化于大多数场景</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 预览模板 -->
+    <div style="margin-top: 2rem; background: white; border-radius: 0.5rem; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1); padding: 1.5rem;">
+      <h3 style="font-size: 1.125rem; font-weight: 600; margin-bottom: 1rem; color: #1f2937;">📋 通知预览</h3>
+      <p style="font-size: 0.875rem; color: #6b7280; margin-bottom: 1.5rem;">这是使用当前配置发送的消息样式：</p>
+
+      <!-- 详细格式预览 -->
+      <div style="background: #f0f9ff; border: 1px solid #0ea5e9; border-radius: 0.5rem; padding: 1rem; margin-bottom: 1.5rem;">
+        <div style="font-weight: 600; color: #0369a1; margin-bottom: 0.5rem;">✅ 任务完成 (详细格式)</div>
+        <div style="font-size: 0.875rem; color: #0369a1; line-height: 1.6;">
+          ✅ 完成了集成管理功能开发<br>
+          ✅ 添加了前端集成管理页面<br>
+          ✅ 实现了 API 端点<br>
+          🔧 修复了3处状态切换的bug<br>
+          📝 已提交代码到 GitHub<br>
+          📝 集成功能已上线
+        </div>
+      </div>
+
+      <!-- 简洁格式预览 -->
+      <div style="background: #fef3c7; border: 1px solid #f59e0b; border-radius: 0.5rem; padding: 1rem;">
+        <div style="font-weight: 600; color: #92400e; margin-bottom: 0.5rem;">✍️ 任务完成 (简洁格式)</div>
+        <div style="font-size: 0.875rem; color: #92400e;">
+          完成集成管理功能 + 3处bug修复 + 代码提交
+        </div>
+      </div>
+    </div>
+
+    <!-- 操作按钮 -->
+    <div style="margin-top: 2rem; display: flex; gap: 0.5rem;">
+      <button class="btn btn-primary" onclick="alert('配置已保存到集成: VSCODE会话')">💾 保存配置</button>
+      <button class="btn btn-secondary" onclick="location.reload()">↺ 重置</button>
+      <button class="btn btn-secondary" onclick="alert('该集成的配置将保持不变')">✕ 取消</button>
+    </div>
+
+    <!-- 帮助信息 -->
+    <div class="warning-box" style="margin-top: 2rem;">
+      <p>⚠️ 注意：这些配置仅应用于新创建的通知推送。已发送的消息配置不受影响。</p>
+    </div>
+  </div>
+
+  <script>
+    function toggleSection(header) {
+      header.classList.toggle('expanded');
+      const content = header.nextElementSibling;
+      content.classList.toggle('expanded');
+    }
+  </script>
+</body>
+</html>

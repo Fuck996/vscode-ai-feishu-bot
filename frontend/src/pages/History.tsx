@@ -37,7 +37,7 @@ const History: React.FC = () => {
       setError(null);
 
       // 获取通知列表
-      const notificationsResponse = await fetch('http://localhost:3000/api/notifications', {
+      const notificationsResponse = await fetch('/api/notifications', {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`,
         },
@@ -48,7 +48,7 @@ const History: React.FC = () => {
       }
 
       // 获取机器人列表
-      const robotsResponse = await fetch('http://localhost:3000/api/robots', {
+      const robotsResponse = await fetch('/api/robots', {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`,
         },

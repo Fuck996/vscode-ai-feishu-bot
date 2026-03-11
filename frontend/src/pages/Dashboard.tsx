@@ -99,7 +99,7 @@ const Dashboard: React.FC = () => {
       setError(null);
 
       // 获取通知列表
-      const notificationsResponse = await fetch('http://localhost:3000/api/notifications', {
+      const notificationsResponse = await fetch('/api/notifications', {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`,
         },
@@ -113,7 +113,7 @@ const Dashboard: React.FC = () => {
       }
 
       // 获取机器人列表
-      const robotsResponse = await fetch('http://localhost:3000/api/robots', {
+      const robotsResponse = await fetch('/api/robots', {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`,
         },
@@ -176,7 +176,7 @@ const Dashboard: React.FC = () => {
 
   const testRobot = async (robotId: string) => {
     try {
-      const response = await fetch(`http://localhost:3000/api/robots/${robotId}/test`, {
+      const response = await fetch(`/api/robots/${robotId}/test`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`,
@@ -201,7 +201,7 @@ const Dashboard: React.FC = () => {
     }
 
     try {
-      const response = await fetch(`http://localhost:3000/api/robots/${robotId}`, {
+      const response = await fetch(`/api/robots/${robotId}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`,

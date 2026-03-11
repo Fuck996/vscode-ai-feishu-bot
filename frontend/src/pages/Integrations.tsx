@@ -30,9 +30,9 @@ interface Integration {
 
 type IntegrationModalMode = 'create' | 'edit';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+const API_BASE_URL = '';
 // Webhook 地址使用前端 origin（Vite dev proxy 和 nginx 均代理 /api 到后端）
-const WEBHOOK_BASE_URL = typeof window !== 'undefined' ? window.location.origin : API_BASE_URL;
+const WEBHOOK_BASE_URL = typeof window !== 'undefined' ? window.location.origin : 'http://localhost:5173';
 
 // ===== 静态数据 =====
 

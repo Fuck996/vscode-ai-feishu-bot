@@ -36,7 +36,7 @@ function MainLayout({ children }: { children: React.ReactNode }) {
     // 获取后端版本
     const fetchBackendVersion = async () => {
       try {
-        const response = await fetch('http://localhost:3000/api/version');
+        const response = await fetch('/api/version');
         if (response.ok) {
           const data = await response.json();
           setBackendVersion(data.backend);
@@ -53,7 +53,7 @@ function MainLayout({ children }: { children: React.ReactNode }) {
         const token = authService.getToken();
         if (!token) return;
 
-        const response = await fetch('http://localhost:3000/api/users/me', {
+        const response = await fetch('/api/users/me', {
           headers: {
             'Authorization': `Bearer ${token}`,
           },

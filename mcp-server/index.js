@@ -49,7 +49,7 @@ async function fetchConfigFromBackend() {
   if (!WEBHOOK_ENDPOINT || !TRIGGER_TOKEN) {
     try {
       const response = await new Promise((resolve, reject) => {
-        const url = new URL('http://localhost:3000/api/mcp/config');
+        const url = new URL('http://localhost:3001/api/mcp/config');
         http.get(url, { timeout: 2000 }, (res) => {
           let data = '';
           res.on('data', chunk => data += chunk);
