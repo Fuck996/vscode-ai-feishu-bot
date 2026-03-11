@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import authService from '../services/auth';
+import toastService from '../services/toastService';
 
 // ===== 类型定义 =====
 
@@ -147,10 +148,11 @@ export default function Integrations() {
   // 查看 MCP 配置弹窗（vscode-chat 类型专用）
   const [mcpGuideIntegration, setMcpGuideIntegration] = useState<Integration | null>(null);
 
-  const copyText = (text: string, id: string, setter: (v: string | null) => void) => {
+  const copyText = (text: string, id: string, setter: (v: string | null) => void, label?: string) => {
     navigator.clipboard.writeText(text).then(() => {
       setter(id);
       setTimeout(() => setter(null), 2000);
+      toastService.success(`已复制 ${label || '内容'}`);
     });
   };
 
@@ -204,12 +206,12 @@ export default function Integrations() {
         setIntegrations(prev => prev.map(i =>
           i.id === integration.id ? { ...i, status: newStatus } : i
         ));
-        showMessage(`✅ 集成已${newStatus === 'active' ? '启用' : '停用'}`);
+        toastService.success(`集成已${newStatus === 'active' ? '启用' : '停用'}`);
       } else {
-        showMessage(`❌ 操作失败: ${data.error || '未知错误'}`);
+        toastService.error(`操作失败: ${data.error || '未知错误'}`);
       }
     } catch {
-      showMessage('❌ 网络错误');
+      toastService.error('网络错误，请稍后重试');
     } finally {
       setTogglingId(null);
     }
@@ -465,7 +467,7 @@ export default function Integrations() {
                           {integration.projectType !== 'vscode-chat' && integration.projectType !== 'api' && (
                             <>
                               <button
-                                onClick={() => copyText(`${WEBHOOK_BASE_URL}/api/webhook/${integration.id}`, integration.id + '_url', setCopiedUrlId)}
+                                onClick={() => copyText(`${WEBHOOK_BASE_URL}/api/webhook/${integration.id}`, integration.id + '_url', setCopiedUrlId, 'Webhook URL')}
                                 style={{ ...btnSecondary, background: copiedUrlId === integration.id + '_url' ? '#d1fae5' : undefined, color: copiedUrlId === integration.id + '_url' ? '#065f46' : undefined }}
                                 title={`复制 Webhook URL：${WEBHOOK_BASE_URL}/api/webhook/${integration.id}`}
                               >
@@ -473,7 +475,7 @@ export default function Integrations() {
                               </button>
                               {integration.webhookSecret && (
                                 <button
-                                  onClick={() => copyText(integration.webhookSecret!, integration.id + '_token', setCopiedTokenId)}
+                                  onClick={() => copyText(integration.webhookSecret!, integration.id + '_token', setCopiedTokenId, 'Secret Token')}
                                   style={{ ...btnSecondary, background: copiedTokenId === integration.id + '_token' ? '#d1fae5' : undefined, color: copiedTokenId === integration.id + '_token' ? '#065f46' : undefined }}
                                   title="复制 Webhook Secret Token"
                                 >
@@ -730,9 +732,10 @@ function IntegrationModal({
                 <div style={{ fontWeight: 600, fontSize: '0.8rem', color: '#166534', marginBottom: '0.5rem' }}>▲ Vercel Webhook 配置</div>
                 <div style={{ background: '#dcfce7', borderRadius: '0.375rem', padding: '0.75rem', fontSize: '0.78rem', color: '#166534', lineHeight: 1.7 }}>
                   📖 <strong>配置步骤：</strong><br />
-                  1. 前往 Vercel 项目 → Settings → Webhooks → Add Webhook<br />
+                  1. 前往 Vercel <strong>团队仪表盘</strong> → Settings → Webhooks → Add Webhook（团队级别，非项目级别）<br />
                   2. Payload URL 填入创建后生成的 Webhook 地址<br />
-                  3. Secret 字段填入创建后生成的 Webhook Secret（Vercel 用于 HMAC-SHA1 签名验证）
+                  3. Secret 字段填入创建后生成的 Webhook Secret（Vercel 使用 HMAC-SHA1 签名）<br />
+                  4. 勾选所需事件（推荐勾选 Deployment 相关事件）
                 </div>
               </div>
             );
@@ -742,9 +745,10 @@ function IntegrationModal({
                 <div style={{ fontWeight: 600, fontSize: '0.8rem', color: '#9f1239', marginBottom: '0.5rem' }}>🚂 Railway Webhook 配置</div>
                 <div style={{ background: '#ffe4e6', borderRadius: '0.375rem', padding: '0.75rem', fontSize: '0.78rem', color: '#9f1239', lineHeight: 1.7 }}>
                   📖 <strong>配置步骤：</strong><br />
-                  1. 前往 Railway 项目 → Settings → Webhooks<br />
+                  1. 前往 Railway 项目 → Settings → Webhooks → Add Webhook<br />
                   2. URL 填入创建后生成的 Webhook 地址<br />
-                  3. 请在请求头中传入 <code>X-Webhook-Secret</code> 进行验证
+                  3. 保存即可（Railway 不支持自定义请求头，依靠 URL 唯一性保证安全）<br />
+                  💡 支持事件：部署成功（DEPLOY+SUCCESS）、部署失败（DEPLOY+FAILED）、服务崩溃（SERVICE_CRASH）
                 </div>
               </div>
             );
@@ -968,10 +972,11 @@ function VscodeChatMcpGuide({ apiBaseUrl, token }: { apiBaseUrl: string; token: 
   const [copiedBash, setCopiedBash] = React.useState(false);
   const [showToken, setShowToken] = React.useState(false);
 
-  const copy = (text: string, setCopied: (v: boolean) => void) => {
+  const copy = (text: string, setCopied: (v: boolean) => void, label?: string) => {
     navigator.clipboard.writeText(text).then(() => {
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
+      toastService.success(`已复制${label ? ' ' + label : ''}`);
     });
   };
 
@@ -996,7 +1001,7 @@ function VscodeChatMcpGuide({ apiBaseUrl, token }: { apiBaseUrl: string; token: 
             {showToken ? psCmd : psCmd.replace(token, '••••••••')}
           </pre>
           <button
-            onClick={() => copy(psCmd, setCopiedPs)}
+            onClick={() => copy(psCmd, setCopiedPs, 'PowerShell 命令')}
             style={{ fontSize: '0.68rem', padding: '0.2rem 0.5rem', background: copiedPs ? '#d1fae5' : '#4f46e5', color: copiedPs ? '#065f46' : 'white', border: 'none', borderRadius: '0.25rem', cursor: 'pointer', whiteSpace: 'nowrap' }}
           >
             {copiedPs ? '✅' : '📋'}
@@ -1010,7 +1015,7 @@ function VscodeChatMcpGuide({ apiBaseUrl, token }: { apiBaseUrl: string; token: 
             {showToken ? bashCmd : bashCmd.replace(token, '••••••••')}
           </pre>
           <button
-            onClick={() => copy(bashCmd, setCopiedBash)}
+            onClick={() => copy(bashCmd, setCopiedBash, 'bash 命令')}
             style={{ fontSize: '0.68rem', padding: '0.2rem 0.5rem', background: copiedBash ? '#d1fae5' : '#4f46e5', color: copiedBash ? '#065f46' : 'white', border: 'none', borderRadius: '0.25rem', cursor: 'pointer', whiteSpace: 'nowrap' }}
           >
             {copiedBash ? '✅' : '📋'}
@@ -1033,7 +1038,7 @@ function VscodeChatMcpGuide({ apiBaseUrl, token }: { apiBaseUrl: string; token: 
             ② 复制到 <code>.vscode/mcp.json</code>
           </div>
           <button
-            onClick={() => copy(mcpJson, setCopiedJson)}
+            onClick={() => copy(mcpJson, setCopiedJson, 'mcp.json 配置')}
             style={{ fontSize: '0.72rem', padding: '0.2rem 0.6rem', background: copiedJson ? '#d1fae5' : '#4f46e5', color: copiedJson ? '#065f46' : 'white', border: 'none', borderRadius: '0.25rem', cursor: 'pointer' }}
           >
             {copiedJson ? '✅ 已复制' : '📋 复制'}
@@ -1061,16 +1066,27 @@ function SetupGuideModal({ integration, apiBaseUrl, onClose }: {
   const [copiedUrl, setCopiedUrl] = React.useState(false);
   const [copiedSecret, setCopiedSecret] = React.useState(false);
 
-  const copy = (text: string, setCopied: (v: boolean) => void) => {
+  const copy = (text: string, setCopied: (v: boolean) => void, label?: string) => {
     navigator.clipboard.writeText(text).then(() => {
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
+      toastService.success(`已复制${label ? ' ' + label : ''}`);
     });
   };
 
   const platformInstructions: Record<string, { header: string; bg: string; color: string; steps: string[] }> = {
-    vercel:       { header: '▲ Vercel', bg: '#f0fdf4', color: '#166534', steps: ['进入 Vercel 项目 → Settings → Webhooks → Add Webhook', '填写上方 Webhook URL', '勾选所需事件（推荐：Deployment）', '保存即可（无需填写 Secret）'] },
-    railway:      { header: '🚂 Railway', bg: '#fff1f2', color: '#9f1239', steps: ['进入 Railway 项目 → Settings → Webhooks → Add Webhook', '填写上方 Webhook URL', '在请求时带上 X-Webhook-Secret: <secret> 请求头'] },
+    vercel:       { header: '▲ Vercel', bg: '#f0fdf4', color: '#166534', steps: [
+      '进入 Vercel 团队仪表盘 → Settings → Webhooks → Add Webhook（团队级别，非项目级别）',
+      '填写上方 Webhook URL',
+      'Secret 字段填写上方 Webhook Secret（Vercel 用 HMAC-SHA1 签名，可验证来源合法性）',
+      '勾选所需事件（推荐：Deployment），保存即可',
+    ] },
+    railway:      { header: '🚂 Railway', bg: '#fff1f2', color: '#9f1239', steps: [
+      '进入 Railway 项目 → Settings → Webhooks → Add Webhook',
+      '填写上方 Webhook URL',
+      'Railway 不支持自定义请求头，依靠 URL 唯一性保证安全',
+      '保存即可（支持：DEPLOY SUCCESS / DEPLOY FAILED / SERVICE_CRASH 事件）',
+    ] },
     github:       { header: '🐙 GitHub', bg: '#e0f2fe', color: '#0c4a6e', steps: ['进入 GitHub 仓库 → Settings → Webhooks → Add webhook', 'Payload URL 填写上方地址', 'Content type 选择 application/json', 'Secret 填写上方 Webhook Secret', '选择需要的事件（推荐：push, pull_request, workflow_run）'] },
     gitlab:       { header: '🦊 GitLab', bg: '#fdf4ff', color: '#7e22ce', steps: ['进入 GitLab 项目 → Settings → Integrations', 'URL 填写上方 Webhook URL', 'Secret Token 填写上方 Webhook Secret', '勾选需要的触发器后保存'] },
     // vscode-chat 使用单独的 MCP 展示区，不走通用 steps（在下方条件渲染）
@@ -1100,7 +1116,7 @@ function SetupGuideModal({ integration, apiBaseUrl, onClose }: {
             <label style={{ ...labelStyle, color: '#dc2626' }}>📡 Webhook 接收地址</label>
             <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
               <input readOnly value={webhookUrl} style={{ ...inputStyle, background: '#f9fafb', color: '#374151', fontFamily: 'monospace', fontSize: '0.8rem', flex: 1 }} />
-              <button onClick={() => copy(webhookUrl, setCopiedUrl)} style={{ ...btnPrimary, whiteSpace: 'nowrap', background: copiedUrl ? '#10b981' : '#3b82f6' }}>
+              <button onClick={() => copy(webhookUrl, setCopiedUrl, 'Webhook URL')} style={{ ...btnPrimary, whiteSpace: 'nowrap', background: copiedUrl ? '#10b981' : '#3b82f6' }}>
                 {copiedUrl ? '✓ 已复制' : '📋 复制'}
               </button>
             </div>
@@ -1111,7 +1127,7 @@ function SetupGuideModal({ integration, apiBaseUrl, onClose }: {
             <label style={{ ...labelStyle, color: '#dc2626' }}>🔑 Webhook Secret <span style={{ fontWeight: 400, color: '#6b7280', fontSize: '0.78rem' }}>（仅此一次，请妥善保存）</span></label>
             <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
               <input readOnly value={secret} style={{ ...inputStyle, background: '#fef9c3', color: '#374151', fontFamily: 'monospace', fontSize: '0.8rem', flex: 1 }} />
-              <button onClick={() => copy(secret, setCopiedSecret)} style={{ ...btnPrimary, whiteSpace: 'nowrap', background: copiedSecret ? '#10b981' : '#3b82f6' }}>
+              <button onClick={() => copy(secret, setCopiedSecret, 'Webhook Secret')} style={{ ...btnPrimary, whiteSpace: 'nowrap', background: copiedSecret ? '#10b981' : '#3b82f6' }}>
                 {copiedSecret ? '✓ 已复制' : '📋 复制'}
               </button>
             </div>

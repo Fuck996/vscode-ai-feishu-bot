@@ -18,6 +18,7 @@ import axios from 'axios';
 import database from '../database';
 import logger from '../logger';
 import { buildFeishuCard } from './platform-webhook';
+import { addLog } from '../serviceLogger';
 
 const router = Router();
 
@@ -134,6 +135,7 @@ router.get('/sse', async (req: Request, res: Response) => {
     // 注意：必须返回 403 而非 401
     // VS Code MCP 客户端遇到 401 会触发 OAuth 认证流程，打开浏览器页面
     // 403 表示 Token 无效/缺失，不触发 OAuth，客户端直接报错并停止
+    addLog('warn', 'MCP 服务', `SSE 连接被拒绝：Token 无效或缺失`);
     return res.status(403).json({
       error: token ? '无效的 Token，请从集成管理页面「📋 MCP配置」中获取正确的 Token' : '缺少认证 Token，请在 .vscode/mcp.json 中配置 FEISHU_MCP_TOKEN 环境变量',
     });
@@ -147,6 +149,8 @@ router.get('/sse', async (req: Request, res: Response) => {
 
   const sessionId = crypto.randomUUID();
   sessions.set(sessionId, { res, integrationId: context.integration.id });
+
+  addLog('info', 'MCP 服务', `SSE 连接建立: ${context.integration.projectName} [${sessionId.substring(0, 8)}...]`);
 
   // 告知客户端 POST 消息的端点
   // 注意：endpoint 事件必须发送原始 URL 字符串，不能 JSON.stringify
@@ -167,6 +171,7 @@ router.get('/sse', async (req: Request, res: Response) => {
   req.on('close', () => {
     clearInterval(heartbeat);
     sessions.delete(sessionId);
+    addLog('info', 'MCP 服务', `SSE 连接关闭: ${context.integration.projectName} [${sessionId.substring(0, 8)}...]`);
     logger.info({ sessionId }, 'MCP SSE 连接关闭');
   });
 });
@@ -303,6 +308,8 @@ async function handleFeishuNotify(
   // 使用与 platform-webhook.ts 相同的卡片构建函数
   const card = buildFeishuCard(title, summary, 'info', projectName);
 
+  addLog('info', 'MCP 服务', `feishu_notify 调用：${projectName}  「${title}」`);
+
   // 【关键】立即返回 MCP 响应（不能阻塞，否则 VS Code Chat 会卡住超时）
   const preview = summary.substring(0, 150);
   sendSSE(sseRes, 'message', {
@@ -332,8 +339,10 @@ async function handleFeishuNotify(
       });
       
       clearTimeout(timeout);
+      addLog('info', 'MCP 服务', `飞书消息发送成功：${projectName}`);
       logger.info({ project: projectName }, 'MCP feishu_notify 飞书发送完成');
     } catch (err: any) {
+      addLog('warn', 'MCP 服务', `飞书消息发送失败：${err.message}`);
       logger.warn(
         { project: projectName, error: err.message },
         'MCP feishu_notify 飞书发送失败（不影响工具调用结果）'

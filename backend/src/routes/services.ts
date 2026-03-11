@@ -1,6 +1,7 @@
 import { Router, Request, Response } from 'express';
 import * as jwt from 'jsonwebtoken';
 import db from '../database';
+import { getLogs } from '../serviceLogger';
 
 const router = Router();
 
@@ -57,7 +58,7 @@ router.get('/', verifyToken, async (req: AuthRequest, res: Response) => {
       totalIntegrations += integrations.length;
     }
 
-    // 构建服务列表
+    // 构建服务列表（只展示真实存在的服务）
     const services = [
       {
         id: 'mcp-service',
@@ -76,39 +77,6 @@ router.get('/', verifyToken, async (req: AuthRequest, res: Response) => {
         isScheduled: false,
         uptime: '12h 34m',
       },
-      {
-        id: 'queue-service',
-        name: '消息队列服务',
-        type: 'Redis 消息缓存',
-        icon: '⚙️',
-        description: '可选消息队列服务，用于高并发场景下的消息缓冲和异步处理',
-        status: 'stopped',
-        associatedIntegrations: 0,
-        stats: [
-          { label: '关联集成', value: '0' },
-          { label: '上次运行', value: '72小时前' },
-          { label: '队列长度', value: '0' },
-          { label: '配置状态', value: '就绪' },
-        ],
-        isScheduled: false,
-      },
-      {
-        id: 'notification-service',
-        name: '通知中枢',
-        type: '飞书消息推送',
-        icon: '🔔',
-        description: '负责将所有通知推送到飞书群组，监控通知推送状态',
-        status: 'error',
-        associatedIntegrations: totalIntegrations,
-        stats: [
-          { label: '关联集成', value: totalIntegrations.toString() },
-          { label: '失败数', value: '8' },
-          { label: '重试次数', value: '3 / 3' },
-          { label: '最后错误', value: '401 Auth' },
-        ],
-        isScheduled: false,
-        lastError: 'Webhook 返回 401: Unauthorized',
-      },
     ];
 
     res.json(services);
@@ -121,15 +89,7 @@ router.get('/', verifyToken, async (req: AuthRequest, res: Response) => {
 // 获取服务日志
 router.get('/logs', verifyToken, async (req: AuthRequest, res: Response) => {
   try {
-    // 模拟日志数据
-    const logs = [
-      { timestamp: '2026-03-11 17:32:15', level: 'info', message: 'MCP SSE 连接建立: sessionId=abc123def456', service: 'MCP 服务' },
-      { timestamp: '2026-03-11 17:31:52', level: 'info', message: 'feishu_notify 工具调用成功', service: 'MCP 服务' },
-      { timestamp: '2026-03-11 17:31:48', level: 'info', message: '工作总结已成功发送到飞书', service: 'MCP 服务' },
-      { timestamp: '2026-03-11 17:25:03', level: 'warn', message: '通知发送延迟 2.3s', service: '通知中枢' },
-      { timestamp: '2026-03-11 17:20:15', level: 'error', message: '飞书 Webhook 返回 401', service: '通知中枢' },
-    ];
-
+    const logs = getLogs(100);
     res.json(logs);
   } catch (error) {
     console.error('Error fetching service logs:', error);

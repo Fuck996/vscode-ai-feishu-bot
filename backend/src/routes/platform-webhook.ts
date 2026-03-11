@@ -12,6 +12,7 @@ import * as crypto from 'crypto';
 import axios from 'axios';
 import database from '../database';
 import logger from '../logger';
+import { addLog } from '../serviceLogger';
 
 const router = Router();
 
@@ -107,21 +108,42 @@ function normalizeVercel(body: Record<string, any>): NormalizedEvent | null {
   }
 }
 
-/** 解析 Railway Webhook payload */
+/** 解析 Railway Webhook payload
+ * Railway 官方格式（2024）：
+ *   { type: "DEPLOY", project: {...}, service: {...}, deployment: { status: "SUCCESS"|"FAILED"|"CRASHED", url, meta } }
+ *   { type: "SERVICE_CRASH", project: {...}, service: {...} }
+ */
 function normalizeRailway(body: Record<string, any>): NormalizedEvent | null {
   const type = (body.type as string || '').toUpperCase();
   const project = body.project?.name || body.projectId || '项目';
   const service = body.service?.name || body.serviceName || '服务';
+  const deployUrl = body.deployment?.url
+    ? (body.deployment.url.startsWith('http') ? body.deployment.url : `https://${body.deployment.url}`)
+    : undefined;
 
-  if (type.includes('SUCCESS') || type === 'DEPLOYMENT_SUCCESS') {
-    return { event: 'deploy_success', status: 'success', title: '✅ Railway 部署成功', summary: `**${project}** / ${service} 部署成功`, url: body.deployment?.url };
+  if (type === 'DEPLOY') {
+    // 官方格式：status 在 deployment.status，兼容顶层 status
+    const status = ((body.deployment?.status || body.status) as string || '').toUpperCase();
+    if (status === 'SUCCESS') {
+      return { event: 'deploy_success', status: 'success', title: '✅ Railway 部署成功',
+        summary: `**${project}** / ${service} 部署成功${body.deployment?.meta?.commitMessage ? `\n提交：${body.deployment.meta.commitMessage}` : ''}`, url: deployUrl };
+    }
+    if (status === 'FAILED' || status === 'FAILURE' || status === 'ERROR') {
+      return { event: 'deploy_failure', status: 'failure', title: '❌ Railway 部署失败',
+        summary: `**${project}** / ${service} 部署失败` };
+    }
+    if (status === 'CRASHED') {
+      return { event: 'service_crash', status: 'failure', title: '🚨 Railway 服务崩溃',
+        summary: `**${project}** / ${service} 发生崩溃\n时间：${new Date().toLocaleString('zh-CN')}` };
+    }
+    return null;
   }
-  if (type.includes('FAILED') || type.includes('FAILURE')) {
-    return { event: 'deploy_failure', status: 'failure', title: '❌ Railway 部署失败', summary: `**${project}** / ${service} 部署失败` };
-  }
+
   if (type === 'SERVICE_CRASH' || type === 'CRASH') {
-    return { event: 'service_crash', status: 'failure', title: '🚨 Railway 服务崩溃', summary: `**${project}** / ${service} 发生崩溃\n时间：${new Date().toLocaleString('zh-CN')}` };
+    return { event: 'service_crash', status: 'failure', title: '🚨 Railway 服务崩溃',
+      summary: `**${project}** / ${service} 发生崩溃\n时间：${new Date().toLocaleString('zh-CN')}` };
   }
+
   return null;
 }
 
@@ -265,14 +287,18 @@ router.post('/:integrationId', async (req: Request, res: Response) => {
     // 1. 查找集成配置
     const integration = await database.getIntegrationById(integrationId);
     if (!integration || integration.status !== 'active') {
+      addLog('warn', 'Webhook 接收', `集成不存在或未启用 [id=${integrationId}]`);
       return res.status(404).json({ success: false, error: '集成不存在或未启用' });
     }
 
     // 2. 查找关联机器人
     const robot = await database.getRobotById(integration.robotId);
     if (!robot || robot.status !== 'active') {
+      addLog('warn', 'Webhook 接收', `关联机器人不存在或未启用 [robotId=${integration.robotId}]`);
       return res.status(404).json({ success: false, error: '关联机器人不存在或未启用' });
     }
+
+    addLog('info', 'Webhook 接收', `收到 ${integration.projectType.toUpperCase()} 事件 [集成: ${integration.projectName}]`);
 
     // 3. 签名/Token 验证（使用 rawBody 保证签名准确性）
     const rawBody: string = (req as any).rawBody || JSON.stringify(req.body);
@@ -297,6 +323,7 @@ router.post('/:integrationId', async (req: Request, res: Response) => {
       }
       if (!verified) {
         logger.warn('平台 Webhook 签名验证失败', { platform, integrationId });
+        addLog('warn', 'Webhook 接收', `签名验证失败 [${platform}] [${integration.projectName}]`);
         return res.status(401).json({ success: false, error: '签名验证失败' });
       }
     }
@@ -323,11 +350,13 @@ router.post('/:integrationId', async (req: Request, res: Response) => {
 
     if (!normalized) {
       logger.info('未识别的平台事件，已忽略', { platform, integrationId });
+      addLog('info', 'Webhook 接收', `未识别的事件格式，已跳过 [${platform}] [${integration.projectName}]`);
       return res.json({ success: true, message: '事件已接收，无对应处理器' });
     }
 
     // 5. 检查触发规则
     if (!shouldNotify(normalized.event, normalized.status, integration.triggeredEvents, integration.notifyOn)) {
+      addLog('info', 'Webhook 接收', `事件 "${normalized.event}" 不满足触发条件，已跳过 [${integration.projectName}]`);
       return res.json({ success: true, message: '事件已接收，不满足触发条件，已跳过' });
     }
 
@@ -352,6 +381,8 @@ router.post('/:integrationId', async (req: Request, res: Response) => {
       },
     });
 
+    addLog('info', 'Webhook 接收', `飞书通知已发送 [${integration.projectType}] ${normalized.title} [项目: ${finalProjectName}]`);
+
     // 7. 保存通知记录
     const dbStatus = normalized.status === 'failure' ? 'error' : normalized.status === 'success' ? 'success' : 'info';
     await database.saveNotification({
@@ -367,6 +398,7 @@ router.post('/:integrationId', async (req: Request, res: Response) => {
 
   } catch (error) {
     logger.error('平台 Webhook 处理异常', { integrationId, error });
+    addLog('error', 'Webhook 接收', `处理异常 [id=${integrationId}]: ${(error as Error).message || '未知错误'}`);
     res.status(500).json({ success: false, error: '内部服务器错误' });
   }
 });

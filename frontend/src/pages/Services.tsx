@@ -170,14 +170,6 @@ const Services: React.FC = () => {
       }
     } catch (err) {
       console.error('Failed to fetch logs:', err);
-      // 模拟数据
-      setLogs([
-        { timestamp: '2026-03-11 17:32:15', level: 'info', message: 'MCP SSE 连接建立: sessionId=abc123def456', service: 'MCP 服务' },
-        { timestamp: '2026-03-11 17:31:52', level: 'info', message: 'feishu_notify 工具调用成功', service: 'MCP 服务' },
-        { timestamp: '2026-03-11 17:31:48', level: 'info', message: '工作总结已成功发送到飞书', service: 'MCP 服务' },
-        { timestamp: '2026-03-11 17:25:03', level: 'warn', message: '通知发送延迟 2.3s', service: '通知中枢' },
-        { timestamp: '2026-03-11 17:20:15', level: 'error', message: '飞书 Webhook 返回 401', service: '通知中枢' },
-      ]);
     }
   };
 
