@@ -1,4 +1,5 @@
 # Ignore local IDE and secret config
+.vscode/
 .vscode/mcp.json
 
 # Logs and databases
