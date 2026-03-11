@@ -1,33 +1,33 @@
 ﻿{
-  // ===== 本地远端 SSE 测试模式（当前采用）=====
-  // 通过前端 Vite dev proxy (localhost:5173) 连接
-  // 不直接暴露后端 3001 端口，符合"只暴露前端"的架构约定
-  // inputs 机制：VS Code 弹出密码框，Token 不明文存储
-  "inputs": [
-    {
-      "type": "promptString",
-      "id": "feishu_mcp_token",
-      "description": "Feishu MCP Token（从集成管理页面「📋 MCP配置」按钮获取）",
-      "password": true
-    }
-  ],
+  // ===== 本地开发模式：stdio 传输（默认推荐）=====
+  // MCP Server 与 VS Code 通过 stdio 进程内通信，不暴露任何端口
+  // 不需要用户输入 Token，启动完全透明（无 "Skip?" 弹框）
+  // mcp-server 启动时自动从后端 /api/mcp/config 读取配置
   "servers": {
     "feishu-notifier": {
-      "type": "sse",
-      "url": "http://localhost:5173/api/mcp/sse?token=${input:feishu_mcp_token}"
+      "type": "stdio",
+      "command": "node",
+      "args": ["${workspaceFolder}/mcp-server/index.js"]
     }
   }
 
-  // ===== 本地 stdio 模式（备用）=====
-  // MCP 通过进程内通信，Token 自动从后端 /api/mcp/config 获取
+  // ===== 其他项目的远端部署模式：SSE + inputs 安全 Token =====
+  // 在其他项目的 .vscode/mcp.json 中使用以下配置
+  // inputs 机制：VS Code 首次连接时安全弹出密码框，Token 不写入文件
+  // Token 从本系统「集成管理 → 📋 MCP配置」按钮获取
+  //
+  // "inputs": [
+  //   {
+  //     "type": "promptString",
+  //     "id": "feishu_mcp_token",
+  //     "description": "Feishu MCP Token（从飞书通知系统集成管理页面「📋 MCP配置」按钮获取）",
+  //     "password": true
+  //   }
+  // ],
   // "servers": {
   //   "feishu-notifier": {
-  //     "type": "stdio",
-  //     "command": "node",
-  //     "args": ["${workspaceFolder}/mcp-server/index.js"]
+  //     "type": "sse",
+  //     "url": "https://your-domain.com/api/mcp/sse?token=${input:feishu_mcp_token}"
   //   }
   // }
-
-  // ===== 远端生产部署模式 =====
-  // "url": "https://your-domain.com/api/mcp/sse?token=${input:feishu_mcp_token}"
 }
