@@ -115,9 +115,10 @@ function sendSSE(res: Response, event: string, data: unknown) {
 }
 
 // 构建完整的消息端点 URL（给 endpoint 事件用，不能 JSON.stringify）
+// 优先使用 x-forwarded-host，确保经过反向代理时 URL 指向外网地址
 function buildMessageUrl(req: Request, sessionId: string, token: string): string {
   const proto = ((req.headers['x-forwarded-proto'] as string) || req.protocol || 'https').split(',')[0].trim();
-  const host = (req.headers.host as string) || 'localhost';
+  const host = (req.headers['x-forwarded-host'] as string) || (req.headers.host as string) || 'localhost';
   return `${proto}://${host}/api/mcp/message?sessionId=${sessionId}&token=${encodeURIComponent(token)}`;
 }
 
