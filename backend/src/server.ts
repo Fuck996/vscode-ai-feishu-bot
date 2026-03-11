@@ -88,8 +88,8 @@ app.get('/api/version', (req: Request, res: Response) => {
   });
 });
 
-// 根路由
-app.get('/', (req: Request, res: Response) => {
+// 服务状态（JSON），放在 /api/status 以避免与前端静态文件根路径冲突
+app.get('/api/status', (req: Request, res: Response) => {
   res.json({
     name: 'Feishu AI Notification Service',
     version: '1.1.0',

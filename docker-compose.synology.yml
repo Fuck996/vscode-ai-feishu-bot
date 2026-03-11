@@ -1,4 +1,4 @@
-# 群晖 NAS Docker 部署配置（前后端分离版）
+# 群晖 NAS Docker 部署配置（统一镜像版）
 # 使用 GitHub Container Registry 预构建镜像
 #
 # ═══════════════════════════════════════════
@@ -36,9 +36,11 @@
 # ═══════════════════════════════════════════
 
 services:
-  backend:
-    image: ghcr.io/fuck996/feishu-bot-backend:1.0.0
-    container_name: feishu-bot-backend
+  app:
+    image: ghcr.io/fuck996/feishu-bot:${IMAGE_TAG:-1.1.0}
+    container_name: feishu-bot
+    ports:
+      - "${APP_PORT:-45173}:3000"
     environment:
       NODE_ENV: production
       PORT: 3000
@@ -48,7 +50,7 @@ services:
       DATABASE_PATH: /app/data/notifications.db
       CORS_ORIGIN: "*"
       LOG_LEVEL: info
-      BACKEND_URL: http://localhost:${APP_PORT:-45173}
+      BACKEND_URL: http://${NAS_HOSTNAME:-localhost}:${APP_PORT:-45173}
       TZ: Asia/Shanghai
     volumes:
       - feishu-data:/app/data
@@ -61,18 +63,6 @@ services:
       timeout: 10s
       retries: 3
       start_period: 15s
-
-  frontend:
-    image: ghcr.io/fuck996/feishu-bot-frontend:1.0.0
-    container_name: feishu-bot-frontend
-    ports:
-      - "${APP_PORT:-45173}:3000"
-    depends_on:
-      backend:
-        condition: service_healthy
-    networks:
-      - feishu-net
-    restart: unless-stopped
 
 volumes:
   feishu-data:
