@@ -280,18 +280,40 @@ async function handleFeishuNotify(
   // 使用与 platform-webhook.ts 相同的卡片构建函数
   const card = buildFeishuCard(title, summary, 'info', projectName);
 
+  // 【关键】立即返回 MCP 响应（不能阻塞，否则 VS Code Chat 会卡住超时）
+  const preview = summary.substring(0, 150);
+  sendSSE(sseRes, 'message', {
+    jsonrpc: '2.0',
+    id,
+    result: {
+      content: [{
+        type: 'text',
+        text: `✅ 工作总结已成功发送到飞书！\n\n**标题：** ${title}\n\n**项目：** ${projectName}\n\n**内容：**\n${preview}${summary.length > 150 ? '\n...' : ''}`,
+      }],
+    },
+  });
+
   // 异步发送飞书通知（不阻塞 MCP 响应）
-  // 使用 setImmediate 让 SSE 响应先发出去，再异步处理下游操作
+  // 使用 setImmediate 让 response 先返回，再异步处理下游操作
+  // 重要：即使飞书发送或数据库操作失败/超时，也不影响 MCP 工具调用结果
   setImmediate(async () => {
     try {
+      // 5 秒超时：即使网络慢也不会无限等待
+      const abortController = new AbortController();
+      const timeout = setTimeout(() => abortController.abort(), 5000);
+      
       await axios.post(context.robot.webhookUrl, card, {
         headers: { 'Content-Type': 'application/json; charset=utf-8' },
-        timeout: 5000, // 5秒超时
+        timeout: 5000,
+        signal: abortController.signal,
       });
+      
+      clearTimeout(timeout);
+      logger.info({ project: projectName }, 'MCP feishu_notify 飞书发送完成');
     } catch (err: any) {
-      logger.error(
+      logger.warn(
         { project: projectName, error: err.message },
-        'MCP feishu_notify 飞书发送失败'
+        'MCP feishu_notify 飞书发送失败（不影响工具调用结果）'
       );
     }
 
@@ -304,31 +326,10 @@ async function handleFeishuNotify(
         source: `mcp-remote/${projectName}`,
         robotName: context.robot.name,
       });
+      logger.info({ project: projectName }, 'MCP 通知记录已保存');
     } catch (err: any) {
-      logger.error({ error: err.message }, 'MCP 通知记录失败');
+      logger.warn({ project: projectName, error: err.message }, 'MCP 通知记录失败');
     }
-
-    logger.info(
-      { project: projectName, robot: context.robot.name },
-      'MCP 远端 feishu_notify 异步处理完成'
-    );
-  });
-
-  logger.info(
-    { project: projectName, robot: context.robot.name },
-    'MCP 远端 feishu_notify 发送成功'
-  );
-
-  const preview = summary.substring(0, 150);
-  sendSSE(sseRes, 'message', {
-    jsonrpc: '2.0',
-    id,
-    result: {
-      content: [{
-        type: 'text',
-        text: `✅ 工作总结已成功发送到飞书！\n\n**标题：** ${title}\n\n**项目：** ${projectName}\n\n**内容：**\n${preview}${summary.length > 150 ? '\n...' : ''}`,
-      }],
-    },
   });
 }
 
