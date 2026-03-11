@@ -1,25 +1,43 @@
 {
-  // 后端 SSE 模式（直连后端，适用于本地开发部署）
-  // MCP 运行在 VS Code Node.js 进程中，可直接访问后端端口，无需经过 Vite 代理
-  // Token 来自集成管理页面的 vscode-chat 类型集成（点击操作列「📋 MCP配置」按钮查看）
+  // ===== 本地开发模式：stdio 传输（推荐 & 当前采用）=====
+  // MCP Server 与 VS Code 通过 stdio 通信（进程内调用，完全私密）
+  // 不暴露任何后端端口，无需涉及网络安全问题
   "servers": {
     "feishu-notifier": {
-      "type": "sse",
-      "url": "http://localhost:3001/api/mcp/sse?token=4cd8847ce224f31decc20ebeb972392ce9ff478ecb55ead2"
+      "type": "stdio",
+      "command": "node",
+      "args": ["${workspaceFolder}/mcp-server/index.js"]
     }
   }
 
-  // 本地 stdio 模式（备用，直接运行 mcp-server/index.js）
+  // ===== 本地调试模式：SSE 通过前端代理（手工测试用）=====
+  // MCP 通过前端 Vite dev proxy 连接（http://localhost:5173）
+  // 这样不直接暴露后端 3001 端口，符合"只暴露前端"的架构约定
+  // Token 需手动从集成页面复制（临时方案，待改进）
   // "servers": {
   //   "feishu-notifier": {
-  //     "type": "stdio",
-  //     "command": "node",
-  //     "args": ["${workspaceFolder}/mcp-server/index.js"]
+  //     "type": "sse",
+  //     "url": "http://localhost:5173/api/mcp/sse?token=<from_integrations_page>"
   //   }
   // }
 
-  // 远端部署模式：通过前端域名反向代理到后端（不直接暴露后端端口）
-  // "url": "https://your-domain.com/api/mcp/sse?token=<webhookSecret>"
+  // ===== 远端生产部署模式 =====
+  // 问题：token 不应明文在 mcp.json（当前存在安全漏洞）
+  // 
+  // 改进方案（待实现）：
+  //   1. VS Code MCP 初始化流程：首次连接时向用户询问获取 token
+  //   2. VS Code Secrets API：安全存储 token 而非配置文件明文
+  //   3. mcp-server 启动时从 VS Code secrets 或环境变量读取 token
+  //   4. 后续连接自动附带，用户无需手动管理
+  //
+  // 当前临时方案（仅限部署文档示例）：
+  // Token 从前端集成管理页面获取，用户自行管理存储方式
+  // "servers": {
+  //   "feishu-notifier": {
+  //     "type": "sse",
+  //     "url": "https://your-domain.com/api/mcp/sse?token=<webhookSecret>"
+  //   }
+  // }
 }
 
 
