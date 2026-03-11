@@ -1,22 +1,27 @@
-# 后端 Dockerfile
+# 后端 Dockerfile（多阶段构建）
+# 阶段1：编译 TypeScript
+FROM node:18-alpine AS builder
+
+WORKDIR /app
+
+# 安装所有依赖（包含 devDependencies 用于 tsc 编译）
+COPY package*.json ./
+RUN npm ci
+
+COPY . .
+RUN npm run build
+
+# 阶段2：生产镜像（仅含编译产物 + 生产依赖）
 FROM node:18-alpine
 
 WORKDIR /app
 
-# 复制 package 文件
 COPY package*.json ./
+RUN npm ci --only=production && npm cache clean --force
 
-# 安装依赖
-RUN npm ci --only=production
+# 从编译阶段拷贝构建产物
+COPY --from=builder /app/dist ./dist
 
-# 复制源代码
-COPY . .
-
-# 构建 TypeScript
-RUN npm run build
-
-# 暴露端口
 EXPOSE 3000
 
-# 启动服务
 CMD ["npm", "start"]

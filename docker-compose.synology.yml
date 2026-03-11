@@ -1,0 +1,72 @@
+# 群晖 NAS Docker 部署配置
+# 使用 GitHub Container Registry 预构建镜像，无需本地编译
+#
+# ═══════════════════════════════════════════
+# 部署步骤
+# ═══════════════════════════════════════════
+# 1. 在群晖上安装 Container Manager (DSM 7.2+)
+# 2. 将本文件上传到群晖，例如：/volume1/docker/feishu-bot/
+# 3. 在同目录创建 .env 文件（参考下方变量说明）
+# 4. 打开 SSH 终端，执行：
+#      cd /volume1/docker/feishu-bot
+#      docker compose -f docker-compose.synology.yml pull
+#      docker compose -f docker-compose.synology.yml up -d
+#
+# 更新版本：
+#      docker compose -f docker-compose.synology.yml pull
+#      docker compose -f docker-compose.synology.yml up -d
+#
+# ═══════════════════════════════════════════
+# .env 文件内容示例（必填项）
+# ═══════════════════════════════════════════
+# GITHUB_OWNER=你的GitHub用户名
+# FEISHU_WEBHOOK_URL=https://open.feishu.cn/open-apis/bot/v2/hook/你的webhook
+# JWT_SECRET=随机生成的强密钥（建议32位以上）
+# APP_PORT=8080
+# BACKEND_URL=http://你的群晖IP:8080
+# DATA_PATH=/volume1/docker/feishu-bot/data
+#
+# ═══════════════════════════════════════════
+
+services:
+  backend:
+    image: ghcr.io/${GITHUB_OWNER}/feishu-bot-backend:latest
+    container_name: feishu-bot-backend
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      HOST: 0.0.0.0
+      FEISHU_WEBHOOK_URL: ${FEISHU_WEBHOOK_URL}
+      JWT_SECRET: ${JWT_SECRET}
+      DATABASE_PATH: /app/data/notifications.db
+      CORS_ORIGIN: ${CORS_ORIGIN:-*}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+      BACKEND_URL: ${BACKEND_URL:-http://localhost:8080}
+    volumes:
+      # 数据持久化到群晖本地目录，容器重建不丢数据
+      - ${DATA_PATH:-/volume1/docker/feishu-bot/data}:/app/data
+    networks:
+      - feishu-net
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3000/api/version"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+
+  frontend:
+    image: ghcr.io/${GITHUB_OWNER}/feishu-bot-frontend:latest
+    container_name: feishu-bot-frontend
+    ports:
+      - "${APP_PORT:-8080}:3000"
+    depends_on:
+      backend:
+        condition: service_healthy
+    networks:
+      - feishu-net
+    restart: unless-stopped
+
+networks:
+  feishu-net:
+    driver: bridge
