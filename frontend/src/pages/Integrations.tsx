@@ -941,13 +941,24 @@ function Required() {
 }
 
 // ===== 子组件：VS Code Chat 类型的 MCP 配置展示 =====
-function VscodeChatMcpGuide({ apiBaseUrl, token }: { apiBaseUrl: string; token: string }) {
+// 使用 VS Code inputs 安全机制：Token 不明文存储，由 VS Code 在连接时弹框询问
+function VscodeChatMcpGuide({ apiBaseUrl }: { apiBaseUrl: string; token: string }) {
   const mcpSseUrl = `${apiBaseUrl}/api/mcp/sse`;
+
+  // 使用 inputs 安全机制生成配置，Token 不会出现在配置文件中
   const mcpJson = JSON.stringify({
+    inputs: [
+      {
+        type: 'promptString',
+        id: 'feishu_mcp_token',
+        description: 'Feishu MCP Token（从飞书通知系统集成管理页面「📋 MCP配置」按钮获取）',
+        password: true,
+      }
+    ],
     servers: {
       'feishu-notifier': {
         type: 'sse',
-        url: `${mcpSseUrl}?token=${token}`,
+        url: `${mcpSseUrl}?token=\${input:feishu_mcp_token}`,
       }
     }
   }, null, 2);
@@ -964,17 +975,11 @@ function VscodeChatMcpGuide({ apiBaseUrl, token }: { apiBaseUrl: string; token: 
     <div style={{ background: '#eef2ff', border: '1px solid #c7d2fe', borderRadius: '0.5rem', padding: '1rem' }}>
       <div style={{ fontWeight: 600, fontSize: '0.85rem', color: '#3730a3', marginBottom: '0.75rem' }}>🤖 MCP 远端配置</div>
       <p style={{ fontSize: '0.78rem', color: '#4338ca', marginBottom: '0.75rem', lineHeight: 1.6 }}>
-        将以下配置粘贴到你的<strong>其他项目</strong>的 <code>.vscode/mcp.json</code>，
-        Copilot Agent 完成任务后会自动向飞书发送通知。
+        将以下配置粘贴到你的<strong>其他项目</strong>的 <code>.vscode/mcp.json</code>。
+        VS Code 首次连接时会弹出密码输入框，Token 安全存储，不会出现在配置文件中。
       </p>
-
-      <div style={{ marginBottom: '0.75rem' }}>
-        <div style={{ fontSize: '0.72rem', fontWeight: 500, color: '#374151', marginBottom: '0.25rem' }}>
-          Token（集成的 webhookSecret，隔离不同项目的通知目标）
-        </div>
-        <div style={{ fontFamily: 'monospace', fontSize: '0.75rem', background: '#fef9c3', padding: '0.4rem 0.6rem', borderRadius: '0.25rem', wordBreak: 'break-all', color: '#374151' }}>
-          {token}
-        </div>
+      <div style={{ background: '#e0e7ff', borderRadius: '0.375rem', padding: '0.6rem 0.75rem', fontSize: '0.75rem', color: '#3730a3', marginBottom: '0.75rem' }}>
+        🔑 Token 从本页面右上角「🔑 Token」按钮复制，首次连接粘贴到 VS Code 弹出的输入框即可
       </div>
 
       <div>
