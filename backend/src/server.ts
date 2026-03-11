@@ -88,6 +88,14 @@ app.get('/api/version', (req: Request, res: Response) => {
   });
 });
 
+// 健康检查端点
+app.get('/api/health', (req: Request, res: Response) => {
+  res.json({
+    status: 'ok',
+    timestamp: new Date().toISOString(),
+  });
+});
+
 // 服务状态（JSON），放在 /api/status 以避免与前端静态文件根路径冲突
 app.get('/api/status', (req: Request, res: Response) => {
   res.json({

@@ -45,8 +45,6 @@ services:
       NODE_ENV: production
       PORT: 3000
       HOST: 0.0.0.0
-      FEISHU_WEBHOOK_URL: ${FEISHU_WEBHOOK_URL}
-      JWT_SECRET: ${JWT_SECRET:-change-me-in-production}
       DATABASE_PATH: /app/data/notifications.db
       CORS_ORIGIN: "*"
       LOG_LEVEL: info
