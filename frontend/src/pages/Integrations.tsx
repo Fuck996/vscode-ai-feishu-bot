@@ -665,11 +665,13 @@ function IntegrationModal({
           case 'vscode-chat':
             return (
               <div style={{ ...formGroup, background: '#eef2ff', border: '1px solid #c7d2fe', borderRadius: '0.5rem', padding: '1rem' }}>
-                <div style={{ fontWeight: 600, fontSize: '0.8rem', color: '#3730a3', marginBottom: '0.75rem' }}>💬 VS Code Chat 局报配置</div>
-                <div style={{ background: '#e0e7ff', borderRadius: '0.375rem', padding: '0.75rem', fontSize: '0.78rem', color: '#3730a3', lineHeight: 1.7, marginBottom: '0.75rem' }}>
-                  💡 安装配套 VS Code 扩展后，将创建后生成的 Webhook URL 和 Token 填入扩展设置中即可。
+                <div style={{ fontWeight: 600, fontSize: '0.8rem', color: '#3730a3', marginBottom: '0.75rem' }}>💬 VS Code Chat / MCP 汇报配置</div>
+                <div style={{ background: '#e0e7ff', borderRadius: '0.375rem', padding: '0.75rem', fontSize: '0.78rem', color: '#3730a3', lineHeight: 1.7 }}>
+                  💡 创建集成后，弹窗会显示 MCP 配置片段，直接粘贴到你的项目 <code>.vscode/mcp.json</code> 中即可。
+                  Copilot Agent 完成任务后会自动发送工作汇报到飞书。
                 </div>
-                <div style={formGroup}>
+                {/* 以下 AI 摘要配置暂时隐藏：功能尚未接入当前 MCP 架构，保留代码供后续参考 */}
+                {/* <div style={formGroup}>
                   <label style={labelStyle}>汇报摘要 AI（可选）</label>
                   <select value={formConfig.aiProvider || 'none'} onChange={e => setConfig('aiProvider', e.target.value)} style={{ ...inputStyle, cursor: 'pointer' }}>
                     <option value="none">不启用摘要（原文推送）</option>
@@ -683,7 +685,7 @@ function IntegrationModal({
                     <input type="password" value={formConfig.aiApiKey || ''} onChange={e => setConfig('aiApiKey', e.target.value)}
                       placeholder="sk-..." style={inputStyle} />
                   </div>
-                )}
+                )} */}
               </div>
             );
           case 'vercel':
@@ -905,6 +907,63 @@ function Required() {
   return <span style={{ color: '#ef4444', marginLeft: '2px' }}>*</span>;
 }
 
+// ===== 子组件：VS Code Chat 类型的 MCP 配置展示 =====
+function VscodeChatMcpGuide({ apiBaseUrl, token }: { apiBaseUrl: string; token: string }) {
+  const mcpSseUrl = `${apiBaseUrl}/api/mcp/sse`;
+  const mcpJson = JSON.stringify({
+    servers: {
+      'feishu-notifier': {
+        type: 'sse',
+        url: `${mcpSseUrl}?token=${token}`,
+      }
+    }
+  }, null, 2);
+
+  const [copied, setCopied] = React.useState(false);
+  const copyMcpJson = () => {
+    navigator.clipboard.writeText(mcpJson).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
+  };
+
+  return (
+    <div style={{ background: '#eef2ff', border: '1px solid #c7d2fe', borderRadius: '0.5rem', padding: '1rem' }}>
+      <div style={{ fontWeight: 600, fontSize: '0.85rem', color: '#3730a3', marginBottom: '0.75rem' }}>🤖 MCP 远端配置</div>
+      <p style={{ fontSize: '0.78rem', color: '#4338ca', marginBottom: '0.75rem', lineHeight: 1.6 }}>
+        将以下配置粘贴到你的<strong>其他项目</strong>的 <code>.vscode/mcp.json</code>，
+        Copilot Agent 完成任务后会自动向飞书发送通知。
+      </p>
+
+      <div style={{ marginBottom: '0.75rem' }}>
+        <div style={{ fontSize: '0.72rem', fontWeight: 500, color: '#374151', marginBottom: '0.25rem' }}>
+          Token（集成的 webhookSecret，隔离不同项目的通知目标）
+        </div>
+        <div style={{ fontFamily: 'monospace', fontSize: '0.75rem', background: '#fef9c3', padding: '0.4rem 0.6rem', borderRadius: '0.25rem', wordBreak: 'break-all', color: '#374151' }}>
+          {token}
+        </div>
+      </div>
+
+      <div>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.25rem' }}>
+          <div style={{ fontSize: '0.72rem', fontWeight: 500, color: '#374151' }}>
+            复制到 <code>.vscode/mcp.json</code>
+          </div>
+          <button
+            onClick={copyMcpJson}
+            style={{ fontSize: '0.72rem', padding: '0.2rem 0.6rem', background: copied ? '#d1fae5' : '#4f46e5', color: copied ? '#065f46' : 'white', border: 'none', borderRadius: '0.25rem', cursor: 'pointer' }}
+          >
+            {copied ? '✅ 已复制' : '📋 复制'}
+          </button>
+        </div>
+        <pre style={{ margin: 0, fontFamily: 'monospace', fontSize: '0.72rem', background: '#1e293b', color: '#e2e8f0', padding: '0.75rem', borderRadius: '0.375rem', overflow: 'auto', whiteSpace: 'pre-wrap', wordBreak: 'break-all' }}>
+          {mcpJson}
+        </pre>
+      </div>
+    </div>
+  );
+}
+
 // ===== 子组件：创建成功后的 Webhook 配置引导弹窗 =====
 function SetupGuideModal({ integration, apiBaseUrl, onClose }: {
   integration: Integration; apiBaseUrl: string; onClose: () => void;
@@ -927,7 +986,8 @@ function SetupGuideModal({ integration, apiBaseUrl, onClose }: {
     railway:      { header: '🚂 Railway', bg: '#fff1f2', color: '#9f1239', steps: ['进入 Railway 项目 → Settings → Webhooks → Add Webhook', '填写上方 Webhook URL', '在请求时带上 X-Webhook-Secret: <secret> 请求头'] },
     github:       { header: '🐙 GitHub', bg: '#e0f2fe', color: '#0c4a6e', steps: ['进入 GitHub 仓库 → Settings → Webhooks → Add webhook', 'Payload URL 填写上方地址', 'Content type 选择 application/json', 'Secret 填写上方 Webhook Secret', '选择需要的事件（推荐：push, pull_request, workflow_run）'] },
     gitlab:       { header: '🦊 GitLab', bg: '#fdf4ff', color: '#7e22ce', steps: ['进入 GitLab 项目 → Settings → Integrations', 'URL 填写上方 Webhook URL', 'Secret Token 填写上方 Webhook Secret', '勾选需要的触发器后保存'] },
-    'vscode-chat':{ header: '💬 VS Code Chat', bg: '#eef2ff', color: '#3730a3', steps: ['在 VS Code 中安装配套扩展', '打开设置（Ctrl+,）→ 搜索 feishu', 'Webhook Endpoint 填写上方 Webhook URL', 'Trigger Token 填写上方 Webhook Secret'] },
+    // vscode-chat 使用单独的 MCP 展示区，不走通用 steps（在下方条件渲染）
+    'vscode-chat':{ header: '💬 VS Code Chat', bg: '#eef2ff', color: '#3730a3', steps: [] },
     api:          { header: '🔌 Direct API', bg: '#dbeafe', color: '#1e40af', steps: ['使用 POST 请求向上方 Webhook URL 发送 JSON', '请求体：{ title, summary, status, url? }', '请求头：X-Webhook-Secret: <secret>'] },
     custom:       { header: '🛠️ Custom Webhook', bg: '#f3f4f6', color: '#374151', steps: ['向上方 Webhook URL 发送 POST 请求', '请求体：{ title, summary, status, event?, url? }', '请求头：X-Webhook-Secret: <secret>'] },
   };
@@ -972,12 +1032,16 @@ function SetupGuideModal({ integration, apiBaseUrl, onClose }: {
           </div>
 
           {/* 平台配置步骤 */}
-          <div style={{ background: guide.bg, border: `1px solid ${guide.color}30`, borderRadius: '0.5rem', padding: '1rem' }}>
-            <div style={{ fontWeight: 600, fontSize: '0.85rem', color: guide.color, marginBottom: '0.75rem' }}>{guide.header} 配置步骤</div>
-            <ol style={{ margin: 0, paddingLeft: '1.25rem', fontSize: '0.8rem', color: '#374151', lineHeight: 1.8 }}>
-              {guide.steps.map((s, i) => <li key={i}>{s}</li>)}
-            </ol>
-          </div>
+          {integration.projectType === 'vscode-chat' ? (
+            <VscodeChatMcpGuide apiBaseUrl={apiBaseUrl} token={integration.webhookSecret || ''} />
+          ) : (
+            <div style={{ background: guide.bg, border: `1px solid ${guide.color}30`, borderRadius: '0.5rem', padding: '1rem' }}>
+              <div style={{ fontWeight: 600, fontSize: '0.85rem', color: guide.color, marginBottom: '0.75rem' }}>{guide.header} 配置步骤</div>
+              <ol style={{ margin: 0, paddingLeft: '1.25rem', fontSize: '0.8rem', color: '#374151', lineHeight: 1.8 }}>
+                {guide.steps.map((s, i) => <li key={i}>{s}</li>)}
+              </ol>
+            </div>
+          )}
         </div>
 
         <div style={{ padding: '1rem 1.5rem', borderTop: '1px solid #f3f4f6', display: 'flex', justifyContent: 'flex-end' }}>
