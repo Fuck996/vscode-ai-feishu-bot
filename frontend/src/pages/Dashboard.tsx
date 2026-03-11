@@ -113,6 +113,7 @@ const Dashboard: React.FC = () => {
       }
 
       // 获取机器人列表
+      let robotsList: Robot[] = [];
       const robotsResponse = await fetch('/api/robots', {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`,
@@ -120,8 +121,8 @@ const Dashboard: React.FC = () => {
       });
       if (robotsResponse.ok) {
         const robotsData = await robotsResponse.json();
-        const robots = Array.isArray(robotsData) ? robotsData : robotsData.robots || [];
-        setRobots(robots);
+        robotsList = Array.isArray(robotsData) ? robotsData : robotsData.robots || [];
+        setRobots(robotsList);
       }
 
       // 计算统计数据
@@ -130,10 +131,7 @@ const Dashboard: React.FC = () => {
       const failed = notificationsData.filter(n => n.status === 'error').length;
       const warning = notificationsData.filter(n => n.status === 'warning').length;
       const info = notificationsData.filter(n => n.status === 'info').length;
-
-      const robotsData = await robotsResponse.json();
-      const robots = Array.isArray(robotsData) ? robotsData : robotsData.robots || [];
-      const activeRobots = robots.filter((r: Robot) => r.status === 'active').length;
+      const activeRobots = robotsList.filter((r: Robot) => r.status === 'active').length;
 
       // 计算今天的数据
       const todayStats = calculateTodayStats(notificationsData);
