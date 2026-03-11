@@ -33,7 +33,7 @@ export default function Robots() {
   const [formData, setFormData] = useState({ name: '', description: '', webhookUrl: '' });
   const [editFormData, setEditFormData] = useState({ name: '', description: '', webhookUrl: '' });
 
-  const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+  const API_BASE_URL = '';  // 使用相对路径，走 Vite 代理转发到后端
 
   useEffect(() => {
     fetchRobots();
