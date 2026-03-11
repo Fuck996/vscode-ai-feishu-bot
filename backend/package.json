@@ -1,6 +1,6 @@
 {
   "name": "feishu-notifier-backend",
-  "version": "1.1.0",
+  "version": "0.1.0",
   "description": "Feishu AI notification webhook service",
   "main": "dist/server.js",
   "scripts": {

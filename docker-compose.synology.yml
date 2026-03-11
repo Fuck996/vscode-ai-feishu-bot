@@ -19,11 +19,11 @@
 # ═══════════════════════════════════════════
 # .env 文件内容示例（必填项）
 # ═══════════════════════════════════════════
-# GITHUB_OWNER=你的GitHub用户名
-# FEISHU_WEBHOOK_URL=https://open.feishu.cn/open-apis/bot/v2/hook/你的webhook
-# JWT_SECRET=随机生成的强密钥（建议32位以上）
+# GITHUB_OWNER=Fuck996
+# FEISHU_WEBHOOK_URL=https://open.feishu.cn/open-apis/bot/v2/hook/your-webhook-id
+# JWT_SECRET=your-strong-secret-key-32-chars-minimum
 # APP_PORT=8080
-# BACKEND_URL=http://你的群晖IP:8080
+# BACKEND_URL=http://your-nas-ip:8080
 # DATA_PATH=/volume1/docker/feishu-bot/data
 #
 # ═══════════════════════════════════════════
