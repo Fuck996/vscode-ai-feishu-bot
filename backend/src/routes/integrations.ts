@@ -121,7 +121,7 @@ router.get('/:integrationId', verifyToken, checkRobotOwner, async (req: Request,
 
 /**
  * PUT /api/robots/:robotId/integrations/:integrationId
- * 更新集成配置
+ * 更新集成配置（projectName 在创建后不可修改）
  */
 router.put('/:integrationId', verifyToken, checkRobotOwner, async (req: Request, res: Response) => {
   try {
@@ -132,10 +132,10 @@ router.put('/:integrationId', verifyToken, checkRobotOwner, async (req: Request,
       return res.status(404).json({ success: false, error: '集成不存在' });
     }
 
-    const { projectName, projectSubName, config, triggeredEvents, notifyOn, messageTemplate } = req.body;
+    const { projectSubName, config, triggeredEvents, notifyOn, messageTemplate } = req.body;
+    // 注意：故意不接受 projectName，确保创建后不可修改
 
     const updatedIntegration = await database.updateIntegration(integrationId, {
-      ...(projectName !== undefined && { projectName }),
       ...(projectSubName !== undefined && { projectSubName }),
       ...(config !== undefined && { config }),
       ...(triggeredEvents !== undefined && { triggeredEvents }),

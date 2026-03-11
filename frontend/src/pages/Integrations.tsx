@@ -725,10 +725,24 @@ function IntegrationModal({
 
       return (
         <div>
-          <div style={formGroup}>
-            <label style={labelStyle}>项目名称 <Required /></label>
-            <input value={projectName} onChange={e => setProjectName(e.target.value)} placeholder="如: api-service" style={inputStyle} />
-          </div>
+          {/* 创建模式显示项目名称输入框 */}
+          {modalMode === 'create' && (
+            <div style={formGroup}>
+              <label style={labelStyle}>项目名称 <Required /></label>
+              <input value={projectName} onChange={e => setProjectName(e.target.value)} placeholder="如: api-service" style={inputStyle} />
+            </div>
+          )}
+          
+          {/* 编辑模式显示项目名称为只读 */}
+          {modalMode === 'edit' && (
+            <div style={formGroup}>
+              <label style={labelStyle}>项目名称 <span style={{ color: '#9ca3af', fontWeight: 400 }}>（创建后不可修改）</span></label>
+              <div style={{ ...inputStyle, background: '#f3f4f6', cursor: 'not-allowed', color: '#6b7280' }}>
+                {projectName}
+              </div>
+            </div>
+          )}
+
           <div style={formGroup}>
             <label style={labelStyle}>环境/备注 <span style={{ color: '#9ca3af', fontWeight: 400 }}>（选填，仅用于标识）</span></label>
             <input value={projectSubName} onChange={e => setProjectSubName(e.target.value)} placeholder="如: production / staging / v2" style={inputStyle} />
