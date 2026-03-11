@@ -1,7 +1,7 @@
-{
-  // ===== 本地开发模式：stdio 传输（推荐 & 当前采用）=====
-  // MCP Server 与 VS Code 通过 stdio 通信（进程内调用，完全私密）
-  // 不暴露任何后端端口，无需涉及网络安全问题
+﻿{
+  // ===== 本地开发模式：stdio 传输（当前采用）=====
+  // MCP Server 与 VS Code 通过 stdio 进程内通信，不暴露任何端口
+  // Token 由 mcp-server 自动从后端 /api/mcp/config 获取，无需在此配置
   "servers": {
     "feishu-notifier": {
       "type": "stdio",
@@ -10,34 +10,26 @@
     }
   }
 
-  // ===== 本地调试模式：SSE 通过前端代理（手工测试用）=====
-  // MCP 通过前端 Vite dev proxy 连接（http://localhost:5173）
-  // 这样不直接暴露后端 3001 端口，符合"只暴露前端"的架构约定
-  // Token 需手动从集成页面复制（临时方案，待改进）
-  // "servers": {
-  //   "feishu-notifier": {
-  //     "type": "sse",
-  //     "url": "http://localhost:5173/api/mcp/sse?token=<from_integrations_page>"
-  //   }
-  // }
-
-  // ===== 远端生产部署模式 =====
-  // 问题：token 不应明文在 mcp.json（当前存在安全漏洞）
-  // 
-  // 改进方案（待实现）：
-  //   1. VS Code MCP 初始化流程：首次连接时向用户询问获取 token
-  //   2. VS Code Secrets API：安全存储 token 而非配置文件明文
-  //   3. mcp-server 启动时从 VS Code secrets 或环境变量读取 token
-  //   4. 后续连接自动附带，用户无需手动管理
+  // ===== 远端部署模式：SSE + VS Code inputs 安全 Token 管理 =====
+  // 在其他项目的 .vscode/mcp.json 中使用以下格式：
   //
-  // 当前临时方案（仅限部署文档示例）：
-  // Token 从前端集成管理页面获取，用户自行管理存储方式
+  // - inputs 机制：VS Code 首次连接时弹出密码输入框，会话期间缓存
+  // - Token 完全不存在配置文件中，安全且可安全提交到版本库
+  // - ${input:feishu_mcp_token} 是 VS Code 的变量替换语法
+  // - Token 从集成管理页面的 「📋 MCP配置」 按钮处获取
+  //
+  // "inputs": [
+  //   {
+  //     "type": "promptString",
+  //     "id": "feishu_mcp_token",
+  //     "description": "Feishu MCP Token（从飞书通知系统集成管理页面「📋 MCP配置」按钮获取）",
+  //     "password": true
+  //   }
+  // ],
   // "servers": {
   //   "feishu-notifier": {
   //     "type": "sse",
-  //     "url": "https://your-domain.com/api/mcp/sse?token=<webhookSecret>"
+  //     "url": "https://your-domain.com/api/mcp/sse?token=${input:feishu_mcp_token}"
   //   }
   // }
 }
-
-

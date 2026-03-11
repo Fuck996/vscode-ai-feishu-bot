@@ -5,7 +5,16 @@
  */
 
 import { Router, Request, Response } from 'express';
+import { config } from '../config';
 import database from '../database';
+
+// 动态构建后端基础地址（优先环境变量，其次根据实际运行端口）
+function getBackendBase(req: Request): string {
+  if (process.env.BACKEND_URL) return process.env.BACKEND_URL.replace(/\/$/, '');
+  const proto = req.headers['x-forwarded-proto'] || 'http';
+  const host  = req.headers['x-forwarded-host']  || req.headers.host || `localhost:${config.port}`;
+  return `${proto}://${host}`;
+}
 
 const router = Router();
 
@@ -41,7 +50,7 @@ router.get('/config', async (req: Request, res: Response) => {
       success: true,
       data: {
         integrationId: integration.id,
-        webhookEndpoint: `${process.env.BACKEND_URL || 'http://localhost:3000'}/api/webhook/${integration.id}`,
+        webhookEndpoint: `${getBackendBase(req)}/api/webhook/${integration.id}`,
         triggerToken: integration.webhookSecret || '',
         projectName: integration.projectName,
         projectType: integration.projectType,
@@ -70,7 +79,7 @@ router.get('/config/:integrationId', async (req: Request, res: Response) => {
       success: true,
       data: {
         integrationId: integration.id,
-        webhookEndpoint: `${process.env.BACKEND_URL || 'http://localhost:3000'}/api/webhook/${integration.id}`,
+        webhookEndpoint: `${getBackendBase(req)}/api/webhook/${integration.id}`,
         triggerToken: integration.webhookSecret || '',
         projectName: integration.projectName,
         projectType: integration.projectType,
