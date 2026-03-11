@@ -198,9 +198,51 @@
             color: #1f2937;
         }
 
+        /* ===== 定时倒计时卡片 ===== */
+        .countdown-card {
+            background: #eff6ff;
+            border: 1px solid #bfdbfe;
+            border-radius: 0.375rem;
+            padding: 0.75rem;
+            margin-bottom: 1rem;
+            font-size: 0.75rem;
+        }
+
+        .countdown-label {
+            color: #1e40af;
+            font-weight: 600;
+            margin-bottom: 0.25rem;
+        }
+
+        .countdown-time {
+            color: #1e3a8a;
+            font-weight: 500;
+        }
+
+        /* ===== 错误提示卡片 ===== */
+        .error-card {
+            background: #fef2f2;
+            border: 1px solid #fecaca;
+            border-radius: 0.375rem;
+            padding: 0.75rem;
+            margin-bottom: 1rem;
+            font-size: 0.75rem;
+        }
+
+        .error-label {
+            color: #7f1d1d;
+            font-weight: 600;
+            margin-bottom: 0.25rem;
+        }
+
+        .error-message {
+            color: #991b1b;
+        }
+
+        /* ===== 服务操作按钮 ===== */
         .service-actions {
             display: grid;
-            grid-template-columns: repeat(2, 1fr);
+            grid-template-columns: repeat(3, 1fr);
             gap: 0.75rem;
             margin-bottom: 1rem;
         }
@@ -246,26 +288,9 @@
             border-color: #dc2626;
         }
 
-        .service-config {
-            background: #f9fafb;
-            padding: 0.75rem;
-            border-radius: 0.375rem;
-            font-size: 0.75rem;
-        }
-
-        .config-item {
-            display: flex;
-            justify-content: space-between;
-            padding: 0.25rem 0;
-            color: #6b7280;
-        }
-
-        .config-label {
-            font-weight: 500;
-        }
-
-        .config-value {
-            color: #1f2937;
+        .action-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
         }
 
         /* ===== 日志面板 ===== */
@@ -277,39 +302,90 @@
             margin-top: 2rem;
         }
 
+        .logs-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+
         .logs-title {
             font-size: 1.125rem;
             font-weight: 600;
-            margin-bottom: 1rem;
             color: #1f2937;
         }
 
-        .logs-tabs {
+        .logs-controls {
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+        }
+
+        .log-filter-select {
+            padding: 0.5rem 0.75rem;
+            border: 1px solid #d1d5db;
+            border-radius: 0.375rem;
+            font-size: 0.875rem;
+            background: white;
+            color: #1f2937;
+        }
+
+        .refresh-controls {
             display: flex;
             gap: 0.5rem;
-            margin-bottom: 1rem;
-            border-bottom: 1px solid #e5e7eb;
+            align-items: center;
         }
 
-        .log-tab {
-            padding: 0.75rem 1rem;
-            background: none;
-            border: none;
+        .refresh-toggle {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.75rem;
             color: #6b7280;
+        }
+
+        .switch {
+            width: 32px;
+            height: 18px;
+            background: #d1d5db;
+            border-radius: 9px;
+            position: relative;
             cursor: pointer;
-            font-size: 0.875rem;
+            transition: background 0.3s;
+        }
+
+        .switch.active {
+            background: #10b981;
+        }
+
+        .switch-slider {
+            width: 14px;
+            height: 14px;
+            background: white;
+            border-radius: 50%;
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            transition: left 0.3s;
+        }
+
+        .switch.active .switch-slider {
+            left: 16px;
+        }
+
+        .refresh-btn {
+            padding: 0.375rem 0.75rem;
+            background: #3b82f6;
+            color: white;
+            border: none;
+            border-radius: 0.375rem;
+            cursor: pointer;
+            font-size: 0.75rem;
             font-weight: 500;
-            border-bottom: 2px solid transparent;
-            transition: all 0.2s;
         }
 
-        .log-tab:hover {
-            color: #1f2937;
-        }
-
-        .log-tab.active {
-            color: #3b82f6;
-            border-bottom-color: #3b82f6;
+        .refresh-btn:hover {
+            background: #2563eb;
         }
 
         .log-content {
@@ -333,100 +409,15 @@
             margin-right: 0.5rem;
         }
 
+        .log-service {
+            color: #a78bfa;
+            margin-right: 0.5rem;
+            font-weight: 500;
+        }
+
         .log-level-info { color: #60a5fa; }
         .log-level-error { color: #f87171; }
         .log-level-warn { color: #fbbf24; }
-
-        /* ===== 配置弹窗 ===== */
-        .modal {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0,0,0,0.5);
-            z-index: 1000;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .modal.show { display: flex; }
-
-        .modal-content {
-            background: white;
-            border-radius: 0.75rem;
-            padding: 2rem;
-            max-width: 500px;
-            width: 90%;
-            box-shadow: 0 20px 25px rgba(0,0,0,0.15);
-        }
-
-        .modal-header { margin-bottom: 1.5rem; }
-        .modal-title { font-size: 1.25rem; font-weight: 600; color: #1f2937; }
-
-        .modal-body { margin-bottom: 1.5rem; }
-
-        .form-group {
-            margin-bottom: 1rem;
-        }
-
-        .form-label {
-            display: block;
-            font-size: 0.875rem;
-            font-weight: 500;
-            color: #374151;
-            margin-bottom: 0.5rem;
-        }
-
-        .form-input {
-            width: 100%;
-            padding: 0.5rem 0.75rem;
-            border: 1px solid #d1d5db;
-            border-radius: 0.375rem;
-            font-size: 0.875rem;
-            font-family: inherit;
-        }
-
-        .form-input:focus {
-            outline: none;
-            border-color: #3b82f6;
-            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
-        }
-
-        .modal-footer {
-            display: flex;
-            gap: 0.75rem;
-            justify-content: flex-end;
-        }
-
-        .btn {
-            padding: 0.5rem 1rem;
-            border: none;
-            border-radius: 0.375rem;
-            cursor: pointer;
-            font-size: 0.875rem;
-            font-weight: 500;
-            transition: all 0.2s;
-        }
-
-        .btn-secondary {
-            background: #f3f4f6;
-            color: #6b7280;
-        }
-
-        .btn-secondary:hover {
-            background: #e5e7eb;
-        }
-
-        .btn-primary {
-            background: #3b82f6;
-            color: white;
-        }
-
-        .btn-primary:hover {
-            background: #2563eb;
-        }
     </style>
 </head>
 <body>
@@ -450,7 +441,7 @@
         <!-- 页头 -->
         <div class="page-header">
             <div class="page-title">📡 服务管理</div>
-            <div class="page-subtitle">监控和管理所有集成服务，查看实时日志和配置</div>
+            <div class="page-subtitle">监控和管理所有集成服务，查看实时日志和状态</div>
         </div>
 
         <!-- 服务网格 -->
@@ -492,34 +483,19 @@
                             <span class="stat-value">99.8%</span>
                         </div>
                     </div>
+                    <div class="countdown-card">
+                        <div class="countdown-label">下次定时运行</div>
+                        <div class="countdown-time">0天 2时 15分 32秒</div>
+                    </div>
                     <div class="service-actions">
                         <button class="action-btn danger">停止</button>
-                        <button class="action-btn">配置</button>
-                        <button class="action-btn">查看日志</button>
                         <button class="action-btn primary">重启</button>
-                    </div>
-                    <div class="service-config">
-                        <div class="config-item">
-                            <span class="config-label">协议版本</span>
-                            <span class="config-value">2024-11-05</span>
-                        </div>
-                        <div class="config-item">
-                            <span class="config-label">连接数</span>
-                            <span class="config-value">1 活跃连接</span>
-                        </div>
-                        <div class="config-item">
-                            <span class="config-label">CPU 使用</span>
-                            <span class="config-value">2.3%</span>
-                        </div>
-                        <div class="config-item">
-                            <span class="config-label">内存使用</span>
-                            <span class="config-value">45 MB / 512 MB</span>
-                        </div>
+                        <button class="action-btn">查看日志</button>
                     </div>
                 </div>
             </div>
 
-            <!-- 示例：已停止的服务 -->
+            <!-- 消息队列服务 (已停止) -->
             <div class="service-card">
                 <div class="service-header status-stopped">
                     <div class="service-header-left">
@@ -556,34 +532,19 @@
                             <span class="stat-value">就绪</span>
                         </div>
                     </div>
+                    <div class="countdown-card">
+                        <div class="countdown-label">下次定时运行</div>
+                        <div class="countdown-time">1天 0时 0分 0秒</div>
+                    </div>
                     <div class="service-actions">
                         <button class="action-btn primary">启动</button>
-                        <button class="action-btn">配置</button>
+                        <button class="action-btn">重启</button>
                         <button class="action-btn">查看日志</button>
-                        <button class="action-btn">删除</button>
-                    </div>
-                    <div class="service-config">
-                        <div class="config-item">
-                            <span class="config-label">主机</span>
-                            <span class="config-value">localhost:6379</span>
-                        </div>
-                        <div class="config-item">
-                            <span class="config-label">数据库</span>
-                            <span class="config-value">Redis (In-Memory)</span>
-                        </div>
-                        <div class="config-item">
-                            <span class="config-label">认证</span>
-                            <span class="config-value">禁用</span>
-                        </div>
-                        <div class="config-item">
-                            <span class="config-label">最后检查</span>
-                            <span class="config-value">-</span>
-                        </div>
                     </div>
                 </div>
             </div>
 
-            <!-- 示例：出错的服务 -->
+            <!-- 通知中枢 (出错) -->
             <div class="service-card">
                 <div class="service-header status-error">
                     <div class="service-header-left">
@@ -600,7 +561,7 @@
                 </div>
                 <div class="service-body">
                     <div class="service-description">
-                        负责将所有通知推送到飞书群组，当前因 Webhook 认证失败而异常
+                        负责将所有通知推送到飞书群组，监控通知推送状态
                     </div>
                     <div class="service-stats">
                         <div class="stat-item">
@@ -620,29 +581,14 @@
                             <span class="stat-value">401 Auth</span>
                         </div>
                     </div>
-                    <div class="service-actions">
-                        <button class="action-btn">修复配置</button>
-                        <button class="action-btn">查看日志</button>
-                        <button class="action-btn danger">重新启动</button>
-                        <button class="action-btn">联系支持</button>
+                    <div class="error-card">
+                        <div class="error-label">⚠️ 最后错误</div>
+                        <div class="error-message">Webhook 返回 401: Unauthorized</div>
                     </div>
-                    <div class="service-config">
-                        <div class="config-item">
-                            <span class="config-label">端点</span>
-                            <span class="config-value">open.feishu.cn</span>
-                        </div>
-                        <div class="config-item">
-                            <span class="config-label">重试策略</span>
-                            <span class="config-value">指数退避</span>
-                        </div>
-                        <div class="config-item">
-                            <span class="config-label">超时</span>
-                            <span class="config-value">30s</span>
-                        </div>
-                        <div class="config-item">
-                            <span class="config-label">错误详情</span>
-                            <span class="config-value">Webhook 已废弃</span>
-                        </div>
+                    <div class="service-actions">
+                        <button class="action-btn primary">启动</button>
+                        <button class="action-btn">重启</button>
+                        <button class="action-btn">查看日志</button>
                     </div>
                 </div>
             </div>
@@ -650,74 +596,57 @@
 
         <!-- 日志面板 -->
         <div class="logs-section">
-            <div class="logs-title">📊 实时日志</div>
-            <div class="logs-tabs">
-                <button class="log-tab active">全部</button>
-                <button class="log-tab">MCP 服务</button>
-                <button class="log-tab">通知中枢</button>
-                <button class="log-tab">消息队列</button>
+            <div class="logs-header">
+                <div class="logs-title">📊 实时日志</div>
+                <div class="logs-controls">
+                    <select class="log-filter-select">
+                        <option value="">全部服务</option>
+                        <option value="mcp">MCP 工作汇报服务</option>
+                        <option value="queue">消息队列服务</option>
+                        <option value="notifications">通知中枢</option>
+                    </select>
+                    <div class="refresh-controls">
+                        <div class="refresh-toggle">
+                            <span>自动刷新</span>
+                            <div class="switch active" onclick="this.classList.toggle('active')">
+                                <div class="switch-slider"></div>
+                            </div>
+                        </div>
+                        <button class="refresh-btn">刷新</button>
+                    </div>
+                </div>
             </div>
             <div class="log-content">
                 <div class="log-entry">
                     <span class="log-time">[2026-03-11 17:32:15]</span>
                     <span class="log-level-info">[INFO]</span>
+                    <span class="log-service">[MCP 服务]</span>
                     MCP SSE 连接建立: sessionId=abc123def456
                 </div>
                 <div class="log-entry">
                     <span class="log-time">[2026-03-11 17:31:52]</span>
                     <span class="log-level-info">[INFO]</span>
+                    <span class="log-service">[MCP 服务]</span>
                     feishu_notify 工具调用成功，消息已发送到飞书
                 </div>
                 <div class="log-entry">
                     <span class="log-time">[2026-03-11 17:31:48]</span>
                     <span class="log-level-info">[INFO]</span>
-                    tools/call 结果: ✅ 工作总结已成功发送到飞书
+                    <span class="log-service">[MCP 服务]</span>
+                    工作总结已成功发送到飞书群组
                 </div>
                 <div class="log-entry">
                     <span class="log-time">[2026-03-11 17:25:03]</span>
                     <span class="log-level-warn">[WARN]</span>
+                    <span class="log-service">[通知中枢]</span>
                     通知发送延迟 2.3s，建议检查网络连接
                 </div>
                 <div class="log-entry">
                     <span class="log-time">[2026-03-11 17:20:15]</span>
                     <span class="log-level-error">[ERROR]</span>
+                    <span class="log-service">[通知中枢]</span>
                     飞书 Webhook 返回 401: Unauthorized (已重试 3/3)
                 </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- 配置弹窗 -->
-    <div class="modal" id="configModal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <div class="modal-title">⚙️ 配置 MCP 服务</div>
-            </div>
-            <div class="modal-body">
-                <div class="form-group">
-                    <label class="form-label">服务名称</label>
-                    <input type="text" class="form-input" value="MCP 工作汇报服务" readonly>
-                </div>
-                <div class="form-group">
-                    <label class="form-label">协议版本</label>
-                    <input type="text" class="form-input" value="2024-11-05" readonly>
-                </div>
-                <div class="form-group">
-                    <label class="form-label">连接主机</label>
-                    <input type="text" class="form-input" value="fsbot.4npc.net:2020">
-                </div>
-                <div class="form-group">
-                    <label class="form-label">Token 有效期</label>
-                    <input type="text" class="form-input" value="30 天">
-                </div>
-                <div class="form-group">
-                    <label class="form-label">备注</label>
-                    <input type="text" class="form-input" placeholder="服务相关备注信息" value="代理通过 nginx 反向代理">
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button class="btn btn-secondary" onclick="document.getElementById('configModal').classList.remove('show')">取消</button>
-                <button class="btn btn-primary">保存配置</button>
             </div>
         </div>
     </div>
@@ -727,29 +656,12 @@
         const actionBtns = document.querySelectorAll('.action-btn');
         actionBtns.forEach(btn => {
             btn.addEventListener('click', function() {
-                const text = this.textContent;
-                if (text === '配置') {
-                    document.getElementById('configModal').classList.add('show');
-                } else if (text === '查看日志') {
-                    alert('打开日志详情面板...');
-                } else {
+                const text = this.textContent.trim();
+                if (text === '查看日志') {
+                    alert('展开该服务的详细日志...');
+                } else if (text.includes('启动') || text.includes('停止') || text.includes('重启')) {
                     alert(`执行操作: ${text}`);
                 }
-            });
-        });
-
-        // 关闭弹窗
-        document.getElementById('configModal').addEventListener('click', function(e) {
-            if (e.target === this) {
-                this.classList.remove('show');
-            }
-        });
-
-        // 日志标签切换
-        document.querySelectorAll('.log-tab').forEach(tab => {
-            tab.addEventListener('click', function() {
-                document.querySelectorAll('.log-tab').forEach(t => t.classList.remove('active'));
-                this.classList.add('active');
             });
         });
     </script>
