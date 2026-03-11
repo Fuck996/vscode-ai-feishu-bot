@@ -1,14 +1,15 @@
 {
-  // 后端 SSE 模式（通过前端 Vite dev server 代理，适用于本地后端部署）
-  // Token 来自集成管理页面的 vscode-chat 类型集成（点击"📋 MCP配置"按钮查看）
+  // 后端 SSE 模式（直连后端，适用于本地开发部署）
+  // MCP 运行在 VS Code Node.js 进程中，可直接访问后端端口，无需经过 Vite 代理
+  // Token 来自集成管理页面的 vscode-chat 类型集成（点击操作列「📋 MCP配置」按钮查看）
   "servers": {
     "feishu-notifier": {
       "type": "sse",
-      "url": "http://localhost:5173/api/mcp/sse?token=4cd8847ce224f31decc20ebeb972392ce9ff478ecb55ead2"
+      "url": "http://localhost:3001/api/mcp/sse?token=4cd8847ce224f31decc20ebeb972392ce9ff478ecb55ead2"
     }
   }
 
-  // 本地 stdio 模式（备用，需要后端单独运行在 localhost:3000）
+  // 本地 stdio 模式（备用，直接运行 mcp-server/index.js）
   // "servers": {
   //   "feishu-notifier": {
   //     "type": "stdio",
@@ -17,7 +18,7 @@
   //   }
   // }
 
-  // 远端部署模式：将 localhost:5173 替换为实际域名
+  // 远端部署模式：通过前端域名反向代理到后端（不直接暴露后端端口）
   // "url": "https://your-domain.com/api/mcp/sse?token=<webhookSecret>"
 }
 

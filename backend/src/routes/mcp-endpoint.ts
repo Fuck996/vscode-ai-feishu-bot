@@ -145,7 +145,13 @@ router.get('/sse', async (req: Request, res: Response) => {
     'MCP SSE 连接建立'
   );
 
+  // 心跳保活：每 25 秒发一次 SSE comment，防止客户端超时断开
+  const heartbeat = setInterval(() => {
+    res.write(': ping\n\n');
+  }, 25000);
+
   req.on('close', () => {
+    clearInterval(heartbeat);
     sessions.delete(sessionId);
     logger.info({ sessionId }, 'MCP SSE 连接关闭');
   });
