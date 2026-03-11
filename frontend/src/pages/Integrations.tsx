@@ -145,6 +145,9 @@ export default function Integrations() {
   const [copiedUrlId, setCopiedUrlId] = useState<string | null>(null);
   const [copiedTokenId, setCopiedTokenId] = useState<string | null>(null);
 
+  // 查看 MCP 配置弹窗（vscode-chat 类型专用）
+  const [mcpGuideIntegration, setMcpGuideIntegration] = useState<Integration | null>(null);
+
   const copyText = (text: string, id: string, setter: (v: string | null) => void) => {
     navigator.clipboard.writeText(text).then(() => {
       setter(id);
@@ -476,6 +479,15 @@ export default function Integrations() {
                               {copiedTokenId === integration.id + '_token' ? '✓ Token' : '🔑 Token'}
                             </button>
                           )}
+                          {integration.projectType === 'vscode-chat' && (
+                            <button
+                              onClick={() => setMcpGuideIntegration(integration)}
+                              style={{ ...btnSecondary, background: '#ede9fe', color: '#4c1d95' }}
+                              title="查看 MCP 配置片段"
+                            >
+                              📋 MCP配置
+                            </button>
+                          )}
                         </div>
                       </td>
                     </tr>
@@ -518,6 +530,27 @@ export default function Integrations() {
           apiBaseUrl={WEBHOOK_BASE_URL}
           onClose={() => { setCreatedInfo(null); showMessage('✅ 集成已创建成功'); }}
         />
+      )}
+
+      {/* ===== 查看 MCP 配置弹窗（vscode-chat 类型，已有集成）===== */}
+      {mcpGuideIntegration && (
+        <div
+          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)', zIndex: 60, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1.5rem' }}
+          onClick={e => { if (e.target === e.currentTarget) setMcpGuideIntegration(null); }}
+        >
+          <div style={{ background: 'white', borderRadius: '0.75rem', boxShadow: '0 25px 50px rgba(0,0,0,0.2)', width: '100%', maxWidth: '520px' }}>
+            <div style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid #e5e7eb', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <h2 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 700, color: '#3730a3' }}>💬 查看 MCP 配置 — {mcpGuideIntegration.projectName}</h2>
+              <button onClick={() => setMcpGuideIntegration(null)} style={{ background: 'none', border: 'none', fontSize: '1.25rem', cursor: 'pointer', color: '#6b7280' }}>✕</button>
+            </div>
+            <div style={{ padding: '1.5rem' }}>
+              <VscodeChatMcpGuide apiBaseUrl={WEBHOOK_BASE_URL} token={mcpGuideIntegration.webhookSecret || ''} />
+            </div>
+            <div style={{ padding: '1rem 1.5rem', borderTop: '1px solid #f3f4f6', display: 'flex', justifyContent: 'flex-end' }}>
+              <button onClick={() => setMcpGuideIntegration(null)} style={{ ...btnPrimary, background: '#6366f1' }}>关闭</button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
