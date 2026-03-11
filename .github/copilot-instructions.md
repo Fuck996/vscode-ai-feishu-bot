@@ -256,15 +256,28 @@ MCP Server ← → stdio (JSON-RPC 协议)
 
 **位置**: `mcp-server/index.js`
 
-**启动方式**: VS Code 通过 `.vscode/mcp.json` 的 stdio 启动
+**启动方式**: VS Code 通过 `.vscode/mcp.json` 的 SSE 启动，Token 通过系统环境变量 `FEISHU_MCP_TOKEN` 传入
 
-**环境变量注入** (由 `.vscode/mcp.json` 提供):
+**`.vscode/mcp.json` 配置**:
 ```json
 {
-  "WEBHOOK_ENDPOINT": "http://localhost:3000/api/webhook/{integrationId}",
-  "TRIGGER_TOKEN": "集成的 webhookSecret",
-  "PROJECT_NAME": "项目名称（可选）"
+  "servers": {
+    "feishu-notifier": {
+      "type": "sse",
+      "url": "http://localhost:5173/api/mcp/sse?token=${env:FEISHU_MCP_TOKEN}"
+    }
+  }
 }
+```
+
+**Token 设置（一次性，不进版本控制）**:
+```powershell
+# Windows PowerShell（用户级环境变量，重启 VS Code 后生效）
+[System.Environment]::SetEnvironmentVariable("FEISHU_MCP_TOKEN", "你的Token", "User")
+```
+```bash
+# macOS / Linux（添加到 ~/.zshrc 或 ~/.bashrc）
+export FEISHU_MCP_TOKEN="你的Token"
 ```
 
 ### MCP 格式化规则（核心逻辑）

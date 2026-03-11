@@ -1,33 +1,31 @@
 ﻿{
-  // ===== 本地开发模式：stdio 传输（默认推荐）=====
-  // MCP Server 与 VS Code 通过 stdio 进程内通信，不暴露任何端口
-  // 不需要用户输入 Token，启动完全透明（无 "Skip?" 弹框）
-  // mcp-server 启动时自动从后端 /api/mcp/config 读取配置
+  // ===== SSE 模式：通过环境变量安全传递 Token（推荐）=====
+  // Token 存储在用户级系统环境变量 FEISHU_MCP_TOKEN 中，不进版本控制，不弹框
+  //
+  // 【一次性设置步骤】
+  // 1. 从「集成管理 → 📋 MCP配置」弹窗复制 Token
+  // 2. 在终端执行设置命令（只需执行一次）：
+  //    Windows PowerShell:
+  //      [System.Environment]::SetEnvironmentVariable("FEISHU_MCP_TOKEN", "你的Token", "User")
+  //    macOS / Linux (添加到 ~/.zshrc 或 ~/.bashrc):
+  //      export FEISHU_MCP_TOKEN="你的Token"
+  // 3. 重启 VS Code（环境变量需要重启才生效）
+  // 4. 后续所有 Chat 会话自动无声连接，无弹框
   "servers": {
     "feishu-notifier": {
-      "type": "stdio",
-      "command": "node",
-      "args": ["${workspaceFolder}/mcp-server/index.js"]
+      "type": "sse",
+      "url": "http://localhost:5173/api/mcp/sse?token=${env:FEISHU_MCP_TOKEN}"
     }
   }
 
-  // ===== 其他项目的远端部署模式：SSE + inputs 安全 Token =====
-  // 在其他项目的 .vscode/mcp.json 中使用以下配置
-  // inputs 机制：VS Code 首次连接时安全弹出密码框，Token 不写入文件
-  // Token 从本系统「集成管理 → 📋 MCP配置」按钮获取
+  // ===== 备用方案：stdio 本地进程模式 =====
+  // 如后端就在本机，可用此方案（无需 Token，更简单）
   //
-  // "inputs": [
-  //   {
-  //     "type": "promptString",
-  //     "id": "feishu_mcp_token",
-  //     "description": "Feishu MCP Token（从飞书通知系统集成管理页面「📋 MCP配置」按钮获取）",
-  //     "password": true
-  //   }
-  // ],
   // "servers": {
   //   "feishu-notifier": {
-  //     "type": "sse",
-  //     "url": "https://your-domain.com/api/mcp/sse?token=${input:feishu_mcp_token}"
+  //     "type": "stdio",
+  //     "command": "node",
+  //     "args": ["${workspaceFolder}/mcp-server/index.js"]
   //   }
   // }
 }

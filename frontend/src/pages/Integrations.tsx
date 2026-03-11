@@ -941,31 +941,32 @@ function Required() {
 }
 
 // ===== 子组件：VS Code Chat 类型的 MCP 配置展示 =====
-// 使用 VS Code inputs 安全机制：Token 不明文存储，由 VS Code 在连接时弹框询问
-function VscodeChatMcpGuide({ apiBaseUrl }: { apiBaseUrl: string; token: string }) {
+// 使用环境变量方案：Token 存储在用户级系统环境变量（不进 git，不弹框，一次设置永久有效）
+function VscodeChatMcpGuide({ apiBaseUrl, token }: { apiBaseUrl: string; token: string }) {
   const mcpSseUrl = `${apiBaseUrl}/api/mcp/sse`;
 
-  // 使用 inputs 安全机制生成配置，Token 不会出现在配置文件中
+  // 使用 ${env:FEISHU_MCP_TOKEN} 语法，token 存在系统环境变量中，不写入文件
   const mcpJson = JSON.stringify({
-    inputs: [
-      {
-        type: 'promptString',
-        id: 'feishu_mcp_token',
-        description: 'Feishu MCP Token（从飞书通知系统集成管理页面「📋 MCP配置」按钮获取）',
-        password: true,
-      }
-    ],
     servers: {
       'feishu-notifier': {
         type: 'sse',
-        url: `${mcpSseUrl}?token=\${input:feishu_mcp_token}`,
+        url: `${mcpSseUrl}?token=\${env:FEISHU_MCP_TOKEN}`,
       }
     }
   }, null, 2);
 
-  const [copied, setCopied] = React.useState(false);
-  const copyMcpJson = () => {
-    navigator.clipboard.writeText(mcpJson).then(() => {
+  // PowerShell 设置命令（Windows 用户级环境变量）
+  const psCmd = `[System.Environment]::SetEnvironmentVariable("FEISHU_MCP_TOKEN", "${token}", "User")`;
+  // bash 设置命令（macOS/Linux）
+  const bashCmd = `export FEISHU_MCP_TOKEN="${token}"  # 添加到 ~/.zshrc 或 ~/.bashrc`;
+
+  const [copiedJson, setCopiedJson] = React.useState(false);
+  const [copiedPs, setCopiedPs] = React.useState(false);
+  const [copiedBash, setCopiedBash] = React.useState(false);
+  const [showToken, setShowToken] = React.useState(false);
+
+  const copy = (text: string, setCopied: (v: boolean) => void) => {
+    navigator.clipboard.writeText(text).then(() => {
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     });
@@ -973,30 +974,75 @@ function VscodeChatMcpGuide({ apiBaseUrl }: { apiBaseUrl: string; token: string 
 
   return (
     <div style={{ background: '#eef2ff', border: '1px solid #c7d2fe', borderRadius: '0.5rem', padding: '1rem' }}>
-      <div style={{ fontWeight: 600, fontSize: '0.85rem', color: '#3730a3', marginBottom: '0.75rem' }}>🤖 MCP 远端配置</div>
+      <div style={{ fontWeight: 600, fontSize: '0.85rem', color: '#3730a3', marginBottom: '0.5rem' }}>🤖 MCP 远端配置</div>
       <p style={{ fontSize: '0.78rem', color: '#4338ca', marginBottom: '0.75rem', lineHeight: 1.6 }}>
-        将以下配置粘贴到你的<strong>其他项目</strong>的 <code>.vscode/mcp.json</code>。
-        VS Code 首次连接时会弹出密码输入框，Token 安全存储，不会出现在配置文件中。
+        将 Token 存入系统环境变量，<code>.vscode/mcp.json</code> 用 <code>${'{env:FEISHU_MCP_TOKEN}'}</code> 引用。<br />
+        <strong>一次设置，永久无弹框</strong>，Token 不写入任何文件，安全可靠。
       </p>
-      <div style={{ background: '#e0e7ff', borderRadius: '0.375rem', padding: '0.6rem 0.75rem', fontSize: '0.75rem', color: '#3730a3', marginBottom: '0.75rem' }}>
-        🔑 Token 从本页面右上角「🔑 Token」按钮复制，首次连接粘贴到 VS Code 弹出的输入框即可
+
+      {/* 步骤 1：设置环境变量 */}
+      <div style={{ marginBottom: '0.75rem' }}>
+        <div style={{ fontSize: '0.74rem', fontWeight: 600, color: '#374151', marginBottom: '0.4rem' }}>
+          ① 设置系统环境变量（执行一次）
+        </div>
+
+        {/* Windows */}
+        <div style={{ fontSize: '0.72rem', color: '#6b7280', marginBottom: '0.2rem' }}>Windows PowerShell：</div>
+        <div style={{ display: 'flex', gap: '0.4rem', marginBottom: '0.5rem' }}>
+          <pre style={{ flex: 1, margin: 0, fontSize: '0.68rem', background: '#1e293b', color: '#e2e8f0', padding: '0.4rem 0.6rem', borderRadius: '0.25rem', overflow: 'auto', whiteSpace: 'pre-wrap', wordBreak: 'break-all' }}>
+            {showToken ? psCmd : psCmd.replace(token, '••••••••')}
+          </pre>
+          <button
+            onClick={() => copy(psCmd, setCopiedPs)}
+            style={{ fontSize: '0.68rem', padding: '0.2rem 0.5rem', background: copiedPs ? '#d1fae5' : '#4f46e5', color: copiedPs ? '#065f46' : 'white', border: 'none', borderRadius: '0.25rem', cursor: 'pointer', whiteSpace: 'nowrap' }}
+          >
+            {copiedPs ? '✅' : '📋'}
+          </button>
+        </div>
+
+        {/* macOS/Linux */}
+        <div style={{ fontSize: '0.72rem', color: '#6b7280', marginBottom: '0.2rem' }}>macOS / Linux：</div>
+        <div style={{ display: 'flex', gap: '0.4rem', marginBottom: '0.5rem' }}>
+          <pre style={{ flex: 1, margin: 0, fontSize: '0.68rem', background: '#1e293b', color: '#e2e8f0', padding: '0.4rem 0.6rem', borderRadius: '0.25rem', overflow: 'auto', whiteSpace: 'pre-wrap', wordBreak: 'break-all' }}>
+            {showToken ? bashCmd : bashCmd.replace(token, '••••••••')}
+          </pre>
+          <button
+            onClick={() => copy(bashCmd, setCopiedBash)}
+            style={{ fontSize: '0.68rem', padding: '0.2rem 0.5rem', background: copiedBash ? '#d1fae5' : '#4f46e5', color: copiedBash ? '#065f46' : 'white', border: 'none', borderRadius: '0.25rem', cursor: 'pointer', whiteSpace: 'nowrap' }}
+          >
+            {copiedBash ? '✅' : '📋'}
+          </button>
+        </div>
+
+        {/* 显示/隐藏 token */}
+        <button
+          onClick={() => setShowToken(v => !v)}
+          style={{ fontSize: '0.7rem', padding: '0.15rem 0.5rem', background: 'transparent', border: '1px solid #c7d2fe', borderRadius: '0.25rem', cursor: 'pointer', color: '#4338ca' }}
+        >
+          {showToken ? '🙈 隐藏 Token' : '👁 显示 Token'}
+        </button>
       </div>
 
-      <div>
+      {/* 步骤 2：mcp.json 配置 */}
+      <div style={{ marginBottom: '0.5rem' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.25rem' }}>
-          <div style={{ fontSize: '0.72rem', fontWeight: 500, color: '#374151' }}>
-            复制到 <code>.vscode/mcp.json</code>
+          <div style={{ fontSize: '0.74rem', fontWeight: 600, color: '#374151' }}>
+            ② 复制到 <code>.vscode/mcp.json</code>
           </div>
           <button
-            onClick={copyMcpJson}
-            style={{ fontSize: '0.72rem', padding: '0.2rem 0.6rem', background: copied ? '#d1fae5' : '#4f46e5', color: copied ? '#065f46' : 'white', border: 'none', borderRadius: '0.25rem', cursor: 'pointer' }}
+            onClick={() => copy(mcpJson, setCopiedJson)}
+            style={{ fontSize: '0.72rem', padding: '0.2rem 0.6rem', background: copiedJson ? '#d1fae5' : '#4f46e5', color: copiedJson ? '#065f46' : 'white', border: 'none', borderRadius: '0.25rem', cursor: 'pointer' }}
           >
-            {copied ? '✅ 已复制' : '📋 复制'}
+            {copiedJson ? '✅ 已复制' : '📋 复制'}
           </button>
         </div>
         <pre style={{ margin: 0, fontFamily: 'monospace', fontSize: '0.72rem', background: '#1e293b', color: '#e2e8f0', padding: '0.75rem', borderRadius: '0.375rem', overflow: 'auto', whiteSpace: 'pre-wrap', wordBreak: 'break-all' }}>
           {mcpJson}
         </pre>
+      </div>
+
+      <div style={{ fontSize: '0.72rem', color: '#6366f1', background: '#e0e7ff', borderRadius: '0.25rem', padding: '0.4rem 0.6rem' }}>
+        💡 设置环境变量后需<strong>重启 VS Code</strong>，之后 Chat 会话将自动无声连接 MCP 服务器
       </div>
     </div>
   );
