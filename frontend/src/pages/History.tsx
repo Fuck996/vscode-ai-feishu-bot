@@ -44,7 +44,8 @@ const History: React.FC = () => {
       });
       if (notificationsResponse.ok) {
         const notificationsData = await notificationsResponse.json();
-        setNotifications(Array.isArray(notificationsData) ? notificationsData : []);
+        const list = notificationsData.notifications || (Array.isArray(notificationsData) ? notificationsData : []);
+        setNotifications(list);
       }
 
       // 获取机器人列表
@@ -55,7 +56,7 @@ const History: React.FC = () => {
       });
       if (robotsResponse.ok) {
         const robotsData = await robotsResponse.json();
-        setRobots(Array.isArray(robotsData) ? robotsData : []);
+        setRobots(robotsData.data || (Array.isArray(robotsData) ? robotsData : []));
       }
     } catch (err) {
       console.error('Failed to fetch data:', err);
@@ -74,7 +75,7 @@ const History: React.FC = () => {
       case 'warning':
         return '⚠️ 警告';
       case 'info':
-        return '📝 汇报';
+        return 'ℹ️ 信息';
       default:
         return status;
     }
@@ -132,7 +133,7 @@ const History: React.FC = () => {
               <option value="success">✅ 成功</option>
               <option value="error">❌ 失败</option>
               <option value="warning">⚠️ 警告</option>
-              <option value="info">📝 汇报</option>
+              <option value="info">ℹ️ 信息</option>
             </select>
           </div>
 

@@ -121,7 +121,7 @@ const Dashboard: React.FC = () => {
       });
       if (robotsResponse.ok) {
         const robotsData = await robotsResponse.json();
-        robotsList = Array.isArray(robotsData) ? robotsData : robotsData.robots || [];
+        robotsList = robotsData.data || robotsData.robots || (Array.isArray(robotsData) ? robotsData : []);
         setRobots(robotsList);
       }
 
@@ -162,7 +162,7 @@ const Dashboard: React.FC = () => {
       case 'warning':
         return '⚠️ 警告';
       case 'info':
-        return '📝 汇报';
+        return 'ℹ️ 信息';
       default:
         return status;
     }
