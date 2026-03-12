@@ -471,7 +471,9 @@ router.post('/:integrationId', async (req: Request, res: Response) => {
   try {
     // 0. 检查是否为重复事件（去重）
     // GitHub workflow_run 会在 requested/in_progress/completed 多个阶段发送，需要分别去重
-    let eventSignature = `${integrationId}-${req.body.ref || req.body.installation?.id || req.headers['x-github-event'] || 'unknown'}-${req.headers['x-github-delivery'] || req.body.id || 'unknown'}`;
+    // 非 GitHub 平台（Synology 等）没有唯一事件 ID，使用请求体内容哈希作为签名
+    const bodyHashForDedup = crypto.createHash('md5').update(JSON.stringify(req.body)).digest('hex').substring(0, 10);
+    let eventSignature = `${integrationId}-${req.body.ref || req.body.installation?.id || req.headers['x-github-event'] || bodyHashForDedup}-${req.headers['x-github-delivery'] || req.body.id || bodyHashForDedup}`;
     
     // GitHub workflow_run 事件：基于 workflow_run.id + action 来唯一标识
     if (req.headers['x-github-event'] === 'workflow_run' && req.body.workflow_run?.id) {
