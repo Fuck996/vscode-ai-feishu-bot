@@ -49,7 +49,7 @@ async function fetchConfigFromBackend() {
   if (!WEBHOOK_ENDPOINT || !TRIGGER_TOKEN) {
     try {
       const response = await new Promise((resolve, reject) => {
-        const url = new URL('http://localhost:3001/api/mcp/config');
+        const url = new URL('http://localhost:3000/api/mcp/config');
         http.get(url, { timeout: 2000 }, (res) => {
           let data = '';
           res.on('data', chunk => data += chunk);
@@ -300,6 +300,8 @@ async function main() {
     process.stderr.write(`[飞书 MCP Server] 使用环境变量配置\n`);
   } else {
     process.stderr.write(`[飞书 MCP Server] 警告：未配置 WEBHOOK_ENDPOINT 或 TRIGGER_TOKEN\n`);
+    process.stderr.write(`[飞书 MCP Server] 提示：如使用 stdio 模式，请确保后端 (localhost:3000) 已启动以自动获取配置，或在启动参数中设置环境变量\n`);
+    process.stderr.write(`[飞书 MCP Server] 提示：如使用 SSE 模式（.vscode/mcp.json 配置远端 URL），无需设置上述环境变量，此警告可忽略\n`);
   }
 
   const transport = new StdioServerTransport();
