@@ -227,12 +227,12 @@ export default function Integrations() {
       const data = await res.json();
       if (res.ok && data.success) {
         setIntegrations(prev => prev.filter(i => i.id !== integration.id));
-        showMessage('✅ 集成已删除');
+        toastService.success(`🗑️ 集成 "${integration.projectName}" 已删除`);
       } else {
-        showMessage(`❌ 删除失败: ${data.error || '未知错误'}`);
+        toastService.error(`删除失败: ${data.error || '未知错误'}`);
       }
     } catch {
-      showMessage('❌ 网络错误');
+      toastService.error('网络错误，请稍后重试');
     }
   };
 
@@ -300,16 +300,17 @@ export default function Integrations() {
           setIntegrations(prev => [...prev, data.data]);
           setModalOpen(false);
           setCreatedInfo(data.data); // 显示 Webhook 配置引导
+          toastService.success(`🎉 集成 "${formProjectName}" 创建成功`);
         } else {
           setIntegrations(prev => prev.map(i => i.id === editingId ? data.data : i));
-          showMessage('✅ 集成已更新');
+          toastService.success(`✅ 集成已更新`);
           setModalOpen(false);
         }
       } else {
-        showMessage(`❌ 操作失败: ${data.error || '未知错误'}`);
+        toastService.error(`操作失败: ${data.error || '未知错误'}`);
       }
     } catch {
-      showMessage('❌ 网络错误');
+      toastService.error('网络错误，请稍后重试');
     } finally {
       setSubmitting(false);
     }

@@ -53,7 +53,7 @@ class FeishuService {
   }
 
   /**
-   * 构建富文本消息
+   * 构建富文本消息（交互式卡片格式，带颜色主题）
    */
   private buildRichMessage(payload: NotificationPayload) {
     const statusEmoji = {
@@ -63,47 +63,60 @@ class FeishuService {
       info: 'ℹ️',
     };
 
+    const statusColors = {
+      success: 'green',
+      error: 'red',
+      warning: 'orange',
+      info: 'blue',
+    };
+
     const emoji = statusEmoji[payload.status] || 'ℹ️';
+    const color = statusColors[payload.status] || 'blue';
     const timestamp = payload.timestamp || new Date().toISOString();
 
     // 构建详情区域
     let detailsMarkdown = '';
     if (payload.details) {
-      detailsMarkdown = '\n\n**详细信息：**\n';
+      detailsMarkdown = '**详细信息：**\n';
       for (const [key, value] of Object.entries(payload.details)) {
         if (value !== null && value !== undefined) {
-          detailsMarkdown += `- ${key}: \`${value}\`\n`;
+          detailsMarkdown += `• ${key}: \`${value}\`\n`;
         }
       }
     }
 
-    const content = `${emoji} **${payload.title}**
-
-${payload.summary}${detailsMarkdown}
-
-*时间：${new Date(timestamp).toLocaleString('zh-CN')}*`;
+    const contentMarkdown = `${payload.summary}${detailsMarkdown ? '\n\n' + detailsMarkdown : ''}`;
 
     logger.info(
-      { title: payload.title, summaryLen: payload.summary.length },
+      { title: payload.title, summaryLen: payload.summary.length, status: payload.status },
       `构建富文本消息 [${emoji} ${payload.title}]`
     );
 
+    // 使用交互式卡片格式，支持颜色主题
     return {
-      msg_type: 'post',
-      content: {
-        post: {
-          zh_cn: {
-            title: `${emoji} ${payload.title}`,
-            content: [
-              [
-                {
-                  tag: 'text',
-                  text: content,
-                },
-              ],
+      msg_type: 'interactive',
+      card: {
+        config: { wide_screen_mode: true },
+        header: {
+          title: { tag: 'plain_text', content: `${emoji} ${payload.title}` },
+          template: color,
+        },
+        elements: [
+          {
+            tag: 'div',
+            text: { tag: 'lark_md', content: contentMarkdown },
+          },
+          { tag: 'hr' },
+          {
+            tag: 'note',
+            elements: [
+              {
+                tag: 'plain_text',
+                content: `⏰ ${new Date(timestamp).toLocaleString('zh-CN')}${payload.source ? ` | 来源: ${payload.source}` : ''}${payload.robotName ? ` | 机器人: ${payload.robotName}` : ''}`,
+              },
             ],
           },
-        },
+        ],
       },
     };
   }

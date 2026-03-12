@@ -15,6 +15,7 @@ import platformWebhookRouter from './routes/platform-webhook';
 import mcpConfigRouter from './routes/mcp-config';
 import mcpEndpointRouter from './routes/mcp-endpoint';
 import servicesRouter from './routes/services';
+import auditRouter from './routes/audit';
 import databaseService from './database';
 
 // 设置时区为北京时间
@@ -88,6 +89,7 @@ app.use('/api/robots', robotsRouter);
 app.use('/api/robots/:robotId/integrations', integrationsRouter);
 app.use('/api/users', usersRouter);
 app.use('/api/services', servicesRouter);
+app.use('/api/audit', auditRouter);
 app.use('/api/webhook', platformWebhookRouter);  // 平台 Webhook 接收
 app.use('/api/mcp', mcpEndpointRouter);  // MCP HTTP SSE 服务器（远端连接）
 app.use('/api/mcp', mcpConfigRouter);    // MCP 配置读取
@@ -96,7 +98,7 @@ app.use('/api', webhookRouter);
 // 版本端点
 app.get('/api/version', (req: Request, res: Response) => {
   res.json({
-    backend: '1.1.6',
+    backend: '1.3.0',
     name: 'Feishu AI Notification Service',
   });
 });
@@ -113,7 +115,7 @@ app.get('/api/health', (req: Request, res: Response) => {
 app.get('/api/status', (req: Request, res: Response) => {
   res.json({
     name: 'Feishu AI Notification Service',
-    version: '1.1.6',
+    version: '1.3.0',
     status: 'running',
     endpoints: {
       health: '/api/health',

@@ -53,11 +53,45 @@ const Dashboard: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
+  const [timeRange, setTimeRange] = useState<'today' | 'week' | 'month' | '7days' | '30days' | 'all'>('7days');
+  const [selectedNotification, setSelectedNotification] = useState<Notification | null>(null);
   const itemsPerPage = 10;
 
   useEffect(() => {
     fetchDashboardData();
-  }, []);
+  }, [timeRange]);
+
+  const getTimeRangeStartDate = (range: string): Date => {
+    const now = new Date();
+    switch (range) {
+      case 'today':
+        now.setHours(0, 0, 0, 0);
+        return now;
+      case 'week':
+        const weekAgo = new Date(now);
+        weekAgo.setDate(weekAgo.getDate() - 7);
+        weekAgo.setHours(0, 0, 0, 0);
+        return weekAgo;
+      case 'month':
+        const monthAgo = new Date(now);
+        monthAgo.setMonth(monthAgo.getMonth() - 1);
+        monthAgo.setHours(0, 0, 0, 0);
+        return monthAgo;
+      case '7days':
+        const sevenDaysAgo = new Date(now);
+        sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+        sevenDaysAgo.setHours(0, 0, 0, 0);
+        return sevenDaysAgo;
+      case '30days':
+        const thirtyDaysAgo = new Date(now);
+        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+        thirtyDaysAgo.setHours(0, 0, 0, 0);
+        return thirtyDaysAgo;
+      case 'all':
+      default:
+        return new Date(0);
+    }
+  };
 
   const calculateTodayStats = (notifications: Notification[]) => {
     const today = new Date();
@@ -95,6 +129,11 @@ const Dashboard: React.FC = () => {
     return { todayTotal, todaySuccess, todayFailed, todayWarning, todayInfo };
   };
 
+  const filterNotificationsByTimeRange = (notifications: Notification[]): Notification[] => {
+    const startDate = getTimeRangeStartDate(timeRange);
+    return notifications.filter(n => new Date(n.createdAt) >= startDate);
+  };
+
   const fetchDashboardData = async () => {
     try {
       setLoading(true);
@@ -110,6 +149,9 @@ const Dashboard: React.FC = () => {
         setNotifications(notificationsData);
       }
 
+      // 按时间范围过滤通知
+      const filteredNotifications = filterNotificationsByTimeRange(notificationsData);
+
       // 获取机器人列表
       let robotsList: Robot[] = [];
       const robotsResponse = await authService.fetchWithAuth('/api/robots');
@@ -119,12 +161,12 @@ const Dashboard: React.FC = () => {
         setRobots(robotsList);
       }
 
-      // 计算统计数据
-      const total = notificationsData.length;
-      const success = notificationsData.filter(n => n.status === 'success').length;
-      const failed = notificationsData.filter(n => n.status === 'error').length;
-      const warning = notificationsData.filter(n => n.status === 'warning').length;
-      const info = notificationsData.filter(n => n.status === 'info').length;
+      // 计算统计数据（基于过滤后的通知）
+      const total = filteredNotifications.length;
+      const success = filteredNotifications.filter(n => n.status === 'success').length;
+      const failed = filteredNotifications.filter(n => n.status === 'error').length;
+      const warning = filteredNotifications.filter(n => n.status === 'warning').length;
+      const info = filteredNotifications.filter(n => n.status === 'info').length;
       const activeRobots = robotsList.filter((r: Robot) => r.status === 'active').length;
 
       // 计算今天的数据
@@ -163,8 +205,37 @@ const Dashboard: React.FC = () => {
   };
 
   const openNotificationDetail = (notification: Notification) => {
-    alert(`通知详情\n\n标题: ${notification.title}\n状态: ${notification.status}\n来源: ${notification.source}\n消息: ${notification.message || 'N/A'}`);
+    setSelectedNotification(notification);
   };
+
+  const closeNotificationDetail = () => {
+    setSelectedNotification(null);
+  };
+
+  const getStatusColor = (status: string): string => {
+    switch (status) {
+      case 'success':
+        return '#10b981'; // 绿色
+      case 'error':
+        return '#ef4444'; // 红色
+      case 'warning':
+        return '#f59e0b'; // 黄色
+      case 'info':
+      default:
+        return '#3b82f6'; // 蓝色
+    }
+  };
+
+  const getStatusLabel = (status: string): string => {
+    switch (status) {
+      case 'success':
+        return '✅ 成功';
+      case 'error':
+        return '❌ 失败';
+      case 'warning':
+        return '⚠️ 警告';
+      case 'info':
+        return 'ℹ️ 信息';
 
   const testRobot = async (robotId: string) => {
     try {
@@ -275,9 +346,73 @@ const Dashboard: React.FC = () => {
   return (
     <div style={{ backgroundColor: '#f3f4f6', minHeight: '100vh', paddingBottom: '2rem' }}>
       <div style={{ maxWidth: '1400px', margin: '0 auto', padding: '2rem' }}>
-        <h1 style={{ fontSize: '1.875rem', fontWeight: 'bold', marginBottom: '2rem', color: '#1f2937' }}>
-          仪表板
-        </h1>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
+          <h1 style={{ fontSize: '1.875rem', fontWeight: 'bold', color: '#1f2937', margin: 0 }}>
+            仪表板
+          </h1>
+          <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+            <button
+              onClick={() => setTimeRange('today')}
+              style={{
+                padding: '0.5rem 1rem',
+                backgroundColor: timeRange === 'today' ? '#3b82f6' : '#e5e7eb',
+                color: timeRange === 'today' ? 'white' : '#374151',
+                border: 'none',
+                borderRadius: '0.375rem',
+                cursor: 'pointer',
+                fontSize: '0.875rem',
+                fontWeight: 500,
+              }}
+            >
+              今天
+            </button>
+            <button
+              onClick={() => setTimeRange('7days')}
+              style={{
+                padding: '0.5rem 1rem',
+                backgroundColor: timeRange === '7days' ? '#3b82f6' : '#e5e7eb',
+                color: timeRange === '7days' ? 'white' : '#374151',
+                border: 'none',
+                borderRadius: '0.375rem',
+                cursor: 'pointer',
+                fontSize: '0.875rem',
+                fontWeight: 500,
+              }}
+            >
+              最近7天
+            </button>
+            <button
+              onClick={() => setTimeRange('month')}
+              style={{
+                padding: '0.5rem 1rem',
+                backgroundColor: timeRange === 'month' ? '#3b82f6' : '#e5e7eb',
+                color: timeRange === 'month' ? 'white' : '#374151',
+                border: 'none',
+                borderRadius: '0.375rem',
+                cursor: 'pointer',
+                fontSize: '0.875rem',
+                fontWeight: 500,
+              }}
+            >
+              本月
+            </button>
+            <button
+              onClick={() => setTimeRange('all')}
+              style={{
+                padding: '0.5rem 1rem',
+                backgroundColor: timeRange === 'all' ? '#3b82f6' : '#e5e7eb',
+                color: timeRange === 'all' ? 'white' : '#374151',
+                border: 'none',
+                borderRadius: '0.375rem',
+                cursor: 'pointer',
+                fontSize: '0.875rem',
+                fontWeight: 500,
+              }}
+            >
+              全部
+            </button>
+          </div>
+        </div>
 
         {error && (
           <div style={{ backgroundColor: '#fee2e2', color: '#dc2626', padding: '1rem', borderRadius: '0.5rem', marginBottom: '2rem' }}>
@@ -556,6 +691,124 @@ const Dashboard: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* 通知详情模态框 - 飞书卡片风格 */}
+      {selectedNotification && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(0, 0, 0, 0.5)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 1000
+        }} onClick={closeNotificationDetail}>
+          <div style={{
+            backgroundColor: 'white',
+            borderRadius: '0.75rem',
+            boxShadow: '0 10px 40px rgba(0, 0, 0, 0.2)',
+            maxWidth: '600px',
+            width: '90%',
+            maxHeight: '80vh',
+            overflow: 'hidden',
+            display: 'flex',
+            flexDirection: 'column'
+          }} onClick={(e) => e.stopPropagation()}>
+            {/* 模态框头部 - 飞书卡片风格 */}
+            <div style={{
+              backgroundColor: getStatusColor(selectedNotification.status),
+              padding: '1.5rem',
+              color: 'white',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.75rem'
+            }}>
+              <span style={{ fontSize: '1.5rem' }}>
+                {getStatusLabel(selectedNotification.status)[0]}
+              </span>
+              <div style={{ flex: 1 }}>
+                <h2 style={{ margin: 0, fontSize: '1.125rem', fontWeight: 'bold' }}>
+                  {selectedNotification.title}
+                </h2>
+                <p style={{ margin: '0.25rem 0 0 0', fontSize: '0.875rem', opacity: 0.9 }}>
+                  {getStatusLabel(selectedNotification.status)}
+                </p>
+              </div>
+            </div>
+
+            {/* 模态框内容区 */}
+            <div style={{
+              padding: '1.5rem',
+              flex: 1,
+              overflowY: 'auto'
+            }}>
+              {/* 基本信息 */}
+              <div style={{ marginBottom: '1.5rem' }}>
+                <div style={{ marginBottom: '1rem' }}>
+                  <label style={{ fontSize: '0.75rem', color: '#6b7280', fontWeight: 600, display: 'block', marginBottom: '0.25rem' }}>
+                    来源
+                  </label>
+                  <p style={{ margin: 0, fontSize: '0.875rem', color: '#374151' }}>
+                    {selectedNotification.source || '未指定'}
+                  </p>
+                </div>
+              </div>
+
+              {/* 主要内容 */}
+              <div style={{ marginBottom: '1.5rem' }}>
+                <label style={{ fontSize: '0.75rem', color: '#6b7280', fontWeight: 600, display: 'block', marginBottom: '0.5rem' }}>
+                  详细内容
+                </label>
+                <div style={{
+                  fontSize: '0.875rem',
+                  color: '#374151',
+                  lineHeight: '1.6',
+                  whiteSpace: 'pre-wrap',
+                  wordBreak: 'break-word',
+                  backgroundColor: '#f9fafb',
+                  padding: '0.75rem',
+                  borderRadius: '0.375rem',
+                  border: '1px solid #e5e7eb'
+                }}>
+                  {selectedNotification.message || selectedNotification.title || '暂无内容'}
+                </div>
+              </div>
+            </div>
+
+            {/* 模态框底部 - 飞书风格时间戳 */}
+            <div style={{
+              padding: '1rem 1.5rem',
+              borderTop: '1px solid #e5e7eb',
+              backgroundColor: '#f9fafb',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center'
+            }}>
+              <span style={{ fontSize: '0.75rem', color: '#6b7280' }}>
+                🕐 {new Date(selectedNotification.createdAt || '').toLocaleString('zh-CN')}
+              </span>
+              <button
+                onClick={closeNotificationDetail}
+                style={{
+                  padding: '0.5rem 1rem',
+                  backgroundColor: '#3b82f6',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '0.375rem',
+                  cursor: 'pointer',
+                  fontSize: '0.875rem',
+                  fontWeight: 500
+                }}
+              >
+                关闭
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

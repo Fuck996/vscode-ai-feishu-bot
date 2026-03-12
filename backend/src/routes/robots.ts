@@ -289,6 +289,8 @@ router.post('/:robotId/test', verifyToken, async (req: Request, res: Response) =
         summary: '发送了测试通知',
         status: 'success',
         action: 'test_notification',
+        source: '系统测试',
+        robotName: robot.name,
       });
 
       res.json({

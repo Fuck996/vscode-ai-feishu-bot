@@ -392,7 +392,7 @@ export default function Robots() {
                       fontSize: '0.875rem',
                       color: '#6b7280',
                       borderBottom: '1px solid #e5e7eb',
-                      width: '20%',
+                      width: '18%',
                     }}>
                       机器人名称
                     </th>
@@ -403,7 +403,7 @@ export default function Robots() {
                       fontSize: '0.875rem',
                       color: '#6b7280',
                       borderBottom: '1px solid #e5e7eb',
-                      width: '20%',
+                      width: '15%',
                     }}>
                       App ID
                     </th>
@@ -425,7 +425,7 @@ export default function Robots() {
                       fontSize: '0.875rem',
                       color: '#6b7280',
                       borderBottom: '1px solid #e5e7eb',
-                      width: '13%',
+                      width: '12%',
                     }}>
                       创建时间
                     </th>
@@ -436,7 +436,7 @@ export default function Robots() {
                       fontSize: '0.875rem',
                       color: '#6b7280',
                       borderBottom: '1px solid #e5e7eb',
-                      width: '12%',
+                      width: '10%',
                     }}>
                       消息数
                     </th>
@@ -447,7 +447,18 @@ export default function Robots() {
                       fontSize: '0.875rem',
                       color: '#6b7280',
                       borderBottom: '1px solid #e5e7eb',
-                      width: '13%',
+                      width: '18%',
+                    }}>
+                      最后消息时间
+                    </th>
+                    <th style={{
+                      padding: '0.75rem',
+                      textAlign: 'left',
+                      fontWeight: 600,
+                      fontSize: '0.875rem',
+                      color: '#6b7280',
+                      borderBottom: '1px solid #e5e7eb',
+                      width: '10%',
                     }}>
                       操作
                     </th>
@@ -507,79 +518,31 @@ export default function Robots() {
                       <td style={{ padding: '0.75rem', fontSize: '0.875rem', color: '#374151' }}>
                         {robot.messageCount || 0}条
                       </td>
+                      <td style={{ padding: '0.75rem', fontSize: '0.875rem', color: '#374151' }}>
+                        {robot.lastMessageAt
+                          ? new Date(robot.lastMessageAt).toLocaleString('zh-CN')
+                          : '暂无消息'
+                        }
+                      </td>
                       <td style={{ padding: '0.75rem', fontSize: '0.875rem' }}>
-                        <div style={{ display: 'flex', gap: '0.5rem' }}>
-                          <button
-                            onClick={() => handleTestRobot(robot.id)}
-                            disabled={testingRobotId === robot.id || robot.status !== 'active'}
-                            style={{
-                              padding: '0.375rem 0.75rem',
-                              backgroundColor: '#3b82f6',
-                              color: 'white',
-                              border: 'none',
-                              borderRadius: '0.25rem',
-                              cursor: testingRobotId === robot.id || robot.status !== 'active' ? 'not-allowed' : 'pointer',
-                              transition: 'background-color 0.2s',
-                              opacity: testingRobotId === robot.id || robot.status !== 'active' ? 0.5 : 1,
-                              whiteSpace: 'nowrap',
-                            }}
-                            title="测试连接"
-                          >
-                            {testingRobotId === robot.id ? '测试中...' : '测试'}
-                          </button>
-                          <button
-                            onClick={() => navigate(`/robots/${robot.id}/integrations`)}
-                            style={{
-                              padding: '0.375rem 0.75rem',
-                              backgroundColor: '#a855f7',
-                              color: 'white',
-                              border: 'none',
-                              borderRadius: '0.25rem',
-                              cursor: 'pointer',
-                              transition: 'background-color 0.2s',
-                              whiteSpace: 'nowrap',
-                            }}
-                            onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#9333ea')}
-                            onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = '#a855f7')}
-                            title="管理集成"
-                          >
-                            🔗 集成
-                          </button>
-                          <button
-                            onClick={() => handleOpenEditModal(robot)}
-                            style={{
-                              padding: '0.375rem 0.75rem',
-                              backgroundColor: '#e5e7eb',
-                              color: '#374151',
-                              border: 'none',
-                              borderRadius: '0.25rem',
-                              cursor: 'pointer',
-                              transition: 'background-color 0.2s',
-                              whiteSpace: 'nowrap',
-                            }}
-                            onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#d1d5db')}
-                            onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = '#e5e7eb')}
-                            title="编辑"
-                          >
-                            编辑
-                          </button>
-                          <button
-                            onClick={() => handleDeleteRobot(robot.id)}
-                            style={{
-                              padding: '0.375rem 0.75rem',
-                              backgroundColor: '#f3f4f6',
-                              color: '#ef4444',
-                              border: 'none',
-                              borderRadius: '0.25rem',
-                              cursor: 'pointer',
-                              transition: 'background-color 0.2s',
-                              whiteSpace: 'nowrap',
-                            }}
-                            title="删除"
-                          >
-                            删除
-                          </button>
-                        </div>
+                        <button
+                          onClick={() => navigate(`/robots/${robot.id}/integrations`)}
+                          style={{
+                            padding: '0.375rem 0.75rem',
+                            backgroundColor: '#a855f7',
+                            color: 'white',
+                            border: 'none',
+                            borderRadius: '0.25rem',
+                            cursor: 'pointer',
+                            transition: 'background-color 0.2s',
+                            whiteSpace: 'nowrap',
+                          }}
+                          onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#9333ea')}
+                          onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = '#a855f7')}
+                          title="管理集成"
+                        >
+                          🔗 集成
+                        </button>
                       </td>
                     </tr>
                   ))}

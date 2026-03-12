@@ -26,6 +26,7 @@ const History: React.FC = () => {
   const [filterStatus, setFilterStatus] = useState('');
   const [filterRobot, setFilterRobot] = useState('');
   const [filterSource, setFilterSource] = useState('');
+  const [selectedNotification, setSelectedNotification] = useState<Notification | null>(null);
   const itemsPerPage = 10;
 
   useEffect(() => {
@@ -77,6 +78,42 @@ const History: React.FC = () => {
   const getUniqueSources = (): string[] => {
     const sources = new Set(notifications.map(n => n.source));
     return Array.from(sources);
+  };
+
+  const showNotificationDetail = (notification: Notification) => {
+    setSelectedNotification(notification);
+  };
+
+  const closeNotificationDetail = () => {
+    setSelectedNotification(null);
+  };
+
+  const getStatusColor = (status: string): string => {
+    switch (status) {
+      case 'success':
+        return '#52c41a'; // 绿色
+      case 'error':
+        return '#ff4d4f'; // 红色
+      case 'warning':
+        return '#faad14'; // 黄色
+      case 'info':
+      default:
+        return '#1890ff'; // 蓝色
+    }
+  };
+
+  const getStatusIcon = (status: string): string => {
+    switch (status) {
+      case 'success':
+        return '✅';
+      case 'error':
+        return '❌';
+      case 'warning':
+        return '⚠️';
+      case 'info':
+      default:
+        return 'ℹ️';
+    }
   };
 
   const filteredNotifications = notifications.filter(n => {
@@ -252,6 +289,7 @@ const History: React.FC = () => {
                       <td style={{ padding: '0.75rem', fontSize: '0.875rem', color: '#374151' }}>{notification.source}</td>
                       <td style={{ padding: '0.75rem', fontSize: '0.875rem' }}>
                         <button
+                          onClick={() => showNotificationDetail(notification)}
                           style={{
                             padding: '0.375rem 0.75rem',
                             backgroundColor: '#3b82f6',
@@ -263,7 +301,7 @@ const History: React.FC = () => {
                             whiteSpace: 'nowrap',
                           }}
                         >
-                          详情
+                          查看
                         </button>
                       </td>
                     </tr>
@@ -329,6 +367,132 @@ const History: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* 通知详情模态框 - 飞书卡片风格 */}
+      {selectedNotification && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(0, 0, 0, 0.5)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 1000
+        }} onClick={closeNotificationDetail}>
+          <div style={{
+            backgroundColor: 'white',
+            borderRadius: '0.75rem',
+            boxShadow: '0 10px 40px rgba(0, 0, 0, 0.2)',
+            maxWidth: '600px',
+            width: '90%',
+            maxHeight: '80vh',
+            overflow: 'hidden',
+            display: 'flex',
+            flexDirection: 'column'
+          }} onClick={(e) => e.stopPropagation()}>
+            {/* 模态框头部 - 飞书卡片风格 */}
+            <div style={{
+              backgroundColor: getStatusColor(selectedNotification.status),
+              padding: '1.5rem',
+              color: 'white',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.75rem'
+            }}>
+              <span style={{ fontSize: '1.5rem' }}>
+                {getStatusIcon(selectedNotification.status)}
+              </span>
+              <div style={{ flex: 1 }}>
+                <h2 style={{ margin: 0, fontSize: '1.125rem', fontWeight: 'bold' }}>
+                  {selectedNotification.title}
+                </h2>
+                <p style={{ margin: '0.25rem 0 0 0', fontSize: '0.875rem', opacity: 0.9 }}>
+                  {getStatusLabel(selectedNotification.status)}
+                </p>
+              </div>
+            </div>
+
+            {/* 模态框内容区 */}
+            <div style={{
+              padding: '1.5rem',
+              flex: 1,
+              overflowY: 'auto'
+            }}>
+              {/* 基本信息 */}
+              <div style={{ marginBottom: '1.5rem' }}>
+                <div style={{ marginBottom: '1rem' }}>
+                  <label style={{ fontSize: '0.75rem', color: '#6b7280', fontWeight: 600, display: 'block', marginBottom: '0.25rem' }}>
+                    机器人
+                  </label>
+                  <p style={{ margin: 0, fontSize: '0.875rem', color: '#374151' }}>
+                    {selectedNotification.robotName || '未指定'}
+                  </p>
+                </div>
+                <div style={{ marginBottom: '1rem' }}>
+                  <label style={{ fontSize: '0.75rem', color: '#6b7280', fontWeight: 600, display: 'block', marginBottom: '0.25rem' }}>
+                    来源
+                  </label>
+                  <p style={{ margin: 0, fontSize: '0.875rem', color: '#374151' }}>
+                    {selectedNotification.source || '未指定'}
+                  </p>
+                </div>
+              </div>
+
+              {/* 主要内容 */}
+              <div style={{ marginBottom: '1.5rem' }}>
+                <label style={{ fontSize: '0.75rem', color: '#6b7280', fontWeight: 600, display: 'block', marginBottom: '0.5rem' }}>
+                  详细内容
+                </label>
+                <div style={{
+                  fontSize: '0.875rem',
+                  color: '#374151',
+                  lineHeight: '1.6',
+                  whiteSpace: 'pre-wrap',
+                  wordBreak: 'break-word',
+                  backgroundColor: '#f9fafb',
+                  padding: '0.75rem',
+                  borderRadius: '0.375rem',
+                  border: '1px solid #e5e7eb'
+                }}>
+                  {selectedNotification.summary || selectedNotification.message || '暂无内容'}
+                </div>
+              </div>
+            </div>
+
+            {/* 模态框底部 - 飞书风格时间戳 */}
+            <div style={{
+              padding: '1rem 1.5rem',
+              borderTop: '1px solid #e5e7eb',
+              backgroundColor: '#f9fafb',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center'
+            }}>
+              <span style={{ fontSize: '0.75rem', color: '#6b7280' }}>
+                🕐 {new Date(selectedNotification.createdAt).toLocaleString('zh-CN')}
+              </span>
+              <button
+                onClick={closeNotificationDetail}
+                style={{
+                  padding: '0.5rem 1rem',
+                  backgroundColor: '#3b82f6',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '0.375rem',
+                  cursor: 'pointer',
+                  fontSize: '0.875rem',
+                  fontWeight: 500
+                }}
+              >
+                关闭
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

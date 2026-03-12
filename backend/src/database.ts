@@ -57,12 +57,28 @@ export interface Notification {
   createdAt?: string;
 }
 
+export interface AuditLog {
+  id?: string;
+  userId: string;
+  username: string;
+  action: string;
+  description: string;
+  resourceType: 'user' | 'robot' | 'integration' | 'notification' | 'system';
+  resourceId?: string;
+  changes?: Record<string, any>;
+  ipAddress?: string;
+  userAgent?: string;
+  status: 'success' | 'failure';
+  createdAt?: string;
+}
+
 class DatabaseService {
   private dbPath: string;
   private notifications: (Notification & { id: number; createdAt: string })[] = [];
   private users: User[] = [];
   private robots: Robot[] = [];
   private integrations: Integration[] = [];
+  private auditLogs: AuditLog[] = [];
   private nextId: number = 1;
 
   constructor() {
@@ -86,6 +102,7 @@ class DatabaseService {
         this.users = parsed.users || [];
         this.robots = parsed.robots || [];
         this.integrations = parsed.integrations || [];
+        this.auditLogs = parsed.auditLogs || [];
         this.nextId = parsed.nextId || 1;
         
         // 找到最大的ID
@@ -161,6 +178,7 @@ class DatabaseService {
       robots: this.robots,
       integrations: this.integrations,
       notifications: this.notifications,
+      auditLogs: this.auditLogs,
       nextId: this.nextId,
       lastUpdated: new Date().toISOString(),
     };
@@ -379,6 +397,51 @@ class DatabaseService {
     // 简化版本 - 在开发模式下，任何key都被接受
     // 在生产环境中，应该验证真实的API key
     return !!(key && key.length > 0);
+  }
+
+  // ===== AuditLog 相关操作 =====
+
+  async createAuditLog(log: Omit<AuditLog, 'id' | 'createdAt'>): Promise<AuditLog> {
+    const newLog: AuditLog = {
+      ...log,
+      id: crypto.randomUUID(),
+      createdAt: new Date().toISOString(),
+    };
+    
+    this.auditLogs.push(newLog);
+    await this.saveToFile();
+    return newLog;
+  }
+
+  async getAuditLogs(limit: number = 50, offset: number = 0): Promise<AuditLog[]> {
+    const results = [...this.auditLogs];
+    
+    // 按创建时间倒序排列
+    results.sort((a, b) => 
+      new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime()
+    );
+    
+    return results.slice(offset, offset + limit);
+  }
+
+  async getAuditLogsByUser(userId: string, limit: number = 50, offset: number = 0): Promise<AuditLog[]> {
+    const results = this.auditLogs.filter(log => log.userId === userId);
+    
+    results.sort((a, b) => 
+      new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime()
+    );
+    
+    return results.slice(offset, offset + limit);
+  }
+
+  async getAuditLogsByType(resourceType: string, limit: number = 50, offset: number = 0): Promise<AuditLog[]> {
+    const results = this.auditLogs.filter(log => log.resourceType === resourceType);
+    
+    results.sort((a, b) => 
+      new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime()
+    );
+    
+    return results.slice(offset, offset + limit);
   }
 
   async close(): Promise<void> {
