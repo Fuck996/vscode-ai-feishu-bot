@@ -32,6 +32,9 @@ if (typeof global !== 'undefined') {
 }
 
 const app: Express = express();
+// 信任反向代理（nginx/Docker），使速率限制器使用真实客户端 IP
+// 若不设置，nginx 后面所有请求都视为同一 IP，共享速率限额
+app.set('trust proxy', 1);
 
 // 临时调试中间件：记录所有 /api 请求的基本信息（路径、方法、部分头部）
 // 用于排查外网请求是否到达后端（上线后请移除或禁用）
@@ -67,12 +70,17 @@ app.use(
 );
 
 // 速率限制（开发环境下禁用）
+// 排除 MCP 端点：SSE 连接是长连接且已有 Token 认证保护，不应被 IP 速率限制干扰
+// 若不排除，VS Code 每次连接消耗 2 次配额（POST 405 + GET），重连多次后触发 429
+// 429 响应含 Retry-After: 900，VS Code MCP 客户端将等待 15 分钟后重试
 const limiter = config.nodeEnv === 'production' ? rateLimit({
   windowMs: 15 * 60 * 1000, // 15 分钟
   max: 100, // 限制每个 IP 100 个请求
   message: { success: false, error: '请求过于频繁，请15分钟后再试' },
   standardHeaders: true,
   legacyHeaders: false,
+  // 跳过 MCP 路由：/api/mcp/sse、/api/mcp/message、/api/mcp/config
+  skip: (req: Request) => req.originalUrl.startsWith('/api/mcp'),
 }) : (req: Request, res: Response, next: NextFunction) => next();
 
 app.use('/api/', limiter);
