@@ -233,19 +233,34 @@ function normalizeGitLab(headers: Record<string, any>, body: Record<string, any>
  * 事件识别基于关键词匹配，覆盖：存储空间不足、硬盘异常/故障、容器意外停止、安全风险、恶意软件、备份任务。
  */
 function normalizeSynology(body: Record<string, any>): NormalizedEvent {
-  // 群晖 DSM webhook 的实际请求体格式：
-  //   "Synology Chat Webhook" 原生格式：{"text": "存储空间 1 快达到容量上限..."}
-  //   自定义 HTTP 通知格式（需用户在 Body 模板中配置 %SUBJECT%）：{"subject": "..."}
-  //   兼容 form-encoded 及其他字段名
+  // 群晖 DSM webhook 两种常见格式：
+  //   1. 通知服务 → Synology Chat 类型（form-urlencoded）：payload={"text":"事件描述"}
+  //   2. 通知服务 → HTTP 类型（JSON）：{"subject":"%SUBJECT%","hostname":"%HOSTNAME%",...}
+  //      或简化 JSON：{"text":"事件描述"}
+  //   两种格式都需要兼容
+
+  // 情况 1：form-encoded payload 字段（Synology Chat Webhook 发送）
+  let parsedPayload: Record<string, any> = {};
+  if (body.payload && typeof body.payload === 'string') {
+    try {
+      parsedPayload = JSON.parse(body.payload);
+    } catch (_e) {
+      // 解析失败，忽略
+    }
+  }
+
   const subject = String(
     body.subject || body.Subject || body.title || body.Title ||
-    body.text    || body.Text    || body.msg   || body.message || ''
+    body.text    || body.Text    || body.msg   || body.message ||
+    parsedPayload.text || parsedPayload.subject || parsedPayload.title || ''
   ).trim();
   const description = String(
-    body.description || body.Description || body.body || body.Body || body.content || ''
+    body.description || body.Description || body.body || body.Body || body.content ||
+    parsedPayload.description || ''
   ).trim();
   const hostname = String(
-    body.hostname || body.Hostname || body.host || body.nas_name || 'NAS'
+    body.hostname || body.Hostname || body.host || body.nas_name ||
+    parsedPayload.hostname || 'NAS'
   ).trim();
 
   const text = `${subject} ${description}`.toLowerCase();
@@ -589,13 +604,22 @@ router.post('/:integrationId', async (req: Request, res: Response) => {
       `准备发送飞书卡片 [标题="${normalized.title}"]`
     );
     
-    await axios.post(robot.webhookUrl, card, {
-      headers: {
-        'Content-Type': 'application/json; charset=utf-8',
-      },
-    });
-
-    addLog('info', 'Webhook 接收', `飞书通知已发送 [${integration.projectType}] ${normalized.title} [项目: ${finalProjectName}]`);
+    // 发送飞书通知（内部错误不向 webhook 发送方返回 500，以免外部平台报错）
+    try {
+      await axios.post(robot.webhookUrl, card, {
+        headers: {
+          'Content-Type': 'application/json; charset=utf-8',
+        },
+      });
+      addLog('info', 'Webhook 接收', `飞书通知已发送 [${integration.projectType}] ${normalized.title} [项目: ${finalProjectName}]`);
+    } catch (feishuError) {
+      logger.error('飞书消息发送失败（Webhook 已正常接收）', { platform, integrationId, error: feishuError });
+      addLog('error', 'Webhook 接收', `飞书发送失败 [${integration.projectType}] ${normalized.title}: ${(feishuError as Error).message || '未知错误'}`);
+      // 仍然返回 200：webhook 已收到，飞书发送失败属于内部问题；
+      // 避免外部平台（如群晖 DSM）因收到非 200 响应而显示 "无法发送通知" 错误
+      res.json({ success: true, message: '事件已接收，但飞书推送失败，请检查机器人 Webhook 地址' });
+      return;
+    }
 
     // 7. 保存通知记录
     const dbStatus = normalized.status === 'failure' ? 'error' : normalized.status === 'success' ? 'success' : 'info';

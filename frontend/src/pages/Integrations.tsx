@@ -486,7 +486,7 @@ export default function Integrations() {
                               >
                                 {copiedUrlId === integration.id + '_url' ? '✓ URL' : '📋 URL'}
                               </button>
-                              {integration.webhookSecret && (
+                              {integration.webhookSecret && integration.projectType !== 'synology' && (
                                 <button
                                   onClick={() => copyText(integration.webhookSecret!, integration.id + '_token', setCopiedTokenId, 'Secret Token')}
                                   style={{ ...btnSecondary, background: copiedTokenId === integration.id + '_token' ? '#d1fae5' : undefined, color: copiedTokenId === integration.id + '_token' ? '#065f46' : undefined }}
@@ -815,7 +815,11 @@ function IntegrationModal({
           </div>
           {platformConfigSection()}
           <div style={{ background: '#fef9c3', border: '1px solid #fde68a', borderRadius: '0.375rem', padding: '0.75rem', fontSize: '0.78rem', color: '#713f12' }}>
-            🔑 点击「创建集成」后，系统会自动生成 <strong>Webhook 地址</strong>和 <strong>Secret</strong>，请将它们填入对应平台。
+            {selectedType === 'synology' ? (
+              <>🔗 点击「创建集成」后，系统会自动生成 <strong>Webhook 地址</strong>，将其填入群晖 DSM 通知服务配置中即可（无需 Secret）。</>
+            ) : (
+              <>🔑 点击「创建集成」后，系统会自动生成 <strong>Webhook 地址</strong>和 <strong>Secret</strong>，请将它们填入对应平台。</>
+            )}
           </div>
         </div>
       );
