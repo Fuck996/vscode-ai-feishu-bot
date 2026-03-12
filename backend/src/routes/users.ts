@@ -98,12 +98,33 @@ router.post('/change-password', authMiddleware, async (req: Request, res: Respon
 
     const isValid = await database.verifyPassword(currentPassword, user.passwordHash);
     if (!isValid) {
+      // 记录审计日志 - 密码修改失败
+      await database.createAuditLog({
+        userId: userId,
+        username: user.username,
+        action: 'change_password',
+        resourceType: 'user',
+        resourceId: userId,
+        description: `修改密码失败 - 当前密码不正确`,
+        status: 'failure',
+      });
       return res.status(401).json({ success: false, error: '当前密码不正确' });
     }
 
     // 正确哈希密码后再存储
     const newHash = crypto.createHash('sha256').update(newPassword).digest('hex');
     await database.updateUserPassword(userId, newHash);
+
+    // 记录审计日志 - 密码修改成功
+    await database.createAuditLog({
+      userId: userId,
+      username: user.username,
+      action: 'change_password',
+      resourceType: 'user',
+      resourceId: userId,
+      description: `修改密码成功`,
+      status: 'success',
+    });
 
     res.json({ success: true, message: '密码已成功修改' });
   } catch (error) {
@@ -144,6 +165,7 @@ router.post('/', authMiddleware, async (req: Request, res: Response) => {
   try {
     if (!(await requireAdmin(req, res))) return;
     const { username, password, role, nickname } = req.body;
+    const adminUserId = (req as any).userId;
 
     if (!username || !password) {
       return res.status(400).json({ success: false, error: '用户名和密码为必需' });
@@ -156,6 +178,19 @@ router.post('/', authMiddleware, async (req: Request, res: Response) => {
     }
 
     const newUser = await database.createUser({ username, password, role: role as 'admin' | 'user', nickname });
+    
+    // 记录审计日志
+    const admin = await database.getUserById(adminUserId);
+    await database.createAuditLog({
+      userId: adminUserId,
+      username: admin?.username || 'unknown',
+      action: 'create',
+      resourceType: 'user',
+      resourceId: newUser.id,
+      description: `创建新用户 '${username}' [角色: ${role}, 昵称: ${nickname || '(无)'}]`,
+      status: 'success',
+    });
+    
     res.status(201).json({ success: true, data: newUser });
   } catch (error: any) {
     if (error.message === '用户名已存在') {
@@ -182,7 +217,26 @@ router.put('/:userId', authMiddleware, async (req: Request, res: Response) => {
     }
 
     const { role, status, nickname } = req.body;
+    const targetUser = await database.getUserById(userId);
+    const admin = await database.getUserById(currentAdminId);
     await database.updateUserByAdmin(userId, { role, status, nickname });
+    
+    // 记录审计日志
+    const changes: string[] = [];
+    if (role) changes.push(`角色: ${role}`);
+    if (status) changes.push(`状态: ${status}`);
+    if (nickname !== undefined) changes.push(`昵称: ${nickname || '(清除)'}`);
+    
+    await database.createAuditLog({
+      userId: currentAdminId,
+      username: admin?.username || 'unknown',
+      action: 'update',
+      resourceType: 'user',
+      resourceId: userId,
+      description: `更新用户 '${targetUser?.username || userId}' [${changes.join(', ') || '无更改'}]`,
+      status: 'success',
+    });
+    
     res.json({ success: true, message: '用户已更新' });
   } catch (error) {
     console.error('更新用户错误:', error);
@@ -204,7 +258,21 @@ router.delete('/:userId', authMiddleware, async (req: Request, res: Response) =>
       return res.status(400).json({ success: false, error: '不能删除自己的账号' });
     }
 
+    const targetUser = await database.getUserById(userId);
+    const admin = await database.getUserById(currentAdminId);
     await database.deleteUser(userId);
+    
+    // 记录审计日志
+    await database.createAuditLog({
+      userId: currentAdminId,
+      username: admin?.username || 'unknown',
+      action: 'delete',
+      resourceType: 'user',
+      resourceId: userId,
+      description: `删除用户 '${targetUser?.username || userId}'`,
+      status: 'success',
+    });
+    
     res.json({ success: true, message: '用户已删除' });
   } catch (error) {
     console.error('删除用户错误:', error);

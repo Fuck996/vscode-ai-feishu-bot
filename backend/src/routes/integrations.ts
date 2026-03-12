@@ -64,6 +64,7 @@ router.get('/', verifyToken, checkRobotOwner, async (req: Request, res: Response
 router.post('/', verifyToken, checkRobotOwner, async (req: Request, res: Response) => {
   try {
     const { robotId } = req.params;
+    const userId = (req as any).user.userId;
     const { projectName, projectSubName, projectType, config, triggeredEvents, notifyOn, messageTemplate } = req.body;
 
     if (!projectName || !projectType) {
@@ -80,6 +81,7 @@ router.post('/', verifyToken, checkRobotOwner, async (req: Request, res: Respons
       return res.status(400).json({ success: false, error: `通知时机必须为以下之一: ${validNotifyOn.join(', ')}` });
     }
 
+    const robot = (req as any).robot;
     const integration = await database.createIntegration({
       robotId,
       projectName,
@@ -90,6 +92,18 @@ router.post('/', verifyToken, checkRobotOwner, async (req: Request, res: Respons
       notifyOn: notifyOn || 'always',
       messageTemplate: messageTemplate || '',
       status: 'active',
+    });
+
+    // 记录审计日志
+    const user = await database.getUserById(userId);
+    await database.createAuditLog({
+      userId: userId,
+      username: user?.username || 'unknown',
+      action: 'create',
+      resourceType: 'integration',
+      resourceId: integration.id,
+      description: `创建集成 '${projectName}' [类型: ${projectType}, 事件: ${triggeredEvents.length || 0}个]`,
+      status: 'success',
     });
 
     res.status(201).json({ success: true, data: integration });
@@ -126,6 +140,7 @@ router.get('/:integrationId', verifyToken, checkRobotOwner, async (req: Request,
 router.put('/:integrationId', verifyToken, checkRobotOwner, async (req: Request, res: Response) => {
   try {
     const { integrationId } = req.params;
+    const userId = (req as any).user.userId;
     const existingIntegration = await database.getIntegrationById(integrationId);
 
     if (!existingIntegration) {
@@ -143,6 +158,25 @@ router.put('/:integrationId', verifyToken, checkRobotOwner, async (req: Request,
       ...(messageTemplate !== undefined && { messageTemplate }),
     });
 
+    // 记录审计日志
+    const user = await database.getUserById(userId);
+    const changes: string[] = [];
+    if (projectName !== undefined) changes.push(`项目名称: ${projectName}`);
+    if (projectSubName !== undefined) changes.push(`子项目名: ${projectSubName || '(清除)'}`);
+    if (triggeredEvents !== undefined) changes.push(`事件: ${triggeredEvents.length}个`);
+    if (notifyOn !== undefined) changes.push(`通知时机: ${notifyOn}`);
+    if (messageTemplate !== undefined) changes.push(`消息模板已更新`);
+
+    await database.createAuditLog({
+      userId: userId,
+      username: user?.username || 'unknown',
+      action: 'update',
+      resourceType: 'integration',
+      resourceId: integrationId,
+      description: `更新集成 '${existingIntegration.projectName}' [${changes.join(', ') || '无更改'}]`,
+      status: 'success',
+    });
+
     res.json({ success: true, data: updatedIntegration });
   } catch (error) {
     console.error('更新集成错误:', error);
@@ -157,6 +191,7 @@ router.put('/:integrationId', verifyToken, checkRobotOwner, async (req: Request,
 router.patch('/:integrationId/status', verifyToken, checkRobotOwner, async (req: Request, res: Response) => {
   try {
     const { integrationId } = req.params;
+    const userId = (req as any).user.userId;
     const { status } = req.body;
 
     if (!status || !['active', 'inactive'].includes(status)) {
@@ -169,6 +204,19 @@ router.patch('/:integrationId/status', verifyToken, checkRobotOwner, async (req:
     }
 
     const updatedIntegration = await database.updateIntegration(integrationId, { status });
+    
+    // 记录审计日志
+    const user = await database.getUserById(userId);
+    await database.createAuditLog({
+      userId: userId,
+      username: user?.username || 'unknown',
+      action: 'update',
+      resourceType: 'integration',
+      resourceId: integrationId,
+      description: `切换集成 '${existingIntegration.projectName}' 状态为: ${status}`,
+      status: 'success',
+    });
+    
     res.json({ success: true, data: updatedIntegration });
   } catch (error) {
     console.error('切换集成状态错误:', error);
@@ -183,6 +231,7 @@ router.patch('/:integrationId/status', verifyToken, checkRobotOwner, async (req:
 router.delete('/:integrationId', verifyToken, checkRobotOwner, async (req: Request, res: Response) => {
   try {
     const { integrationId } = req.params;
+    const userId = (req as any).user.userId;
     const existingIntegration = await database.getIntegrationById(integrationId);
 
     if (!existingIntegration) {
@@ -190,6 +239,19 @@ router.delete('/:integrationId', verifyToken, checkRobotOwner, async (req: Reque
     }
 
     await database.deleteIntegration(integrationId);
+    
+    // 记录审计日志
+    const user = await database.getUserById(userId);
+    await database.createAuditLog({
+      userId: userId,
+      username: user?.username || 'unknown',
+      action: 'delete',
+      resourceType: 'integration',
+      resourceId: integrationId,
+      description: `删除集成 '${existingIntegration.projectName}' [类型: ${existingIntegration.projectType}]`,
+      status: 'success',
+    });
+    
     res.json({ success: true, message: '集成已删除成功' });
   } catch (error) {
     console.error('删除集成错误:', error);

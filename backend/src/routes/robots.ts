@@ -83,6 +83,18 @@ router.post('/', verifyToken, async (req: Request, res: Response) => {
       userId,
     });
 
+    // 记录审计日志
+    const user = await database.getUserById(userId);
+    await database.createAuditLog({
+      userId: userId,
+      username: user?.username || 'unknown',
+      action: 'create',
+      resourceType: 'robot',
+      resourceId: robot.id,
+      description: `创建机器人 '${name}' [状态: ${status || 'active'}]`,
+      status: 'success',
+    });
+
     res.json({
       success: true,
       data: robot,
@@ -141,6 +153,7 @@ router.put('/:robotId', verifyToken, async (req: Request, res: Response) => {
   try {
     const { robotId } = req.params;
     const { name, description, webhookUrl, status } = req.body;
+    const userId = (req as any).user.userId;
 
     const robot = await database.getRobotById(robotId);
     if (!robot) {
@@ -151,7 +164,7 @@ router.put('/:robotId', verifyToken, async (req: Request, res: Response) => {
     }
 
     // 验证所有权
-    if (robot.userId !== (req as any).user.userId) {
+    if (robot.userId !== userId) {
       return res.status(403).json({
         success: false,
         error: '无权访问',
@@ -166,6 +179,25 @@ router.put('/:robotId', verifyToken, async (req: Request, res: Response) => {
     });
 
     const updated = await database.getRobotById(robotId);
+    
+    // 记录审计日志
+    const user = await database.getUserById(userId);
+    const changes: string[] = [];
+    if (name) changes.push(`名称: ${name}`);
+    if (description !== undefined) changes.push(`描述: ${description || '(清除)'}`);
+    if (webhookUrl) changes.push(`Webhook URL 已更新`);
+    if (status) changes.push(`状态: ${status}`);
+    
+    await database.createAuditLog({
+      userId: userId,
+      username: user?.username || 'unknown',
+      action: 'update',
+      resourceType: 'robot',
+      resourceId: robotId,
+      description: `更新机器人 '${robot.name}' [${changes.join(', ') || '无更改'}]`,
+      status: 'success',
+    });
+    
     res.json({
       success: true,
       data: updated,
@@ -186,6 +218,7 @@ router.put('/:robotId', verifyToken, async (req: Request, res: Response) => {
 router.delete('/:robotId', verifyToken, async (req: Request, res: Response) => {
   try {
     const { robotId } = req.params;
+    const userId = (req as any).user.userId;
     const robot = await database.getRobotById(robotId);
 
     if (!robot) {
@@ -196,7 +229,7 @@ router.delete('/:robotId', verifyToken, async (req: Request, res: Response) => {
     }
 
     // 验证所有权
-    if (robot.userId !== (req as any).user.userId) {
+    if (robot.userId !== userId) {
       return res.status(403).json({
         success: false,
         error: '无权访问',
@@ -204,6 +237,18 @@ router.delete('/:robotId', verifyToken, async (req: Request, res: Response) => {
     }
 
     await database.deleteRobot(robotId);
+
+    // 记录审计日志
+    const user = await database.getUserById(userId);
+    await database.createAuditLog({
+      userId: userId,
+      username: user?.username || 'unknown',
+      action: 'delete',
+      resourceType: 'robot',
+      resourceId: robotId,
+      description: `删除机器人 '${robot.name}'`,
+      status: 'success',
+    });
 
     res.json({
       success: true,
