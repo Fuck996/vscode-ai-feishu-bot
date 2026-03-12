@@ -115,6 +115,16 @@ export default function Login() {
           >
             {isLoading ? '登录中...' : '登录'}
           </button>
+
+          <div style={{ textAlign: 'right', marginTop: '0.5rem' }}>
+            <button
+              type="button"
+              onClick={() => navigate('/forgot-password')}
+              style={{ background: 'none', border: 'none', color: '#3b82f6', cursor: 'pointer', fontSize: '0.875rem', textDecoration: 'underline' }}
+            >
+              忘记密码？
+            </button>
+          </div>
         </form>
 
         <div className="auth-footer">

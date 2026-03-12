@@ -762,7 +762,7 @@ const Dashboard: React.FC = () => {
                   borderRadius: '0.375rem',
                   border: '1px solid #e5e7eb'
                 }}>
-                  {selectedNotification.message || selectedNotification.title || '暂无内容'}
+                  {((selectedNotification as unknown) as Record<string, string>).summary || ((selectedNotification as unknown) as Record<string, string>).message || selectedNotification.title || '暂无内容'}
                 </div>
               </div>
             </div>

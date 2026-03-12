@@ -16,6 +16,7 @@ import Robots from './pages/Robots';
 import Integrations from './pages/Integrations';
 import Services from './pages/Services';
 import Login from './pages/Login';
+import ForgotPassword from './pages/ForgotPassword';
 import ForceChangePassword from './pages/ForceChangePassword';
 import ToastContainer from './components/ToastContainer';
 import './index.css';
@@ -237,13 +238,15 @@ function AppContent() {
   const location = useLocation();
   const isAuthPage =
     location.pathname === '/login' ||
-    location.pathname === '/force-change-password';
+    location.pathname === '/force-change-password' ||
+    location.pathname === '/forgot-password';
 
   if (isAuthPage) {
     return (
       <Routes>
         <Route path="/login" element={<Login />} />
         <Route path="/force-change-password" element={<ForceChangePassword />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
       </Routes>
     );
   }
@@ -260,6 +263,7 @@ function AppContent() {
         <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
         <Route path="/login" element={<Login />} />
         <Route path="/force-change-password" element={<ForceChangePassword />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="*" element={<Navigate to="/" />} />
       </Routes>
     </MainLayout>

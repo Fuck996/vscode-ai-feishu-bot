@@ -15,6 +15,7 @@ export interface User {
   createdAt: string;
   updatedAt: string;
   lastLoginAt?: string;
+  recoveryRobotId?: string;
 }
 
 export interface Robot {
@@ -442,6 +443,98 @@ class DatabaseService {
     );
     
     return results.slice(offset, offset + limit);
+  }
+
+  // ===== 用户管理操作（管理员专用）=====
+
+  async getAllUsers(): Promise<Omit<User, 'passwordHash'>[]> {
+    return this.users.map(u => {
+      const { passwordHash, ...rest } = u;
+      return rest;
+    });
+  }
+
+  async createUser(data: { username: string; password: string; role: 'admin' | 'user'; nickname?: string }): Promise<Omit<User, 'passwordHash'>> {
+    const existing = this.users.find(u => u.username === data.username);
+    if (existing) {
+      throw new Error('用户名已存在');
+    }
+    const newUser: User = {
+      id: crypto.randomUUID(),
+      username: data.username,
+      passwordHash: this.hashPassword(data.password),
+      role: data.role,
+      nickname: data.nickname || '',
+      status: 'active',
+      passwordChanged: false,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+    this.users.push(newUser);
+    await this.saveToFile();
+    const { passwordHash, ...rest } = newUser;
+    return rest;
+  }
+
+  async updateUserByAdmin(userId: string, updates: { role?: 'admin' | 'user'; status?: 'active' | 'inactive'; nickname?: string }): Promise<void> {
+    const user = this.users.find(u => u.id === userId);
+    if (!user) throw new Error('用户不存在');
+    if (updates.role !== undefined) user.role = updates.role;
+    if (updates.status !== undefined) user.status = updates.status;
+    if (updates.nickname !== undefined) user.nickname = updates.nickname;
+    user.updatedAt = new Date().toISOString();
+    await this.saveToFile();
+  }
+
+  async deleteUser(userId: string): Promise<void> {
+    const index = this.users.findIndex(u => u.id === userId);
+    if (index === -1) throw new Error('用户不存在');
+    this.users.splice(index, 1);
+    await this.saveToFile();
+  }
+
+  async getNotificationCountByUserId(userId: string): Promise<number> {
+    // 通过该用户的机器人统计通知数
+    const userRobots = this.robots.filter(r => r.userId === userId);
+    const robotNames = new Set(userRobots.map(r => r.name));
+    return this.notifications.filter(n => n.robotName && robotNames.has(n.robotName)).length;
+  }
+
+  async updateRecoveryRobot(userId: string, recoveryRobotId: string): Promise<void> {
+    const user = this.users.find(u => u.id === userId);
+    if (!user) throw new Error('用户不存在');
+    user.recoveryRobotId = recoveryRobotId;
+    user.updatedAt = new Date().toISOString();
+    await this.saveToFile();
+  }
+
+  // ===== 密码重置码（内存存储，服务重启后失效）=====
+  private passwordResetCodes: Map<string, { code: string; username: string; expiresAt: number }> = new Map();
+
+  createPasswordResetCode(username: string): string {
+    const code = Math.floor(100000 + Math.random() * 900000).toString();
+    const expiresAt = Date.now() + 10 * 60 * 1000; // 10分钟
+    this.passwordResetCodes.set(username.toLowerCase(), { code, username, expiresAt });
+    return code;
+  }
+
+  verifyPasswordResetCode(username: string, code: string): boolean {
+    const entry = this.passwordResetCodes.get(username.toLowerCase());
+    if (!entry) return false;
+    if (Date.now() > entry.expiresAt) {
+      this.passwordResetCodes.delete(username.toLowerCase());
+      return false;
+    }
+    return entry.code === code;
+  }
+
+  deletePasswordResetCode(username: string): void {
+    this.passwordResetCodes.delete(username.toLowerCase());
+  }
+
+  // ===== 密码哈希公开方法（供路由使用）=====
+  hashPasswordPublic(password: string): string {
+    return this.hashPassword(password);
   }
 
   async close(): Promise<void> {

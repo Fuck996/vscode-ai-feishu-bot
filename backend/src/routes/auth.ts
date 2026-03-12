@@ -2,6 +2,7 @@ import { Router, Request, Response } from 'express';
 import * as jwt from 'jsonwebtoken';
 import database from '../database';
 import * as crypto from 'crypto';
+import axios from 'axios';
 
 const router = Router();
 
@@ -220,6 +221,125 @@ router.get('/verify', async (req: Request, res: Response) => {
       success: false,
       error: '内部服务器错误',
     });
+  }
+});
+
+/**
+ * POST /api/auth/forgot-password
+ * 密码找回第一步：输入用户名，发送验证码
+ */
+router.post('/forgot-password', async (req: Request, res: Response) => {
+  try {
+    const { username } = req.body;
+    if (!username) {
+      return res.status(400).json({ success: false, error: '请输入用户名' });
+    }
+
+    const user = await database.getUserByUsername(username);
+    // 无论用户是否存在，都返回相同消息（防止枚举用户名）
+    if (!user || user.status !== 'active') {
+      return res.json({ success: true, message: '如果该用户名存在，验证码已发送' });
+    }
+
+    if (!user.recoveryRobotId) {
+      return res.status(400).json({ success: false, error: '该账号未配置密码找回机器人，请联系管理员' });
+    }
+
+    // 找到对应机器人
+    const robot = await database.getRobotById(user.recoveryRobotId);
+    if (!robot || robot.status !== 'active') {
+      return res.status(400).json({ success: false, error: '密码找回机器人不可用，请联系管理员' });
+    }
+
+    const code = database.createPasswordResetCode(username);
+
+    // 通过飞书 Webhook 发送验证码
+    try {
+      await axios.post(robot.webhookUrl, {
+        msg_type: 'interactive',
+        card: {
+          header: {
+            title: { tag: 'plain_text', content: '🔐 密码重置验证码' },
+            template: 'blue',
+          },
+          elements: [
+            {
+              tag: 'div',
+              text: {
+                tag: 'lark_md',
+                content: `用户 **${username}** 请求重置密码\n\n验证码：**${code}**\n\n⏰ 验证码10分钟内有效，请勿泄露给他人`,
+              },
+            },
+          ],
+        },
+      });
+    } catch (sendErr) {
+      console.error('发送验证码失败:', sendErr);
+      return res.status(500).json({ success: false, error: '验证码发送失败，请联系管理员' });
+    }
+
+    res.json({ success: true, message: '验证码已通过飞书发送，10分钟内有效' });
+  } catch (error) {
+    console.error('密码找回错误:', error);
+    res.status(500).json({ success: false, error: '内部服务器错误' });
+  }
+});
+
+/**
+ * POST /api/auth/verify-reset-code
+ * 密码找回第二步：验证码校验
+ */
+router.post('/verify-reset-code', async (req: Request, res: Response) => {
+  try {
+    const { username, code } = req.body;
+    if (!username || !code) {
+      return res.status(400).json({ success: false, error: '请输入用户名和验证码' });
+    }
+
+    const isValid = database.verifyPasswordResetCode(username, code);
+    if (!isValid) {
+      return res.status(400).json({ success: false, error: '验证码无效或已过期' });
+    }
+
+    res.json({ success: true, message: '验证码正确' });
+  } catch (error) {
+    console.error('验证码校验错误:', error);
+    res.status(500).json({ success: false, error: '内部服务器错误' });
+  }
+});
+
+/**
+ * POST /api/auth/reset-password
+ * 密码找回第三步：重置密码
+ */
+router.post('/reset-password', async (req: Request, res: Response) => {
+  try {
+    const { username, code, newPassword } = req.body;
+    if (!username || !code || !newPassword) {
+      return res.status(400).json({ success: false, error: '参数不完整' });
+    }
+    if (newPassword.length < 6) {
+      return res.status(400).json({ success: false, error: '密码至少为 6 个字符' });
+    }
+
+    const isValid = database.verifyPasswordResetCode(username, code);
+    if (!isValid) {
+      return res.status(400).json({ success: false, error: '验证码无效或已过期，请重新获取' });
+    }
+
+    const user = await database.getUserByUsername(username);
+    if (!user) {
+      return res.status(404).json({ success: false, error: '用户不存在' });
+    }
+
+    const newHash = crypto.createHash('sha256').update(newPassword).digest('hex');
+    await database.updateUserPassword(user.id, newHash);
+    database.deletePasswordResetCode(username);
+
+    res.json({ success: true, message: '密码已重置，请使用新密码登录' });
+  } catch (error) {
+    console.error('重置密码错误:', error);
+    res.status(500).json({ success: false, error: '内部服务器错误' });
   }
 });
 

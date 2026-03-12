@@ -98,7 +98,7 @@ app.use('/api', webhookRouter);
 // 版本端点
 app.get('/api/version', (req: Request, res: Response) => {
   res.json({
-    backend: '1.3.0',
+    backend: '1.3.1',
     name: 'Feishu AI Notification Service',
   });
 });
@@ -115,7 +115,7 @@ app.get('/api/health', (req: Request, res: Response) => {
 app.get('/api/status', (req: Request, res: Response) => {
   res.json({
     name: 'Feishu AI Notification Service',
-    version: '1.3.0',
+    version: '1.3.1',
     status: 'running',
     endpoints: {
       health: '/api/health',
