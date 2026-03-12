@@ -16,6 +16,30 @@ import { addLog } from '../serviceLogger';
 
 const router = Router();
 
+// ===== 事件去重缓存（防止同一事件短时间内重复处理） =====
+const recentEvents = new Map<string, number>();
+const DEDUP_WINDOW = 5000; // 5秒去重窗口
+
+function isRecentEvent(eventKey: string): boolean {
+  const now = Date.now();
+  const lastTime = recentEvents.get(eventKey);
+  
+  if (lastTime && now - lastTime < DEDUP_WINDOW) {
+    return true; // 在去重窗口内，是重复事件
+  }
+  
+  recentEvents.set(eventKey, now);
+  
+  // 清理过期缓存（> 60秒）
+  for (const [key, time] of recentEvents.entries()) {
+    if (now - time > 60000) {
+      recentEvents.delete(key);
+    }
+  }
+  
+  return false;
+}
+
 // ===== 签名验证函数 =====
 
 /** 验证 GitHub HMAC-SHA256 签名（X-Hub-Signature-256 header） */
@@ -284,6 +308,14 @@ router.post('/:integrationId', async (req: Request, res: Response) => {
   const { integrationId } = req.params;
 
   try {
+    // 0. 检查是否为重复事件（去重）
+    const eventSignature = `${integrationId}-${req.body.ref || req.body.installation?.id || req.headers['x-github-event'] || 'unknown'}-${req.headers['x-github-delivery'] || req.body.id || 'unknown'}`;
+    
+    if (isRecentEvent(eventSignature)) {
+      addLog('info', 'Webhook 接收', `检测到重复事件，已忽略 [integrationId=${integrationId}]`);
+      return res.json({ success: true, message: '重复事件已忽略' });
+    }
+
     // 1. 查找集成配置
     const integration = await database.getIntegrationById(integrationId);
     if (!integration || integration.status !== 'active') {
