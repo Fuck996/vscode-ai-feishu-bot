@@ -189,21 +189,6 @@ const Dashboard: React.FC = () => {
     }
   };
 
-  const getStatusLabel = (status: string): string => {
-    switch (status) {
-      case 'success':
-        return '✅ 成功';
-      case 'error':
-        return '❌ 失败';
-      case 'warning':
-        return '⚠️ 警告';
-      case 'info':
-        return 'ℹ️ 信息';
-      default:
-        return status;
-    }
-  };
-
   const openNotificationDetail = (notification: Notification) => {
     setSelectedNotification(notification);
   };
@@ -236,6 +221,10 @@ const Dashboard: React.FC = () => {
         return '⚠️ 警告';
       case 'info':
         return 'ℹ️ 信息';
+      default:
+        return status;
+    }
+  };
 
   const testRobot = async (robotId: string) => {
     try {

@@ -1,8 +1,13 @@
 import { Router } from 'express';
 import db from '../database';
-import { AuthPayload } from './auth';
 
 const router = Router();
+
+interface AuthPayload {
+  userId: string;
+  username: string;
+  role: string;
+}
 
 // 验证 Token 中间件
 function verifyToken(req: any, res: any, next: any) {

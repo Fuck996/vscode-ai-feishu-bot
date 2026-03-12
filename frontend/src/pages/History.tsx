@@ -10,6 +10,7 @@ interface Notification {
   source: string;
   createdAt: string;
   message?: string;
+  summary?: string;
 }
 
 interface Robot {
