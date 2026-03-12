@@ -148,9 +148,10 @@ router.get('/sse', async (req: Request, res: Response) => {
   res.flushHeaders();
 
   const sessionId = crypto.randomUUID();
+  const projectName = context.integration.projectName;
   sessions.set(sessionId, { res, integrationId: context.integration.id });
 
-  addLog('info', 'MCP 服务', `SSE 连接建立: ${context.integration.projectName} [${sessionId.substring(0, 8)}...]`);
+  addLog('info', 'MCP 服务', `SSE 连接建立: ${projectName} [${sessionId.substring(0, 8)}...]`);
 
   // 告知客户端 POST 消息的端点
   // 注意：endpoint 事件必须发送原始 URL 字符串，不能 JSON.stringify
@@ -159,19 +160,46 @@ router.get('/sse', async (req: Request, res: Response) => {
   res.write(`event: endpoint\ndata: ${messageUrl}\n\n`);
 
   logger.info(
-    { sessionId, project: context.integration.projectName },
+    { sessionId, project: projectName },
     'MCP SSE 连接建立'
   );
 
-  // 心跳保活：每 25 秒发一次 SSE comment，防止客户端超时断开
+  // 心跳保活：每 15 秒发一次 SSE comment，防止客户端超时断开
+  // 15秒间隔比25秒更激进，确保在各种网络环境下都能保持连接
   const heartbeat = setInterval(() => {
-    res.write(': ping\n\n');
-  }, 25000);
+    try {
+      res.write(': ping\n\n');
+    } catch (err) {
+      // 如果写入失败，说明连接已断开，立即清理
+      clearInterval(heartbeat);
+      sessions.delete(sessionId);
+    }
+  }, 15000);
+
+  // 连接超时保护：如果 60 秒内没有收到任何消息，主动关闭连接
+  // 防止僵尸连接占用资源
+  let activityTimeout: NodeJS.Timeout;
+  function resetActivityTimeout() {
+    clearTimeout(activityTimeout);
+    activityTimeout = setTimeout(() => {
+      addLog('warn', 'MCP 服务', `SSE 连接因长时间无活动被关闭: ${projectName}`);
+      res.end();
+    }, 60000);
+  }
+  resetActivityTimeout();
+
+  // 监听原始 request 事件来重置超时计时器
+  const originalWrite = res.write.bind(res);
+  res.write = function(chunk: any, encoding?: any, callback?: any) {
+    resetActivityTimeout();
+    return originalWrite(chunk, encoding, callback);
+  };
 
   req.on('close', () => {
     clearInterval(heartbeat);
+    clearTimeout(activityTimeout);
     sessions.delete(sessionId);
-    addLog('info', 'MCP 服务', `SSE 连接关闭: ${context.integration.projectName} [${sessionId.substring(0, 8)}...]`);
+    addLog('info', 'MCP 服务', `SSE 连接关闭: ${projectName} [${sessionId.substring(0, 8)}...]`);
     logger.info({ sessionId }, 'MCP SSE 连接关闭');
   });
 });
@@ -198,11 +226,20 @@ router.post('/message', async (req: Request, res: Response) => {
   const session = sessions.get(sessionId);
 
   if (!session) {
-    return res.status(404).json({ error: '会话不存在或已过期，请重新建立 SSE 连接' });
+    // 会话过期或不存在
+    // 详细错误信息便于调试和日志追踪
+    const errorMsg = '会话不存在或已过期，可能原因：\n1. 后端服务重启\n2. SSE 连接长时间无活动被断开\n3. 网络连接中断\n请在 VS Code MCP 服务中重新连接';
+    addLog('warn', 'MCP 服务', `会话过期 [sessionId=${sessionId.substring(0, 8)}...]`);
+    return res.status(404).json({ 
+      error: '会话不存在或已过期，请重新建立 SSE 连接',
+      details: errorMsg,
+      action: 'reconnect',
+    });
   }
 
   const context = await validateMCPToken(token);
   if (!context) {
+    addLog('warn', 'MCP 服务', `消息请求 Token 验证失败`);
     return res.status(403).json({ error: '无效 Token' });
   }
 
