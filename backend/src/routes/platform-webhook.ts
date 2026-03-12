@@ -309,10 +309,19 @@ router.post('/:integrationId', async (req: Request, res: Response) => {
 
   try {
     // 0. 检查是否为重复事件（去重）
-    const eventSignature = `${integrationId}-${req.body.ref || req.body.installation?.id || req.headers['x-github-event'] || 'unknown'}-${req.headers['x-github-delivery'] || req.body.id || 'unknown'}`;
+    // GitHub workflow_run 会在 requested/in_progress/completed 多个阶段发送，需要基于 workflow_run.id 去重
+    let eventSignature = `${integrationId}-${req.body.ref || req.body.installation?.id || req.headers['x-github-event'] || 'unknown'}-${req.headers['x-github-delivery'] || req.body.id || 'unknown'}`;
+    
+    // GitHub workflow_run 事件：基于 workflow_run.id + action 来唯一标识
+    if (req.headers['x-github-event'] === 'workflow_run' && req.body.workflow_run?.id) {
+      const action = req.body.action || 'unknown'; // requested / in_progress / completed
+      const conclusion = req.body.workflow_run?.conclusion || 'unknown'; // success / failure / neutral / cancelled
+      // 只关注 completed 状态的 workflow_run（已 completed 再次发送不同 action 应该忽略）
+      eventSignature = `${integrationId}-workflow_run-${req.body.workflow_run.id}-${conclusion}`;
+    }
     
     if (isRecentEvent(eventSignature)) {
-      addLog('info', 'Webhook 接收', `检测到重复事件，已忽略 [integrationId=${integrationId}]`);
+      addLog('info', 'Webhook 接收', `检测到重复事件，已忽略 [integrationId=${integrationId}] [sig=${eventSignature}]`);
       return res.json({ success: true, message: '重复事件已忽略' });
     }
 
@@ -384,6 +393,16 @@ router.post('/:integrationId', async (req: Request, res: Response) => {
       logger.info('未识别的平台事件，已忽略', { platform, integrationId });
       addLog('info', 'Webhook 接收', `未识别的事件格式，已跳过 [${platform}] [${integration.projectName}]`);
       return res.json({ success: true, message: '事件已接收，无对应处理器' });
+    }
+
+    // 4.1 过滤 GitHub workflow_run 的非 completed 事件（workflow_run 会在 requested/in_progress/completed 多个阶段发送）
+    if (platform === 'github' && req.headers['x-github-event'] === 'workflow_run') {
+      const wr = req.body.workflow_run;
+      if (!wr?.conclusion) {
+        // conclusion 为 null 表示 workflow 仍在运行中，忽略该事件
+        addLog('info', 'Webhook 接收', `GitHub workflow_run 未完成，已跳过 [${wr?.name || 'unknown'}] [action=${req.body.action}]`);
+        return res.json({ success: true, message: 'GitHub workflow_run 事件已接收，但未完成运行，已跳过' });
+      }
     }
 
     // 5. 检查触发规则
