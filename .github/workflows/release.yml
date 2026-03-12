@@ -10,6 +10,30 @@ on:
         description: '镜像标签（如 v1.3.2 或 latest）'
         required: true
         default: 'latest'
+      build_title:
+        description: '构建标题/说明（可选）'
+        required: false
+        default: '构建并发布 Docker 镜像'
+      build_description:
+        description: '构建描述（可选，详细说明）'
+        required: false
+        default: '自动构建 Docker 镜像并推送到 GitHub Container Registry'
+      notify_on_completion:
+        description: '完成后发送通知？'
+        required: false
+        default: 'true'
+        type: choice
+        options:
+          - 'true'
+          - 'false'
+      push_to_registry:
+        description: '是否推送到 Registry？（false 则仅构建不推送，用于测试）'
+        required: false
+        default: 'true'
+        type: choice
+        options:
+          - 'true'
+          - 'false'
 
 env:
   REGISTRY: ghcr.io
@@ -32,6 +56,19 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0  # 获取完整历史以支持版本标签
+
+      - name: 输出构建信息
+        run: |
+          echo "════════════════════════════════════════"
+          echo "🏗️  构建信息"
+          echo "════════════════════════════════════════"
+          echo "📌 标题：${{ github.event.inputs.build_title || '自动发布构建' }}"
+          echo "📝 描述：${{ github.event.inputs.build_description || '无' }}"
+          echo "🏷️  镜像标签：${{ github.event.inputs.image_tag || github.ref_name }}"
+          echo "📤 推送到 Registry：${{ github.event.inputs.push_to_registry || 'true' }}"
+          echo "🔔 完成后通知：${{ github.event.inputs.notify_on_completion || 'true' }}"
+          echo "🔄 触发事件：${{ github.event_name }}"
+          echo "════════════════════════════════════════"
 
       - name: 检验 Dockerfile 存在性
         run: |
@@ -71,7 +108,7 @@ jobs:
         with:
           context: .
           file: ./Dockerfile
-          push: true
+          push: ${{ github.event.inputs.push_to_registry != 'false' }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
@@ -79,7 +116,37 @@ jobs:
           build-args: |
             BUILDKIT_INLINE_CACHE=1
 
-      - name: 镜像构建成功
-        run: echo "✅ Docker 镜像已成功构建并推送到 ${{ env.REGISTRY }}"
+      - name: 构建完成（推送模式：${{ github.event.inputs.push_to_registry || 'true' }}）
+        run: |
+          if [ "${{ github.event.inputs.push_to_registry }}" = "false" ]; then
+            echo "✅ Docker 镜像已成功构建（仅本地，未推送到 Registry）"
+          else
+            echo "✅ Docker 镜像已成功构建并推送到 ${{ env.REGISTRY }}"
+            echo ""
+            echo "📦 推送信息："
+            echo "  镜像标签：${{ github.event.inputs.image_tag || github.ref_name }}"
+            echo "  Registry：${{ env.REGISTRY }}"
+            echo "  仓库：${{ github.repository_owner }}/feishu-bot"
+          fi
+
+      - name: 发送完成通知（可选）
+        if: ${{ github.event.inputs.notify_on_completion != 'false' && always() }}
+        run: |
+          BUILD_STATUS=${{ job.status }}
+          if [ "$BUILD_STATUS" = "success" ]; then
+            STATUS_EMOJI="✅"
+            STATUS_TEXT="成功"
+          else
+            STATUS_EMOJI="❌"
+            STATUS_TEXT="失败"
+          fi
+          
+          echo "${STATUS_EMOJI} Docker 镜像构建 ${STATUS_TEXT}"
+          echo ""
+          echo "构建详情："
+          echo "  标题：${{ github.event.inputs.build_title || '自动构建' }}"
+          echo "  状态：${STATUS_TEXT}"
+          echo "  标签：${{ github.event.inputs.image_tag || github.ref_name }}"
+          echo "  事件：${{ github.event_name }}"
 
 
