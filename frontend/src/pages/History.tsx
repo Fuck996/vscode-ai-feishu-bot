@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+﻿import React, { useEffect, useState } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import authService from '../services/auth';
 
@@ -384,7 +384,7 @@ const History: React.FC = () => {
           alignItems: 'center',
           justifyContent: 'center',
           zIndex: 1000
-        }} onClick={closeNotificationDetail}>
+        }} onMouseDown={(e) => { if (e.target === e.currentTarget) closeNotificationDetail(); }}>
           <div style={{
             backgroundColor: 'white',
             borderRadius: '0.75rem',

@@ -107,9 +107,11 @@ app.use('/api/mcp', mcpConfigRouter);    // MCP 配置读取
 app.use('/api', webhookRouter);
 
 // 版本端点
+const APP_VERSION = '1.3.7';
 app.get('/api/version', (req: Request, res: Response) => {
   res.json({
-    backend: '1.3.7',
+    backend: APP_VERSION,
+    version: APP_VERSION,
     name: 'Feishu AI Notification Service',
   });
 });
@@ -126,7 +128,7 @@ app.get('/api/health', (req: Request, res: Response) => {
 app.get('/api/status', (req: Request, res: Response) => {
   res.json({
     name: 'Feishu AI Notification Service',
-    version: '1.3.6',
+    version: APP_VERSION,
     status: 'running',
     endpoints: {
       health: '/api/health',

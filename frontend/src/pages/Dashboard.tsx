@@ -671,7 +671,7 @@ const Dashboard: React.FC = () => {
           alignItems: 'center',
           justifyContent: 'center',
           zIndex: 1000
-        }} onClick={closeNotificationDetail}>
+        }} onMouseDown={(e) => { if (e.target === e.currentTarget) closeNotificationDetail(); }}>
           <div style={{
             backgroundColor: 'white',
             borderRadius: '0.75rem',
