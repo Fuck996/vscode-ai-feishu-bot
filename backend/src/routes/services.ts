@@ -78,6 +78,17 @@ router.get('/', verifyToken, checkAdminRole, async (req: AuthRequest, res: Respo
       totalIntegrations += integrations.length;
     }
 
+    // 计算今天的调用数（通知数）
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const todayNotifications = await db.getNotifications(10000, 0); // 获取所有通知
+    const mcpRelatedNotifications = todayNotifications.filter((n: any) => {
+      const notificationDate = new Date(n.createdAt || '');
+      notificationDate.setHours(0, 0, 0, 0);
+      return notificationDate.getTime() === today.getTime();
+    });
+    const todayCallCount = mcpRelatedNotifications.length;
+
     // 构建服务列表（只展示真实存在的服务）
     const services = [
       {
@@ -87,10 +98,10 @@ router.get('/', verifyToken, checkAdminRole, async (req: AuthRequest, res: Respo
         icon: '📋',
         description: 'VS Code Copilot 工作汇报中间件，自动将任务总结发送到飞书群组',
         status: 'running',
-        associatedIntegrations: Math.floor(totalIntegrations * 0.4),
+        associatedIntegrations: totalIntegrations,
         stats: [
-          { label: '关联集成', value: Math.floor(totalIntegrations * 0.4).toString() },
-          { label: '今日调用', value: '24' },
+          { label: '关联集成', value: totalIntegrations.toString() },
+          { label: '今日调用', value: todayCallCount.toString() },
           { label: '运行时间', value: formatUptime() },
         ],
         isScheduled: false,
