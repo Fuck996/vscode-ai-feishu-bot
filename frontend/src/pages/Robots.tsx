@@ -392,7 +392,7 @@ export default function Robots() {
             overflow: 'hidden',
           }}>
             <div style={{ overflowX: 'auto', padding: '1.5rem' }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '1100px' }}>
                 <thead style={{ backgroundColor: '#f9fafb' }}>
                   <tr>
                     <th style={{
@@ -402,7 +402,7 @@ export default function Robots() {
                       fontSize: '0.875rem',
                       color: '#6b7280',
                       borderBottom: '1px solid #e5e7eb',
-                      width: '18%',
+                      width: '14%',
                     }}>
                       机器人名称
                     </th>
@@ -413,7 +413,7 @@ export default function Robots() {
                       fontSize: '0.875rem',
                       color: '#6b7280',
                       borderBottom: '1px solid #e5e7eb',
-                      width: '15%',
+                      width: '10%',
                     }}>
                       App ID
                     </th>
@@ -424,7 +424,7 @@ export default function Robots() {
                       fontSize: '0.875rem',
                       color: '#6b7280',
                       borderBottom: '1px solid #e5e7eb',
-                      width: '12%',
+                      width: '11%',
                     }}>
                       快捷开关
                     </th>
@@ -435,7 +435,7 @@ export default function Robots() {
                       fontSize: '0.875rem',
                       color: '#6b7280',
                       borderBottom: '1px solid #e5e7eb',
-                      width: '12%',
+                      width: '10%',
                     }}>
                       创建时间
                     </th>
@@ -446,7 +446,7 @@ export default function Robots() {
                       fontSize: '0.875rem',
                       color: '#6b7280',
                       borderBottom: '1px solid #e5e7eb',
-                      width: '10%',
+                      width: '7%',
                     }}>
                       消息数
                     </th>
@@ -457,7 +457,7 @@ export default function Robots() {
                       fontSize: '0.875rem',
                       color: '#6b7280',
                       borderBottom: '1px solid #e5e7eb',
-                      width: '18%',
+                      width: '15%',
                     }}>
                       最后消息时间
                     </th>
@@ -468,7 +468,8 @@ export default function Robots() {
                       fontSize: '0.875rem',
                       color: '#6b7280',
                       borderBottom: '1px solid #e5e7eb',
-                      width: '10%',
+                      width: '33%',
+                      minWidth: '220px',
                     }}>
                       操作
                     </th>
@@ -535,7 +536,7 @@ export default function Robots() {
                         }
                       </td>
                       <td style={{ padding: '0.75rem', fontSize: '0.875rem' }}>
-                        <div style={{ display: 'flex', gap: '0.375rem', flexWrap: 'wrap' }}>
+                        <div style={{ display: 'flex', gap: '0.375rem', flexWrap: 'nowrap', alignItems: 'center' }}>
                           <button
                             onClick={() => handleTestRobot(robot.id)}
                             disabled={testingRobotId === robot.id || robot.status !== 'active'}
