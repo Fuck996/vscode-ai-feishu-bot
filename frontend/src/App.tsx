@@ -55,11 +55,7 @@ function MainLayout({ children }: { children: React.ReactNode }) {
         const token = authService.getToken();
         if (!token) return;
 
-        const response = await fetch('/api/users/me', {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-          },
-        });
+        const response = await authService.fetchWithAuth('/api/users/me');
 
         if (response.ok) {
           const data = await response.json();

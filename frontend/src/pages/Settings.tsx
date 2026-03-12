@@ -22,11 +22,7 @@ const Settings: React.FC = () => {
       const token = authService.getToken();
       if (!token) return;
 
-      const response = await fetch(`${API_BASE_URL}/api/users/me`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
-      });
+      const response = await authService.fetchWithAuth(`${API_BASE_URL}/api/users/me`);
 
       if (response.ok) {
         const data = await response.json();
@@ -46,12 +42,10 @@ const Settings: React.FC = () => {
   const handleSaveAccount = async () => {
     try {
       setLoading(true);
-      const token = authService.getToken();
 
-      const response = await fetch(`${API_BASE_URL}/api/users/profile`, {
+      const response = await authService.fetchWithAuth(`${API_BASE_URL}/api/users/profile`, {
         method: 'PUT',
         headers: {
-          'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
@@ -89,12 +83,10 @@ const Settings: React.FC = () => {
 
     try {
       setLoading(true);
-      const token = authService.getToken();
 
-      const response = await fetch(`${API_BASE_URL}/api/users/change-password`, {
+      const response = await authService.fetchWithAuth(`${API_BASE_URL}/api/users/change-password`, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
@@ -131,12 +123,10 @@ const Settings: React.FC = () => {
 
     try {
       setLoading(true);
-      const token = authService.getToken();
 
-      const response = await fetch(`${API_BASE_URL}/api/system/restore`, {
+      const response = await authService.fetchWithAuth(`${API_BASE_URL}/api/system/restore`, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
         },
       });

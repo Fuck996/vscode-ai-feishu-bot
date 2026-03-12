@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
+import authService from '../services/auth';
 
 interface Notification {
   id: string;
@@ -37,11 +38,7 @@ const History: React.FC = () => {
       setError(null);
 
       // 获取通知列表
-      const notificationsResponse = await fetch('/api/notifications', {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('auth_token')}`,
-        },
-      });
+      const notificationsResponse = await authService.fetchWithAuth('/api/notifications');
       if (notificationsResponse.ok) {
         const notificationsData = await notificationsResponse.json();
         const list = notificationsData.notifications || (Array.isArray(notificationsData) ? notificationsData : []);
@@ -49,11 +46,7 @@ const History: React.FC = () => {
       }
 
       // 获取机器人列表
-      const robotsResponse = await fetch('/api/robots', {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('auth_token')}`,
-        },
-      });
+      const robotsResponse = await authService.fetchWithAuth('/api/robots');
       if (robotsResponse.ok) {
         const robotsData = await robotsResponse.json();
         setRobots(robotsData.data || (Array.isArray(robotsData) ? robotsData : []));

@@ -1,6 +1,6 @@
 {
   "name":  "feishu-notifier-frontend",
-  "version":  "1.1.9",
+  "version":  "1.2.0",
   "description":  "Feishu notification system management dashboard with UI improvements",
   "type":  "module",
   "scripts":  {

@@ -44,19 +44,10 @@ export default function Robots() {
     try {
       setLoading(true);
       setError(null);
-      
-      const token = authService.getToken();
-      if (!token) {
-        setError('未授权，请重新登录');
-        return;
-      }
 
-      const response = await fetch(`${API_BASE_URL}/api/robots`, {
+      const response = await authService.fetchWithAuth(`${API_BASE_URL}/api/robots`, {
         method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
       });
 
       const data: RobotsResponse = await response.json();
@@ -78,18 +69,9 @@ export default function Robots() {
     try {
       setTestingRobotId(robotId);
 
-      const token = authService.getToken();
-      if (!token) {
-        toast.error('未授权，请重新登录');
-        return;
-      }
-
-      const response = await fetch(`${API_BASE_URL}/api/robots/${robotId}/test`, {
+      const response = await authService.fetchWithAuth(`${API_BASE_URL}/api/robots/${robotId}/test`, {
         method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
       });
 
       const data = await response.json();
@@ -109,20 +91,11 @@ export default function Robots() {
 
   const handleToggleRobotStatus = async (robot: Robot) => {
     try {
-      const token = authService.getToken();
-      if (!token) {
-        toast.error('未授权，请重新登录');
-        return;
-      }
-
       const newStatus = robot.status === 'active' ? 'inactive' : 'active';
 
-      const response = await fetch(`${API_BASE_URL}/api/robots/${robot.id}`, {
+      const response = await authService.fetchWithAuth(`${API_BASE_URL}/api/robots/${robot.id}`, {
         method: 'PUT',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           ...robot,
           status: newStatus,
@@ -150,18 +123,9 @@ export default function Robots() {
     }
 
     try {
-      const token = authService.getToken();
-      if (!token) {
-        toast.error('未授权，请重新登录');
-        return;
-      }
-
-      const response = await fetch(`${API_BASE_URL}/api/robots/${robotId}`, {
+      const response = await authService.fetchWithAuth(`${API_BASE_URL}/api/robots/${robotId}`, {
         method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
       });
 
       const data = await response.json();
@@ -208,11 +172,9 @@ export default function Robots() {
     try {
       setIsSubmitting(true);
       setError(null);
-      const token = authService.getToken();
-      if (!token) { toast.error('未授权，请重新登录'); return; }
-      const response = await fetch(`${API_BASE_URL}/api/robots/${editingRobot.id}`, {
+      const response = await authService.fetchWithAuth(`${API_BASE_URL}/api/robots/${editingRobot.id}`, {
         method: 'PUT',
-        headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ...editingRobot, ...editFormData }),
       });
       const data = await response.json();
@@ -257,18 +219,9 @@ export default function Robots() {
       setIsSubmitting(true);
       setError(null);
 
-      const token = authService.getToken();
-      if (!token) {
-        toast.error('未授权，请重新登录');
-        return;
-      }
-
-      const response = await fetch(`${API_BASE_URL}/api/robots`, {
+      const response = await authService.fetchWithAuth(`${API_BASE_URL}/api/robots`, {
         method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           name: formData.name.trim(),
           description: formData.description.trim(),

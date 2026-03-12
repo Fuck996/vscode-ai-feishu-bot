@@ -32,6 +32,18 @@ if (typeof global !== 'undefined') {
 
 const app: Express = express();
 
+// 临时调试中间件：记录所有 /api 请求的基本信息（路径、方法、部分头部）
+// 用于排查外网请求是否到达后端（上线后请移除或禁用）
+app.use('/api', (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const auth = req.headers.authorization || '';
+    logger.info({ method: req.method, path: req.originalUrl, auth: auth ? '[REDACTED]' : '' }, 'Incoming API request');
+  } catch (e) {
+    // 忽略日志错误，继续流程
+  }
+  next();
+});
+
 // 中间件配置
 app.use(helmet());
 app.use(pinoHttp({ logger }));

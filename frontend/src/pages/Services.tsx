@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react';
+import authService from '../services/auth';
 
 interface Service {
   id: string;
@@ -101,11 +102,7 @@ const Services: React.FC = () => {
     try {
       setLoading(true);
       setError(null);
-      const response = await fetch('/api/services', {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('auth_token')}`,
-        },
-      });
+      const response = await authService.fetchWithAuth('/api/services');
       if (response.ok) {
         const data = await response.json();
         setServices(data);
@@ -159,11 +156,7 @@ const Services: React.FC = () => {
 
   const fetchLogs = async () => {
     try {
-      const response = await fetch('/api/services/logs', {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('auth_token')}`,
-        },
-      });
+      const response = await authService.fetchWithAuth('/api/services/logs');
       if (response.ok) {
         const data = await response.json();
         setLogs(data);
@@ -176,12 +169,9 @@ const Services: React.FC = () => {
   const handleServiceAction = async (action: string, serviceId: string) => {
     try {
       setOperatingServiceId(serviceId);
-      const response = await fetch(`/api/services/${serviceId}/action`, {
+      const response = await authService.fetchWithAuth(`/api/services/${serviceId}/action`, {
         method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('auth_token')}`,
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ action }),
       });
       if (response.ok) {

@@ -197,6 +197,31 @@ class AuthService {
   isAuthenticated(): boolean {
     return !!this.getToken();
   }
+
+  /**
+   * 带鉴权的 fetch 封装
+   * 自动附加 Authorization 头，并对 401 / 用户不存在的 404 做统一处理：
+   * 清除本地登录状态并跳转到登录页，避免外网旧 token 导致页面卡死在错误状态。
+   */
+  async fetchWithAuth(input: RequestInfo, init: RequestInit = {}): Promise<Response> {
+    const token = this.getToken();
+    const headers = new Headers(init.headers);
+    if (token) {
+      headers.set('Authorization', `Bearer ${token}`);
+    }
+
+    const response = await fetch(input, { ...init, headers });
+
+    // 401：token 无效或已过期，强制登出
+    if (response.status === 401) {
+      this.logout();
+      window.location.href = '/login';
+      // 返回一个永不 resolve 的 promise，中止后续逻辑
+      return new Promise(() => {});
+    }
+
+    return response;
+  }
 }
 
 export default new AuthService();

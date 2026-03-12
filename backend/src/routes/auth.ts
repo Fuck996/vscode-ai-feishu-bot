@@ -177,7 +177,7 @@ router.post('/change-password', async (req: Request, res: Response) => {
 
 /**
  * GET /api/auth/verify
- * 验证token是否有效
+ * 验证token是否有效（同时检查用户是否仍存在于数据库中）
  */
 router.get('/verify', async (req: Request, res: Response) => {
   try {
@@ -191,18 +191,29 @@ router.get('/verify', async (req: Request, res: Response) => {
 
     const token = authHeader.substring(7);
     
+    let decoded: AuthPayload;
     try {
-      const decoded = jwt.verify(token, JWT_SECRET) as AuthPayload;
-      res.json({
-        success: true,
-        user: decoded,
-      });
+      decoded = jwt.verify(token, JWT_SECRET) as AuthPayload;
     } catch (error) {
       return res.status(401).json({
         success: false,
         error: '无效或过期的令牌',
       });
     }
+
+    // 额外检查：确认用户仍存在于数据库中（防止数据库重置后旧 token 仍被认为有效）
+    const user = await database.getUserById(decoded.userId);
+    if (!user || user.status !== 'active') {
+      return res.status(401).json({
+        success: false,
+        error: '用户不存在或已被禁用',
+      });
+    }
+
+    res.json({
+      success: true,
+      user: decoded,
+    });
   } catch (error) {
     console.error('验证错误:', error);
     res.status(500).json({

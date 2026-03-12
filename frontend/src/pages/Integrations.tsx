@@ -108,9 +108,8 @@ const PROJECT_TYPES: Array<{ type: string; icon: string; name: string; desc: str
 ];
 
 // ===== 辅助函数 =====
-function getAuthHeaders() {
-  const token = authService.getToken();
-  return { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' };
+function getJsonHeaders() {
+  return { 'Content-Type': 'application/json' };
 }
 
 // ===== 主组件 =====
@@ -168,8 +167,8 @@ export default function Integrations() {
       setLoading(true);
       setError(null);
       const [robotRes, intRes] = await Promise.all([
-        fetch(`${API_BASE_URL}/api/robots/${robotId}`, { headers: getAuthHeaders() }),
-        fetch(`${API_BASE_URL}/api/robots/${robotId}/integrations`, { headers: getAuthHeaders() }),
+        authService.fetchWithAuth(`${API_BASE_URL}/api/robots/${robotId}`, { headers: getJsonHeaders() }),
+        authService.fetchWithAuth(`${API_BASE_URL}/api/robots/${robotId}/integrations`, { headers: getJsonHeaders() }),
       ]);
       const robotData = await robotRes.json();
       const intData = await intRes.json();
@@ -193,11 +192,11 @@ export default function Integrations() {
     setTogglingId(integration.id);
     try {
       const newStatus = integration.status === 'active' ? 'inactive' : 'active';
-      const res = await fetch(
+      const res = await authService.fetchWithAuth(
         `${API_BASE_URL}/api/robots/${robotId}/integrations/${integration.id}/status`,
         {
           method: 'PATCH',
-          headers: getAuthHeaders(),
+          headers: getJsonHeaders(),
           body: JSON.stringify({ status: newStatus }),
         }
       );
@@ -221,9 +220,9 @@ export default function Integrations() {
   const handleDelete = async (integration: Integration) => {
     if (!confirm(`确定要删除集成 "${integration.projectName}" 吗？此操作不可撤销。`)) return;
     try {
-      const res = await fetch(
+      const res = await authService.fetchWithAuth(
         `${API_BASE_URL}/api/robots/${robotId}/integrations/${integration.id}`,
-        { method: 'DELETE', headers: getAuthHeaders() }
+        { method: 'DELETE', headers: getJsonHeaders() }
       );
       const data = await res.json();
       if (res.ok && data.success) {
@@ -285,14 +284,14 @@ export default function Integrations() {
       };
       let res: Response;
       if (modalMode === 'create') {
-        res = await fetch(
+        res = await authService.fetchWithAuth(
           `${API_BASE_URL}/api/robots/${robotId}/integrations`,
-          { method: 'POST', headers: getAuthHeaders(), body: JSON.stringify(body) }
+          { method: 'POST', headers: getJsonHeaders(), body: JSON.stringify(body) }
         );
       } else {
-        res = await fetch(
+        res = await authService.fetchWithAuth(
           `${API_BASE_URL}/api/robots/${robotId}/integrations/${editingId}`,
-          { method: 'PUT', headers: getAuthHeaders(), body: JSON.stringify(body) }
+          { method: 'PUT', headers: getJsonHeaders(), body: JSON.stringify(body) }
         );
       }
       const data = await res.json();
