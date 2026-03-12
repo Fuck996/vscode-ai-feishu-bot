@@ -227,7 +227,7 @@ function MainLayout({ children }: { children: React.ReactNode }) {
       <footer className="bg-gray-100 border-t border-gray-200 mt-8">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <p className="text-center text-sm text-gray-600" style={{ textAlign: 'center' }}>
-            © 2026 飞书AI通知系统. 所有权利保留. | 前端 v1.4.0 | 后端 v{backendVersion} | 更新: 2026-03-12 17:30
+            © 2026 飞书AI通知系统. 所有权利保留. | 前端 v1.3.5 | 后端 v{backendVersion} | 更新: 2026-03-12 17:35
           </p>
         </div>
       </footer>

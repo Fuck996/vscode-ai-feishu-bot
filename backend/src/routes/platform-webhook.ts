@@ -92,14 +92,39 @@ function normalizeGitHub(headers: Record<string, any>, body: Record<string, any>
     }
     case 'workflow_run': {
       const wr = body.workflow_run;
-      const isSuccess = wr?.conclusion === 'success';
-      return {
-        event: 'workflow_run',
-        status: isSuccess ? 'success' : 'failure',
-        title: `${isSuccess ? '✅' : '❌'} GitHub Actions ${isSuccess ? '成功' : '失败'}`,
-        summary: `工作流：${wr?.name}\n分支：${wr?.head_branch}\n提交：${wr?.head_sha?.substring(0, 7)}`,
-        url: wr?.html_url,
-      };
+      const action = body.action; // 'requested', 'in_progress', 'completed'
+      
+      // 根据 action 和 conclusion 确定状态
+      if (action === 'requested') {
+        // 构建开始
+        return {
+          event: 'workflow_run',
+          status: 'info',
+          title: '⏳ GitHub Actions 构建开始',
+          summary: `工作流：${wr?.name}\n分支：${wr?.head_branch}\n提交：${wr?.head_sha?.substring(0, 7)}`,
+          url: wr?.html_url,
+        };
+      } else if (action === 'completed') {
+        // 构建完成（成功/失败）
+        const isSuccess = wr?.conclusion === 'success';
+        const isFailure = wr?.conclusion === 'failure';
+        
+        if (!isSuccess && !isFailure) {
+          // 其他结论状态（cancelled, timed_out, neutral等）- 不通知
+          return null;
+        }
+        
+        return {
+          event: 'workflow_run',
+          status: isSuccess ? 'success' : 'failure',
+          title: `${isSuccess ? '✅' : '❌'} GitHub Actions ${isSuccess ? '成功' : '失败'}`,
+          summary: `工作流：${wr?.name}\n分支：${wr?.head_branch}\n提交：${wr?.head_sha?.substring(0, 7)}`,
+          url: wr?.html_url,
+        };
+      } else {
+        // in_progress 或其他状态 - 不通知
+        return null;
+      }
     }
     case 'release':
       return { event: 'version_released', status: 'success', title: '🏷️ 版本发布', summary: `**${body.release?.tag_name}** ${body.release?.name || ''}`, url: body.release?.html_url };
@@ -309,15 +334,18 @@ router.post('/:integrationId', async (req: Request, res: Response) => {
 
   try {
     // 0. 检查是否为重复事件（去重）
-    // GitHub workflow_run 会在 requested/in_progress/completed 多个阶段发送，需要基于 workflow_run.id 去重
+    // GitHub workflow_run 会在 requested/in_progress/completed 多个阶段发送，需要分别去重
     let eventSignature = `${integrationId}-${req.body.ref || req.body.installation?.id || req.headers['x-github-event'] || 'unknown'}-${req.headers['x-github-delivery'] || req.body.id || 'unknown'}`;
     
     // GitHub workflow_run 事件：基于 workflow_run.id + action 来唯一标识
     if (req.headers['x-github-event'] === 'workflow_run' && req.body.workflow_run?.id) {
       const action = req.body.action || 'unknown'; // requested / in_progress / completed
-      const conclusion = req.body.workflow_run?.conclusion || 'unknown'; // success / failure / neutral / cancelled
-      // 只关注 completed 状态的 workflow_run（已 completed 再次发送不同 action 应该忽略）
-      eventSignature = `${integrationId}-workflow_run-${req.body.workflow_run.id}-${conclusion}`;
+      const conclusion = req.body.workflow_run?.conclusion; // success / failure / neutral / cancelled / timed_out / null
+      
+      // 使用 action 和 conclusion 组成不同的事件签名
+      // - requested: 基于 action 唯一标识（每个 workflow run 只有一个 requested）
+      // - completed: 基于 conclusion 唯一标识（同一 workflow 的 completed 事件只应该处理一次）
+      eventSignature = `${integrationId}-workflow_run-${req.body.workflow_run.id}-${action}${conclusion ? `-${conclusion}` : ''}`;
     }
     
     if (isRecentEvent(eventSignature)) {
@@ -395,13 +423,24 @@ router.post('/:integrationId', async (req: Request, res: Response) => {
       return res.json({ success: true, message: '事件已接收，无对应处理器' });
     }
 
-    // 4.1 过滤 GitHub workflow_run 的非 completed 事件（workflow_run 会在 requested/in_progress/completed 多个阶段发送）
+    // 4.1 过滤 GitHub workflow_run 事件：
+    // - action='requested': 构建开始，正常处理
+    // - action='in_progress': 构建中，忽略（不发送通知）
+    // - action='completed': 构建完成，normalizeGitHub 根据 conclusion 判断是否成功/失败
     if (platform === 'github' && req.headers['x-github-event'] === 'workflow_run') {
+      const action = req.body.action || 'unknown';
       const wr = req.body.workflow_run;
-      if (!wr?.conclusion) {
-        // conclusion 为 null 表示 workflow 仍在运行中，忽略该事件
-        addLog('info', 'Webhook 接收', `GitHub workflow_run 未完成，已跳过 [${wr?.name || 'unknown'}] [action=${req.body.action}]`);
-        return res.json({ success: true, message: 'GitHub workflow_run 事件已接收，但未完成运行，已跳过' });
+      
+      if (action === 'in_progress') {
+        // 跳过构建中的事件
+        addLog('info', 'Webhook 接收', `GitHub workflow_run 构建中，已跳过 [${wr?.name || 'unknown'}] [action=${action}]`);
+        return res.json({ success: true, message: 'GitHub workflow_run 事件已接收，构建中已跳过' });
+      }
+      
+      if (action === 'completed' && !wr?.conclusion) {
+        // 不应该出现这种情况，但防御性地处理
+        addLog('info', 'Webhook 接收', `GitHub workflow_run 状态异常（completed但无conclusion），已跳过`);
+        return res.json({ success: true, message: 'GitHub workflow_run 事件异常，已跳过' });
       }
     }
 
