@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import authService from '../services/auth';
 
 interface Service {
@@ -43,6 +43,7 @@ const Services: React.FC = () => {
   const [countdowns, setCountdowns] = useState<Record<string, TimeCountdown>>({});
   const [autoRefresh, setAutoRefresh] = useState(true);
   const [operatingServiceId, setOperatingServiceId] = useState<string | null>(null);
+  const logPanelRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     fetchServices();
@@ -295,8 +296,8 @@ const Services: React.FC = () => {
           </div>
         )}
 
-        {/* 服务卡片网格 */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: '1.5rem', marginBottom: '2rem' }}>
+        {/* 服务卡片列表 - 横向宽条形式 */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginBottom: '2rem' }}>
           {services.map((service) => (
             <div
               key={service.id}
@@ -305,55 +306,46 @@ const Services: React.FC = () => {
                 borderRadius: '0.75rem',
                 boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
                 overflow: 'hidden',
-                transition: 'all 0.2s',
-                cursor: 'default',
                 display: 'flex',
-                flexDirection: 'column',
-                minHeight: '480px',
+                transition: 'all 0.2s',
               }}
               onMouseEnter={(e) => {
-                e.currentTarget.style.boxShadow = '0 4px 6px rgba(0,0,0,0.15)';
-                e.currentTarget.style.transform = 'translateY(-2px)';
+                e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.12)';
+                e.currentTarget.style.transform = 'translateY(-1px)';
               }}
               onMouseLeave={(e) => {
                 e.currentTarget.style.boxShadow = '0 1px 3px rgba(0,0,0,0.1)';
                 e.currentTarget.style.transform = 'translateY(0)';
               }}
             >
-              {/* 服务头部 */}
+              {/* 左侧彩色标识带 */}
               <div
                 style={{
                   background: getStatusColor(service.status),
                   color: 'white',
-                  padding: '1.5rem',
+                  padding: '1.25rem 1.5rem',
                   display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'flex-start',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  minWidth: '160px',
+                  gap: '0.75rem',
+                  flexShrink: 0,
                 }}
               >
-                <div style={{ display: 'flex', gap: '1rem', alignItems: 'flex-start', flex: 1 }}>
-                  <div
-                    style={{
-                      width: '48px',
-                      height: '48px',
-                      background: 'rgba(255,255,255,0.2)',
-                      borderRadius: '0.5rem',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      fontSize: '1.5rem',
-                    }}
-                  >
-                    {service.icon}
-                  </div>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: '1rem', fontWeight: 600, marginBottom: '0.25rem' }}>
-                      {service.name}
-                    </div>
-                    <div style={{ fontSize: '0.75rem', opacity: 0.9 }}>
-                      {service.type}
-                    </div>
-                  </div>
+                <div
+                  style={{
+                    width: '52px',
+                    height: '52px',
+                    background: 'rgba(255,255,255,0.2)',
+                    borderRadius: '0.75rem',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: '1.75rem',
+                  }}
+                >
+                  {service.icon}
                 </div>
                 <div
                   style={{
@@ -361,8 +353,8 @@ const Services: React.FC = () => {
                     alignItems: 'center',
                     gap: '0.375rem',
                     background: 'rgba(255,255,255,0.2)',
-                    padding: '0.375rem 0.75rem',
-                    borderRadius: '0.25rem',
+                    padding: '0.25rem 0.75rem',
+                    borderRadius: '1rem',
                     fontSize: '0.75rem',
                     fontWeight: 600,
                     whiteSpace: 'nowrap',
@@ -373,89 +365,81 @@ const Services: React.FC = () => {
                       width: '6px',
                       height: '6px',
                       borderRadius: '50%',
-                      background: 'rgba(255,255,255,0.8)',
-                      animation: 'pulse 2s infinite',
+                      background: 'rgba(255,255,255,0.9)',
+                      animation: service.status === 'running' ? 'pulse 2s infinite' : 'none',
+                      flexShrink: 0,
                     }}
                   />
                   {getStatusLabel(service.status)}
                 </div>
               </div>
 
-              {/* 服务内容 */}
-              <div style={{ padding: '1.5rem', borderBottom: '1px solid #e5e7eb', flex: 1 }}>
-                <p style={{ fontSize: '0.875rem', color: '#6b7280', marginBottom: '1rem', lineHeight: 1.5 }}>
+              {/* 中间：名称 + 描述 */}
+              <div style={{ padding: '1.25rem 1.5rem', flex: 1, borderRight: '1px solid #f3f4f6', minWidth: 0 }}>
+                <div style={{ fontSize: '1rem', fontWeight: 600, color: '#1f2937', marginBottom: '0.25rem' }}>
+                  {service.name}
+                </div>
+                <div style={{ fontSize: '0.75rem', color: '#9ca3af', marginBottom: '0.5rem' }}>
+                  {service.type}
+                </div>
+                <p style={{ fontSize: '0.8125rem', color: '#6b7280', lineHeight: 1.5, margin: 0 }}>
                   {service.description}
                 </p>
 
-                {/* 统计数据 */}
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '0.75rem' }}>
-                  {service.stats.map((stat, idx) => (
-                    <div key={idx}>
-                      <div style={{ fontSize: '0.75rem', color: '#9ca3af', marginBottom: '0.25rem' }}>
-                        {stat.label}
-                      </div>
-                      <div style={{ fontSize: '1.125rem', fontWeight: 600, color: '#1f2937' }}>
-                        {stat.value}
-                      </div>
+                {/* 错误提示 */}
+                {service.status === 'error' && service.lastError && (
+                  <div style={{ marginTop: '0.75rem', padding: '0.5rem 0.75rem', backgroundColor: '#fef2f2', borderRadius: '0.375rem', borderLeft: '3px solid #ef4444', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <span style={{ fontSize: '0.75rem', color: '#dc2626' }}>⚠️ {service.lastError}</span>
+                  </div>
+                )}
+              </div>
+
+              {/* 右侧统计数据 */}
+              <div style={{ padding: '1.25rem 1.5rem', display: 'flex', alignItems: 'center', gap: '2rem', borderRight: '1px solid #f3f4f6', flexShrink: 0 }}>
+                {service.stats.map((stat, idx) => (
+                  <div key={idx} style={{ textAlign: 'center', minWidth: '60px' }}>
+                    <div style={{ fontSize: '0.75rem', color: '#9ca3af', marginBottom: '0.25rem', whiteSpace: 'nowrap' }}>
+                      {stat.label}
                     </div>
-                  ))}
-                </div>
+                    <div style={{ fontSize: '1.375rem', fontWeight: 700, color: '#1f2937', lineHeight: 1.2 }}>
+                      {stat.value}
+                    </div>
+                  </div>
+                ))}
 
                 {/* 定时倒计时 */}
                 {service.isScheduled && countdowns[service.id] && (
-                  <div style={{ marginTop: '1rem', padding: '0.75rem', backgroundColor: '#f0f9ff', borderRadius: '0.375rem', borderLeft: '3px solid #3b82f6' }}>
-                    <div style={{ fontSize: '0.75rem', color: '#1e40af', fontWeight: 600, marginBottom: '0.25rem' }}>
-                      ⏱️ 下次运行
+                  <div style={{ textAlign: 'center', minWidth: '80px', padding: '0.5rem', backgroundColor: '#f0f9ff', borderRadius: '0.375rem', borderLeft: '3px solid #3b82f6' }}>
+                    <div style={{ fontSize: '0.7rem', color: '#1e40af', fontWeight: 600, marginBottom: '0.125rem' }}>
+                      下次运行
                     </div>
-                    <div style={{ fontSize: '0.875rem', color: '#0284c7', fontWeight: 500 }}>
+                    <div style={{ fontSize: '0.8rem', color: '#0284c7', fontWeight: 500 }}>
                       {formatCountdown(countdowns[service.id])}
-                    </div>
-                  </div>
-                )}
-
-                {/* 错误提示 */}
-                {service.status === 'error' && service.lastError && (
-                  <div style={{ marginTop: '1rem', padding: '0.75rem', backgroundColor: '#fef2f2', borderRadius: '0.375rem', borderLeft: '3px solid #ef4444' }}>
-                    <div style={{ fontSize: '0.75rem', color: '#991b1b', fontWeight: 600 }}>
-                      ⚠️ 最后错误
-                    </div>
-                    <div style={{ fontSize: '0.75rem', color: '#dc2626', marginTop: '0.25rem' }}>
-                      {service.lastError}
                     </div>
                   </div>
                 )}
               </div>
 
               {/* 操作按钮 */}
-              <div style={{ padding: '1rem', display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.75rem' }}>
+              <div style={{ padding: '1.25rem 1.25rem', display: 'flex', alignItems: 'center', gap: '0.625rem', flexShrink: 0 }}>
                 <button
                   disabled={operatingServiceId === service.id}
                   style={{
-                    padding: '0.5rem 0.75rem',
-                    border: '1px solid #d1d5db',
+                    padding: '0.5rem 1rem',
+                    border: 'none',
                     background: service.status === 'running' ? '#ef4444' : '#3b82f6',
                     color: 'white',
                     borderRadius: '0.375rem',
                     cursor: operatingServiceId === service.id ? 'not-allowed' : 'pointer',
-                    fontSize: '0.75rem',
+                    fontSize: '0.8125rem',
                     fontWeight: 500,
-                    transition: 'all 0.2s',
                     opacity: operatingServiceId === service.id ? 0.5 : 1,
+                    whiteSpace: 'nowrap',
                   }}
                   onClick={() => handleServiceAction(
                     service.status === 'running' ? 'stop' : 'start',
                     service.id
                   )}
-                  onMouseEnter={(e) => {
-                    if (operatingServiceId !== service.id) {
-                      e.currentTarget.style.opacity = '0.9';
-                    }
-                  }}
-                  onMouseLeave={(e) => {
-                    if (operatingServiceId !== service.id) {
-                      e.currentTarget.style.opacity = '1';
-                    }
-                  }}
                 >
                   {service.status === 'running' ? '停止' : '启动'}
                 </button>
@@ -463,53 +447,43 @@ const Services: React.FC = () => {
                 <button
                   disabled={operatingServiceId === service.id}
                   style={{
-                    padding: '0.5rem 0.75rem',
+                    padding: '0.5rem 1rem',
                     border: '1px solid #3b82f6',
                     background: 'white',
                     color: '#3b82f6',
                     borderRadius: '0.375rem',
                     cursor: operatingServiceId === service.id ? 'not-allowed' : 'pointer',
-                    fontSize: '0.75rem',
+                    fontSize: '0.8125rem',
                     fontWeight: 500,
-                    transition: 'all 0.2s',
                     opacity: operatingServiceId === service.id ? 0.5 : 1,
+                    whiteSpace: 'nowrap',
                   }}
                   onClick={() => handleServiceAction('restart', service.id)}
-                  onMouseEnter={(e) => {
-                    if (operatingServiceId !== service.id) {
-                      e.currentTarget.style.backgroundColor = '#eff6ff';
-                    }
-                  }}
-                  onMouseLeave={(e) => {
-                    if (operatingServiceId !== service.id) {
-                      e.currentTarget.style.backgroundColor = 'white';
-                    }
-                  }}
                 >
                   重启
                 </button>
 
                 <button
                   style={{
-                    padding: '0.5rem 0.75rem',
+                    padding: '0.5rem 1rem',
                     border: '1px solid #d1d5db',
                     background: 'white',
-                    color: '#6b7280',
+                    color: '#374151',
                     borderRadius: '0.375rem',
                     cursor: 'pointer',
-                    fontSize: '0.75rem',
+                    fontSize: '0.8125rem',
                     fontWeight: 500,
-                    transition: 'all 0.2s',
+                    whiteSpace: 'nowrap',
                   }}
                   onClick={() => {
-                    setSelectedService(service.name || service.id);
+                    // 重置为显示全部日志，滚动到日志面板
+                    setSelectedService('全部');
+                    setTimeout(() => {
+                      logPanelRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    }, 100);
                   }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.backgroundColor = '#f3f4f6';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.backgroundColor = 'white';
-                  }}
+                  onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#f3f4f6'; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'white'; }}
                 >
                   查看日志
                 </button>
@@ -519,10 +493,15 @@ const Services: React.FC = () => {
         </div>
 
         {/* 日志面板 */}
-        <div style={{ background: 'white', borderRadius: '0.75rem', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', padding: '1.5rem' }}>
+        <div ref={logPanelRef} style={{ background: 'white', borderRadius: '0.75rem', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', padding: '1.5rem' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-            <div style={{ fontSize: '1.125rem', fontWeight: 600, color: '#1f2937' }}>
+            <div style={{ fontSize: '1.125rem', fontWeight: 600, color: '#1f2937', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
               📊 实时日志
+              {activeLogs.length > 0 && (
+                <span style={{ fontSize: '0.75rem', fontWeight: 500, color: '#6b7280', background: '#f3f4f6', padding: '0.125rem 0.5rem', borderRadius: '1rem' }}>
+                  {activeLogs.length} 条
+                </span>
+              )}
             </div>
             <button
               style={{
