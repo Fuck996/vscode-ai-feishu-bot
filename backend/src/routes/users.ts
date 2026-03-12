@@ -212,9 +212,6 @@ router.delete('/:userId', authMiddleware, async (req: Request, res: Response) =>
   }
 });
 
-export default router;
-
-
 /**
  * GET /api/users/me
  * 获取当前用户信息
@@ -321,45 +318,6 @@ router.post('/change-password', authMiddleware, async (req: Request, res: Respon
     });
   } catch (error) {
     console.error('修改密码错误:', error);
-    res.status(500).json({
-      success: false,
-      error: '内部服务器错误',
-    });
-  }
-});
-
-/**
- * POST /api/system/restore
- * 系统还原 - 清空所有数据
- */
-router.post('/system/restore', authMiddleware, async (req: Request, res: Response) => {
-  try {
-    const userId = (req as any).userId;
-    const user = await database.getUserById(userId);
-
-    // 只有admin可以执行系统还原
-    if (!user || user.role !== 'admin') {
-      return res.status(403).json({
-        success: false,
-        error: '仅管理员可以执行系统还原',
-      });
-    }
-
-    // 清除数据库文件
-    const dbPath = path.join(__dirname, '../../data/notifications.db');
-    if (fs.existsSync(dbPath)) {
-      fs.unlinkSync(dbPath);
-    }
-
-    // 重新初始化数据库（创建admin用户）
-    await database.initialize();
-
-    res.json({
-      success: true,
-      message: '系统已成功还原',
-    });
-  } catch (error) {
-    console.error('系统还原错误:', error);
     res.status(500).json({
       success: false,
       error: '内部服务器错误',
