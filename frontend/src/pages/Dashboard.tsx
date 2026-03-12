@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import authService from '../services/auth';
 
@@ -611,29 +611,18 @@ const Dashboard: React.FC = () => {
                 >
                   <ChevronRight size={16} />
                 </button>
-              </div>{
-                    const lastMessageTimeStr = robot.lastMessageTime 
-                      ? new Date(robot.lastMessageTime).toLocaleString('zh-CN', {
-                          year: 'numeric',
-                          month: '2-digit',
-                          day: '2-digit',
-                          hour: '2-digit',
-                          minute: '2-digit'
-                        })
-                      : '未发送';
-                    return (
-                      <tr key={robot.id} style={{ borderBottom: '1px solid #f3f4f6' }}>
-                        <td style={{ padding: '0.75rem', fontSize: '0.875rem', color: '#374151' }}>{robot.name}</td>
-                        <td style={{ padding: '0.75rem', fontSize: '0.875rem', color: '#374151' }}>
-                          <span style={{ color: robot.status === 'active' ? '#10b981' : '#6b7280', fontWeight: 600 }}>
-                            {robot.status === 'active' ? '🟢 活跃' : '🔴 离线'}
-                          </span>
-                        </td>
-                        <td style={{ padding: '0.75rem', fontSize: '0.875rem', color: '#374151' }}>{lastMessageTimeStr}</td>
-                        <td style={{ padding: '0.75rem', fontSize: '0.875rem', color: '#374151' }}>{robot.messageCount}条</td>
-                      </tr>
-                    );
-                  }style={{ width: '100%', borderCollapse: 'collapse' }}>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* 活跃机器人列表 */}
+        <div style={{ background: 'white', borderRadius: '0.5rem', boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)', overflow: 'hidden' }}>
+          <div style={{ padding: '1.5rem', borderBottom: '1px solid #e5e7eb' }}>
+            <h2 style={{ fontSize: '1.125rem', fontWeight: 'bold', color: '#1f2937' }}>活跃机器人列表</h2>
+          </div>
+          <div style={{ overflowX: 'auto', padding: '1.5rem' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
               <thead style={{ backgroundColor: '#f9fafb' }}>
                 <tr>
                   <th style={{ padding: '0.75rem', textAlign: 'left', fontWeight: 600, fontSize: '0.875rem', color: '#6b7280', borderBottom: '1px solid #e5e7eb' }}>机器人名称</th>
@@ -652,7 +641,7 @@ const Dashboard: React.FC = () => {
                           {robot.status === 'active' ? '🟢 活跃' : '🔴 离线'}
                         </span>
                       </td>
-                      <td style={{ padding: '0.75rem', fontSize: '0.875rem', color: '#374151' }}>{robot.lastMessage || '未发送'}</td>
+                      <td style={{ padding: '0.75rem', fontSize: '0.875rem', color: '#374151' }}>{robot.lastMessageTime ? new Date(robot.lastMessageTime).toLocaleString('zh-CN') : '未发送'}</td>
                       <td style={{ padding: '0.75rem', fontSize: '0.875rem', color: '#374151' }}>{robot.messageCount}条</td>
                     </tr>
                   ))
