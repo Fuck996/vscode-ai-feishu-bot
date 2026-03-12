@@ -725,14 +725,13 @@ function IntegrationModal({
                 <div style={{ background: '#fff3e0', border: '1px solid #ffcc80', borderRadius: '0.375rem', padding: '0.75rem', fontSize: '0.78rem', color: '#e65100', lineHeight: 1.8 }}>
                   📖 <strong>配置步骤（DSM 7.x）：</strong><br />
                   1. 控制面板 → 通知 → 高级 → 服务 → <strong>添加服务提供商</strong><br />
-                  2. 选择 <strong>HTTP</strong> 类型，填写服务商名称<br />
-                  3. URL 填入创建后生成的 Webhook 地址<br />
-                  4. 添加请求标头：<code>X-Webhook-Secret: &lt;secret&gt;</code>（创建后获取）<br />
-                  5. 添加请求标头：<code>Content-Type: application/json</code><br />
-                  6. Body 模板填写（复制粘贴）：<code>{'{"subject":"%SUBJECT%","description":"%DESCRIPTION%","hostname":"%HOSTNAME%"}'}</code><br />
-                  7. 保存后，前往 <strong>通知规则</strong> 选择此服务商，即可推送所选事件
+                  2. 类型选择 <strong>Webhook</strong>（或 HTTP），填写服务商名称（如"飞书通知"）<br />
+                  3. Webhook URL 填入创建后生成的地址（仅需 URL，无需任何请求标头）<br />
+                  4. 主题模板建议填写 <code>%SUBJECT%</code>，使 DSM 自动传递实际事件描述<br />
+                  5. 保存后，前往 <strong>通知规则</strong> → 选择此服务商 → 勾选需要的事件类别
                 </div>
                 <div style={{ background: '#fef9c3', border: '1px solid #fde68a', borderRadius: '0.375rem', padding: '0.5rem 0.75rem', fontSize: '0.75rem', color: '#713f12', marginTop: '0.5rem' }}>
+                  ⚠️ <strong>安全说明：</strong>群晖 DSM 不支持自定义请求标头。Webhook URL 中的随机 UUID 即为鉴权凭据，请妥善保存，切勿泄露。<br />
                   💡 <strong>支持的通知事件：</strong>存储空间不足 / 硬盘严重状态 / 硬盘故障 / 容器意外停止 / 安全风险 / 恶意软件 / 备份任务结果 / 系统重启
                 </div>
               </div>
@@ -1132,12 +1131,11 @@ function SetupGuideModal({ integration, apiBaseUrl, onClose }: {
     custom:       { header: '🛠️ Custom Webhook', bg: '#f3f4f6', color: '#374151', steps: ['向上方 Webhook URL 发送 POST 请求', '请求体：{ title, summary, status, event?, url? }', '请求头：X-Webhook-Secret: <secret>'] },
     synology:     { header: '📦 Synology NAS', bg: '#fff7ed', color: '#9a3412', steps: [
       'DSM 控制面板 → 通知 → 高级 → 服务 → 添加服务提供商',
-      '类型选择 HTTP，填写一个服务商名称（如"飞书通知"）',
-      'URL 填写上方 Webhook 地址',
-      '添加请求标头：X-Webhook-Secret: <上方 Secret>',
-      '添加请求标头：Content-Type: application/json',
-      'Body 模板填写（复制粘贴）：{"subject":"%SUBJECT%","description":"%DESCRIPTION%","hostname":"%HOSTNAME%"}',
-      '保存服务商后，前往「通知规则」启用此服务商 → 在需要的事件类别中勾选（推荐：存储/磁盘/安全/套件）',
+      '类型选择 Webhook（或 HTTP），填写服务商名称（如"飞书通知"）',
+      'Webhook URL 填写上方生成的地址（只需填 URL，无需添加任何请求标头）',
+      '⚠️ 群晖 DSM 不支持自定义请求标头，URL 中的随机 UUID 即为安全凭据，请妥善保存',
+      '主题模板建议填写 %SUBJECT%，以便 DSM 传递实际事件描述（如"存储空间不足"）',
+      '保存后，前往「通知规则」启用此服务商 → 勾选需要的事件类别（推荐：存储/磁盘/安全/套件）',
       '点击「发送测试通知」验证配置是否生效',
     ] },
   };

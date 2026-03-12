@@ -233,9 +233,13 @@ function normalizeGitLab(headers: Record<string, any>, body: Record<string, any>
  * 事件识别基于关键词匹配，覆盖：存储空间不足、硬盘异常/故障、容器意外停止、安全风险、恶意软件、备份任务。
  */
 function normalizeSynology(body: Record<string, any>): NormalizedEvent {
-  // 兼容 JSON body 和 form-encoded body 的各种字段名
+  // 群晖 DSM webhook 的实际请求体格式：
+  //   "Synology Chat Webhook" 原生格式：{"text": "存储空间 1 快达到容量上限..."}
+  //   自定义 HTTP 通知格式（需用户在 Body 模板中配置 %SUBJECT%）：{"subject": "..."}
+  //   兼容 form-encoded 及其他字段名
   const subject = String(
-    body.subject || body.Subject || body.title || body.Title || ''
+    body.subject || body.Subject || body.title || body.Title ||
+    body.text    || body.Text    || body.msg   || body.message || ''
   ).trim();
   const description = String(
     body.description || body.Description || body.body || body.Body || body.content || ''
