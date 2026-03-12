@@ -118,7 +118,7 @@ app.get('/api/health', (req: Request, res: Response) => {
 app.get('/api/status', (req: Request, res: Response) => {
   res.json({
     name: 'Feishu AI Notification Service',
-    version: '1.3.1',
+    version: '1.3.2',
     status: 'running',
     endpoints: {
       health: '/api/health',

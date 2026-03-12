@@ -1,6 +1,49 @@
 # 飞书 AI 通知系统 - Copilot 开发指南
 
-项目版本：v1.0.0 | 最后更新：2026-03-11 | 内容：MCP 实现完善、文档整合
+**版本：** v1.3.2 | **更新时间：** 2026-03-13 | **内容：** UTF-8 编码规范、完整项目标准、MCP 服务完善
+
+---
+
+## 📄 编码与格式规范
+
+### UTF-8 字符编码标准
+
+**文件编码要求**：项目所有文件均使用 **UTF-8 编码（无 BOM）**
+
+- ✅ **源代码文件** (`.ts`, `.tsx`, `.js`, `.jsx`, `.json`)：**必须无 BOM**
+  - 理由：Node.js 和 TypeScript 编译器不支持 BOM，可能导致模块解析失败
+  - IDE 配置：VS Code 在 `.editorconfig` 或工作区设置中自动移除 BOM
+  
+- ✅ **文档文件** (`.md`, `.markdown`)：**UTF-8 无 BOM 推荐**
+  - 可以包含 BOM，但无 BOM 是最佳实践
+  - Git 会正确处理任何 UTF-8 变体
+
+- ✅ **配置文件** (YAML, TOML, JSONC)：**必须无 BOM**
+  - 大多数解析器不支持 BOM
+
+**IDE 配置** (`.editorconfig` 参考)：
+```ini
+[*]
+charset = utf-8
+insert_final_newline = true
+trim_trailing_whitespace = true
+
+[*.{ts,tsx,js,jsx,json}]
+end_of_line = lf
+indent_style = space
+indent_size = 2
+```
+
+**验证命令** (PowerShell)：
+```powershell
+# 检查文件是否有 BOM
+$bytes = [System.IO.File]::ReadAllBytes("file.ts")
+if ($bytes[0] -eq 0xEF -and $bytes[1] -eq 0xBB -and $bytes[2] -eq 0xBF) {
+    Write-Host "文件包含 UTF-8 BOM - 需要移除"
+} else {
+    Write-Host "文件编码正确（无 BOM）"
+}
+```
 
 ---
 
@@ -180,56 +223,205 @@ vscode-ai-feishu-bot/
 
 ## 🎯 代码风格与约定
 
-### TypeScript 类型
-- 所有接口定义在 `database.ts`：`User`, `Robot`, `Integration`, `Notification`
-- 路由中使用 `interface AuthPayload` 定义 JWT 解码后的数据
-- 避免 `any`；使用 `Record<string, unknown>` 处理动态对象
+### TypeScript & JavaScript 编码规范
 
-### 错误处理
-- 所有异步操作用 try/catch；数据库访问必须抛出 `Error`
-- API 返回统一格式：`{ success: boolean, data?: T, error?: string }`
-- HTTP 状态码：401 (无认证), 403 (无权限), 404 (不存在), 400 (参数错误), 500 (服务器错误)
+#### 导入与导出规范
+- **命名导入优于默认导入**：`import { DatabaseService } from './database'`
+- **路径使用相对路径**：优先使用 `../` 或 `./`，避免依赖别名
+- **分组导入**：stdlib → 第三方库 → 项目内部，各组间空一行
+  ```typescript
+  import fs from 'fs';
+  import path from 'path';
+  
+  import express, { Router } from 'express';
+  import { v4 as uuidv4 } from 'uuid';
+  
+  import { DatabaseService } from '../database';
+  import { verifyToken } from '../middleware/auth';
+  ```
+- **避免 `import *`**：显式导入需要的对象，便于追踪依赖
+- **通常使用 `export default`**：对于单个导出的模块（如 `database.ts`）
+- **命名导出用于实用函数**：如中间件、工具函数
 
-### 命名规范
-- **文件**: kebab-case (`auth.ts`, `integrations.ts`)
-- **接口**: PascalCase (`User`, `Integration`)
-- **变量/函数**: camelCase (`getUserById`, `robotModalMode`)
-- **路由**: kebab-case (`/api/robots/:robotId/integrations/:integrationId/status`)
-- **数据库字段**: camelCase (`createdAt`, `projectType`)
+#### 变量与函数命名
+- **常量**: `UPPER_SNAKE_CASE`（全局常量、环境变量）
+- **变量/函数**: `camelCase`（局部变量、函数名）
+- **类/接口**: `PascalCase`（类、类型、接口）
+- **路由路径**: `kebab-case` （`/api/robots/:robotId/integrations/:integrationId/status`）
+- **数据库字段**: `camelCase` （`createdAt`, `projectType`）
+- **布尔变量**: 前缀 `is/has/can/should`（`isActive`, `hasPermission`, `canDelete`）
 
-### 认证流程
-1. 前端: `authService.login(username, password)` → 获取 JWT
-2. Token 存储在 `localStorage` (key: `auth_token`)
-3. 每次请求在 Header 中：`Authorization: Bearer <token>`
-4. 后端验证中间件 `verifyToken` 解码 JWT 并挂载 `req.user`
-5. 所有需认证的路由先调用 `verifyToken` 中间件
+#### 类型定义规范
+- **优先接口优于类型别名**：`interface User { ... }` 优于 `type User = { ... }`
+- **不使用 `any` 类型**：必要时用 `unknown` 然后显式类型守卫
+  ```typescript
+  // ❌ 不好
+  function process(data: any) { ... }
+  
+  // ✅ 好
+  function process(data: unknown) {
+    if (typeof data === 'object' && data !== null) {
+      // 类型守卫后使用
+    }
+  }
+  ```
+- **使用 `Record<string, unknown>` 处理动态对象**：
+  ```typescript
+  interface Integration {
+    config: Record<string, unknown>;  // ✅
+  }
+  ```
+- **可选字段使用 `?:`**：`email?: string`
 
-### 数据库操作
-- 数据存储在 `./data/notifications.db` (JSON 文件)
-- 每次修改后自动调用 `saveToFile()`
-- `database.ts` 导出单例：`export default new DatabaseService()`
-- 所有方法都是 async (即使本地操作也保持一致)
+#### 异常处理规范
+- **所有异步操作必须 try/catch**：
+  ```typescript
+  async function getUserById(id: string): Promise<User> {
+    try {
+      const user = await db.getUserById(id);
+      if (!user) throw new Error('User not found');
+      return user;
+    } catch (err) {
+      logger.error('Failed to get user', { userId: id, error: err });
+      throw err;  // 继续传播错误
+    }
+  }
+  ```
+- **API 返回统一格式**：
+  ```typescript
+  // 成功响应
+  res.json({ success: true, data: result });
+  
+  // 错误响应
+  res.status(400).json({ success: false, error: 'Invalid input' });
+  ```
+- **HTTP 状态码规范**：
+  - `200`: 成功
+  - `400`: 参数/请求错误
+  - `401`: 未认证
+  - `403`: 无权限
+  - `404`: 资源不存在
+  - `500`: 服务器错误
 
-### React 前端约定
-- 页面组件在 `frontend/src/pages/`
-- 使用 `useState`, `useEffect`, `useNavigate` (react-router-dom)
-- 样式：混合 inline styles + Tailwind (旧代码用 inline，新代码可用 CSS class)
-- API 调用通过 `fetch` + `authService.getToken()`
-- 错误/消息状态用 state 及时清除 (3 秒后)
+#### 注释规范
+- **公开 API 使用 JSDoc**：
+  ```typescript
+  /**
+   * 获取集成列表
+   * @param robotId - 机器人 ID
+   * @returns 该机器人的所有集成
+   * @throws Error 如果机器人不存在
+   */
+  async getIntegrationsByRobotId(robotId: string): Promise<Integration[]> {
+    // ...
+  }
+  ```
+- **复杂逻辑添加中文注释**：
+  ```typescript
+  // 按创建时间倒序排序，最新的放在前面
+  const sorted = integrations.sort((a, b) => 
+    new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+  );
+  ```
+- **避免显而易见的注释**：
+  ```typescript
+  // ❌ 不好
+  count++;  // 计数器加一
+  
+  // ✅ 好
+  // 检查重试次数是否超过限制
+  if (++retryCount > MAX_RETRIES) { ... }
+  ```
 
-### 路由认证逻辑 (后端)
-```typescript
-// 每个路由文件的模板
-function verifyToken(req, res, next) {
-  // 检查 'Bearer <token>' 并 jwt.verify
-  // 失败返回 401，成功则 req.user = decoded
+#### 严格模式配置 (tsconfig.json)
+```json
+{
+  "compilerOptions": {
+    "strict": true,
+    "noImplicitAny": true,
+    "strictNullChecks": true,
+    "strictFunctionTypes": true,
+    "noImplicitThis": true,
+    "alwaysStrict": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noImplicitReturns": true
+  }
 }
-
-router.post('/endpoint', verifyToken, async (req, res) => {
-  const userId = req.user.userId; // 已认证用户 ID
-  // 业务逻辑...
-});
 ```
+
+### React & Frontend 编码规范
+
+#### 文件与组件组织
+- **页面组件**: `frontend/src/pages/PageName.tsx`
+- **可复用组件**: `frontend/src/components/ComponentName.tsx`
+- **自定义 Hooks**: `frontend/src/hooks/useHookName.ts`
+- **服务/API**: `frontend/src/services/serviceName.ts`
+- **样式**: 混合 inline styles + Tailwind className
+
+#### 组件编写规范
+- **函数式组件优于类组件**：使用 React Hooks
+- **Props 类型定义**：
+  ```typescript
+  interface RobotListProps {
+    robots: Robot[];
+    onSelect: (robot: Robot) => void;
+    loading?: boolean;  // 可选 Props
+  }
+  
+  export function RobotList({ robots, onSelect, loading }: RobotListProps) {
+    return <div>...</div>;
+  }
+  ```
+- **使用 `useState` 管理本地状态**：
+  ```typescript
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  ```
+- **使用 `useEffect` 处理副作用**：
+  ```typescript
+  useEffect(() => {
+    fetchRobots();
+  }, []);  // 空依赖数组 = 仅在挂载时运行
+  ```
+- **消息提示自动清除**：
+  ```typescript
+  const [message, setMessage] = useState<string | null>(null);
+  
+  useEffect(() => {
+    if (message) {
+      const timer = setTimeout(() => setMessage(null), 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [message]);
+  ```
+
+#### API 调用模式
+```typescript
+// 在 useEffect 中获取数据
+useEffect(() => {
+  (async () => {
+    try {
+      const token = authService.getToken();
+      const res = await fetch('/api/robots', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (!res.ok) throw new Error('Failed to fetch');
+      const data = await res.json();
+      setRobots(data.data);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : '加载失败');
+    }
+  })();
+}, []);
+```
+
+#### 样式规范
+- **使用 Tailwind 类名**：`className="px-4 py-2 bg-blue-500 rounded"`
+- **动态样式用 inline styles**（旧代码风格）或条件 className
+- **避免 CSS-in-JS**：颜色、大小等直接用 Tailwind 工具类
+
+---
 
 ---
 
