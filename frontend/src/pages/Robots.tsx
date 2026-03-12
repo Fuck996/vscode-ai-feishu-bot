@@ -50,9 +50,19 @@ export default function Robots() {
         headers: { 'Content-Type': 'application/json' },
       });
 
+      if (!response.ok) {
+        let errMsg = '获取机器人列表失败';
+        try {
+          const errData = await response.json();
+          errMsg = (errData as any).error || errMsg;
+        } catch {}
+        setError(errMsg);
+        return;
+      }
+
       const data: RobotsResponse = await response.json();
 
-      if (response.ok && data.success) {
+      if (data.success) {
         setRobots(data.data || []);
       } else {
         setError(data.error || '获取机器人列表失败');

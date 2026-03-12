@@ -55,7 +55,7 @@ const History: React.FC = () => {
       }
     } catch (err) {
       console.error('Failed to fetch data:', err);
-      setError('Failed to load notification history');
+      setError('加载通知历史失败');
     } finally {
       setLoading(false);
     }

@@ -291,7 +291,7 @@ const Settings: React.FC = () => {
           {/* 左侧菜单 */}
           <div style={{ background: 'white', borderRadius: '0.5rem', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', overflow: 'hidden', height: 'fit-content' }}>
             <div style={{ padding: '0.75rem 1.25rem', fontSize: '0.75rem', fontWeight: 700, color: '#9ca3af', textTransform: 'uppercase', borderBottom: '1px solid #f3f4f6', background: '#f9fafb' }}>
-              个人
+              个人设置
             </div>
             <div style={menuItemStyle('account-settings')} onClick={() => setActiveMenu('account-settings')}>
               🔑 账户信息
