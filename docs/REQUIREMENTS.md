@@ -65,7 +65,8 @@
 
 | # | 优先级 | 标题 | 根因 | 状态 | 修复版本 |
 |---|--------|------|------|------|----------|
-| BUG-U08 | 🟡 | 弹窗第一次打开容易误关闭 | 打开弹窗的按钮点击事件冒泡至 overlay 触发关闭；将 overlay 的 onClick 改为 onMouseDown + e.target===e.currentTarget 检查（Dashboard/History/Integrations 三处）| ✅ 已修复 | v1.3.7 |
+| BUG-U09 | 🔴 | 添加群晖集成时验证失败 | 后端 integrations.ts validTypes 数组缺少 'synology' 类型，新建集成时拒绝请求 | ✅ 已修复 | v1.3.8 |
+| BUG-U08 | 🟡 | 弹窗第一次打开容易误关闭 | 打开弹窗的按钮点击事件冒泡至 overlay 触发关闭；将 overlay 的 onClick 改为 onMouseDown + e.target===e.currentTarget 检查（Dashboard/History/Integrations 三处） | ✅ 已修复 | v1.3.7 |
 | BUG-U06 | 🟡 | Dashboard/History 弹窗标题有多个错乱图标 | Modal 头部同时显示 emoji符号和 getStatusLabel() 文字，删除标题下方的 p 标签 | ✅ 已修复 | v1.3.3 |
 | BUG-U07 | 🟡 | 通知详情内容显示不完整 | Dashboard.tsx Notification 接口缺少 summary/details/action 字段，已希全添加并展示 | ✅ 已修复 | v1.3.3 |
 | BUG-U02 | 🔴 | 登录界面发送验证码提示 not found | 后端未重启，新路由未加载 | ✅ 已修复 | v1.3.2 |
@@ -85,6 +86,7 @@
 
 | 版本 | 发布日期 | 主要变更 |
 |------|----------|----------|
+| v1.3.8 | 2026-03-13 | 修复群晖集成后端验证问题：integrations.ts validTypes 数组补充 'synology' 类型 ✅ 已完成 |
 | v1.3.7 | 2026-03-13 | 新增群晖 NAS Synology 集成；Services 管理界面重设计为横向卡片；页脚版本统一由后端 /api/version 下发；修复 Dashboard/History/Integrations 三处弹窗第一次打开容易误关闭问题 ✅ 已完成 |
 | v1.3.6 | 2026-03-12 | 审计日志功能完善：用户新建/编辑/删除/密码修改、机器人新建/编辑/删除、集成新建/编辑/删除/状态切换全部记录；每条审计日志包含用户名、操作类型、资源类型、详细描述、操作状态；前后端版本同步更新 ✅ 已完成 |
 | v1.3.5 | 2026-03-12 | GitHub Actions workflow_run 事件处理完善（支持开始/成功/失败三种状态）；action=requested 返回通知；action=in_progress 过滤忽略；conclusion=success/failure 正确识别；去重机制基于action+conclusion组合标识；仅通知 success 和 failure 状态，cancelled/timed_out 等状态不通知 ✅ 已完成 |

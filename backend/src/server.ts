@@ -107,7 +107,7 @@ app.use('/api/mcp', mcpConfigRouter);    // MCP 配置读取
 app.use('/api', webhookRouter);
 
 // 版本端点
-const APP_VERSION = '1.3.7';
+const APP_VERSION = '1.3.8';
 app.get('/api/version', (req: Request, res: Response) => {
   res.json({
     backend: APP_VERSION,

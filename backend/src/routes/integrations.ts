@@ -71,7 +71,7 @@ router.post('/', verifyToken, checkRobotOwner, async (req: Request, res: Respons
       return res.status(400).json({ success: false, error: '项目名称和项目类型为必需' });
     }
 
-    const validTypes = ['vercel', 'railway', 'github', 'gitlab', 'vscode-chat', 'api', 'custom'];
+    const validTypes = ['vercel', 'railway', 'github', 'gitlab', 'vscode-chat', 'api', 'custom', 'synology'];
     if (!validTypes.includes(projectType)) {
       return res.status(400).json({ success: false, error: `项目类型必须为以下之一: ${validTypes.join(', ')}` });
     }
