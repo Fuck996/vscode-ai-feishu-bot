@@ -1,4 +1,5 @@
 import { Router, Request, Response } from 'express';
+import * as jwt from 'jsonwebtoken';
 import axios from 'axios';
 import database from '../database';
 import logger from '../logger';
@@ -12,6 +13,35 @@ interface NotifyRequest {
   action?: string;
   details?: any;
   robotId?: string;  // 用于直接指定机器人
+}
+
+interface AuthPayload {
+  userId: string;
+  username: string;
+  role: string;
+}
+
+const JWT_SECRET = process.env.JWT_SECRET || 'dev-secret-key';
+
+// 验证 JWT Token 中间件
+function verifyToken(req: Request, res: Response, next: Function) {
+  try {
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return res.status(401).json({ success: false, error: '缺少授权信息' });
+    }
+
+    const token = authHeader.replace('Bearer ', '');
+    const decoded = jwt.verify(token, JWT_SECRET) as AuthPayload;
+
+    (req as any).userId = decoded.userId;
+    (req as any).username = decoded.username;
+    (req as any).role = decoded.role;
+
+    next();
+  } catch (error) {
+    return res.status(401).json({ success: false, error: '无效或过期的 Token' });
+  }
 }
 
 /**
@@ -66,21 +96,36 @@ router.post('/notify', async (req: Request, res: Response) => {
 
 /**
  * GET /api/notifications
- * 获取通知列表
+ * 获取当前用户的通知列表（按用户隔离）
  */
-router.get('/notifications', async (req: Request, res: Response) => {
+router.get('/notifications', verifyToken, async (req: Request, res: Response) => {
   try {
+    const userId = (req as any).userId;
     const limit = parseInt(req.query.limit as string) || 50;
     const offset = parseInt(req.query.offset as string) || 0;
     const status = req.query.status as string | undefined;
 
-    const notifications = await database.getNotifications(limit, offset, status);
+    // 获取该用户的所有机器人
+    const userRobots = await database.getRobots(userId);
+    const userRobotNames = new Set(userRobots.map(r => r.name));
+
+    // 获取所有通知，然后过滤
+    const allNotifications = await database.getNotifications(limit * 10, 0, status); // 获取更多以弥补过滤后的数量
+
+    // 按用户的机器人名称过滤通知
+    const userNotifications = allNotifications.filter(n => 
+      !n.robotName || userRobotNames.has(n.robotName)
+    );
+
+    // 分页
+    const paginatedNotifications = userNotifications.slice(offset, offset + limit);
 
     res.json({
       success: true,
-      notifications,
+      notifications: paginatedNotifications,
       limit,
       offset,
+      total: userNotifications.length,
     });
   } catch (error) {
     logger.error('获取通知列表错误', error);

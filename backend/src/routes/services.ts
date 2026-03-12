@@ -45,6 +45,15 @@ function verifyToken(req: Request, res: Response, next: Function) {
   }
 }
 
+// 管理员权限中间件
+function checkAdminRole(req: AuthRequest, res: Response, next: Function) {
+  const role = (req as any).role;
+  if (role !== 'admin') {
+    return res.status(403).json({ success: false, error: '仅管理员可访问此功能' });
+  }
+  next();
+}
+
 interface AuthRequest extends Request {
   userId?: string;
   username?: string;
@@ -52,7 +61,7 @@ interface AuthRequest extends Request {
 }
 
 // 获取服务列表
-router.get('/', verifyToken, async (req: AuthRequest, res: Response) => {
+router.get('/', verifyToken, checkAdminRole, async (req: AuthRequest, res: Response) => {
   try {
     const userId = (req as any).userId;
     if (!userId) {
@@ -97,7 +106,7 @@ router.get('/', verifyToken, async (req: AuthRequest, res: Response) => {
 });
 
 // 获取服务日志
-router.get('/logs', verifyToken, async (req: AuthRequest, res: Response) => {
+router.get('/logs', verifyToken, checkAdminRole, async (req: AuthRequest, res: Response) => {
   try {
     const logs = getLogs(100);
     res.json(logs);
@@ -108,7 +117,7 @@ router.get('/logs', verifyToken, async (req: AuthRequest, res: Response) => {
 });
 
 // 执行服务操作（启动/停止/重启）
-router.post('/:serviceId/action', verifyToken, async (req: AuthRequest, res: Response) => {
+router.post('/:serviceId/action', verifyToken, checkAdminRole, async (req: AuthRequest, res: Response) => {
   try {
     const { serviceId } = req.params;
     const { action } = req.body;

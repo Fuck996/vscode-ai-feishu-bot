@@ -450,7 +450,7 @@ const Settings: React.FC = () => {
                               <td style={{ padding: '0.875rem 1rem' }}>
                                 <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem', fontSize: '0.75rem', fontWeight: 600, color: u.status === 'active' ? '#10b981' : '#9ca3af' }}>
                                   <span style={{ width: 6, height: 6, borderRadius: '50%', background: u.status === 'active' ? '#10b981' : '#9ca3af', display: 'inline-block' }} />
-                                  {u.status === 'active' ? '活跃' : '停用'}
+                                  {u.status === 'active' ? '启用' : '停用'}
                                 </span>
                               </td>
                               <td style={{ padding: '0.875rem 1rem', fontSize: '0.875rem', color: '#6b7280' }}>

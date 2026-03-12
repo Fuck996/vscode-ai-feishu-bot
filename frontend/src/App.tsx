@@ -151,24 +151,26 @@ function MainLayout({ children }: { children: React.ReactNode }) {
               📜 历史
             </button>
             
-            <button
-              onClick={() => navigate('/services')}
-              style={{
-                padding: '0.5rem 1rem',
-                cursor: 'pointer',
-                borderRadius: '0.375rem',
-                transition: 'background-color 0.2s',
-                textDecoration: 'none',
-                color: isActive('/services') ? '#1e40af' : '#6b7280',
-                fontSize: '0.875rem',
-                border: 'none',
-                backgroundColor: isActive('/services') ? '#dbeafe' : 'transparent',
-                fontWeight: isActive('/services') ? 500 : 400,
-              }}
-              title="服务管理"
-            >
-              📡 服务
-            </button>
+            {user?.role === 'admin' && (
+              <button
+                onClick={() => navigate('/services')}
+                style={{
+                  padding: '0.5rem 1rem',
+                  cursor: 'pointer',
+                  borderRadius: '0.375rem',
+                  transition: 'background-color 0.2s',
+                  textDecoration: 'none',
+                  color: isActive('/services') ? '#1e40af' : '#6b7280',
+                  fontSize: '0.875rem',
+                  border: 'none',
+                  backgroundColor: isActive('/services') ? '#dbeafe' : 'transparent',
+                  fontWeight: isActive('/services') ? 500 : 400,
+                }}
+                title="服务管理"
+              >
+                📡 服务
+              </button>
+            )}
             
             <button
               onClick={() => navigate('/settings')}
@@ -225,7 +227,7 @@ function MainLayout({ children }: { children: React.ReactNode }) {
       <footer className="bg-gray-100 border-t border-gray-200 mt-8">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <p className="text-center text-sm text-gray-600" style={{ textAlign: 'center' }}>
-            © 2026 飞书AI通知系统. 所有权利保留. | 前端 v1.3.3 | 后端 v{backendVersion} | 更新: 2026-03-12
+            © 2026 飞书AI通知系统. 所有权利保留. | 前端 v1.4.0 | 后端 v{backendVersion} | 更新: 2026-03-12 17:30
           </p>
         </div>
       </footer>
