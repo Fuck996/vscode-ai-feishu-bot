@@ -1,9 +1,15 @@
 name: 构建并发布 Docker 镜像
 
-# 触发时机：在 GitHub 上创建 Release（打 Tag 后 Publish）
+# 触发时机：在 GitHub 上创建 Release（打 Tag 后 Publish）或手动触发
 on:
   release:
     types: [published]
+  workflow_dispatch:
+    inputs:
+      image_tag:
+        description: '镜像标签（如 v1.3.2 或 latest）'
+        required: true
+        default: 'latest'
 
 env:
   REGISTRY: ghcr.io
@@ -57,7 +63,8 @@ jobs:
             type=semver,pattern={{version}}
             type=semver,pattern={{major}}.{{minor}}
             type=sha,prefix=sha-
-            type=raw,value=latest
+            type=raw,value=latest,enable=${{ github.event_name == 'release' }}
+            type=raw,value=${{ github.event.inputs.image_tag }},enable=${{ github.event_name == 'workflow_dispatch' }}
 
       - name: 构建并推送统一镜像
         uses: docker/build-push-action@v5
