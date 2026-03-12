@@ -18,7 +18,7 @@ interface Integration {
   robotId: string;
   projectName: string;
   projectSubName?: string;
-  projectType: 'vercel' | 'railway' | 'github' | 'gitlab' | 'vscode-chat' | 'api' | 'custom';
+  projectType: 'vercel' | 'railway' | 'github' | 'gitlab' | 'vscode-chat' | 'api' | 'custom' | 'synology';
   config: Record<string, unknown>;
   webhookSecret?: string;          // 创建时自动生成，用于验证外部平台签名
   triggeredEvents: string[];
@@ -45,6 +45,7 @@ const TYPE_LABELS: Record<string, string> = {
   'vscode-chat':'💬 VS Code Chat',
   api:          '🔌 Direct API',
   custom:       '🛠️ Custom Webhook',
+  synology:     '📶 Synology NAS',
 };
 
 const TYPE_COLORS: Record<string, React.CSSProperties> = {
@@ -55,29 +56,40 @@ const TYPE_COLORS: Record<string, React.CSSProperties> = {
   'vscode-chat':{ background: '#ede9fe', color: '#4c1d95' },
   api:          { background: '#dbeafe', color: '#1e40af' },
   custom:       { background: '#f3f4f6', color: '#374151' },
+  synology:     { background: '#fff7ed', color: '#9a3412' },
 };
 
 const EVENT_OPTIONS = [
   // 部署类
-  { value: 'deploy_success',    label: '部署成功' },
-  { value: 'deploy_failure',    label: '部署失败' },
-  { value: 'deploy_started',    label: '部署开始' },
-  { value: 'deploy_canceled',   label: '部署取消' },
-  { value: 'deployment_ready',  label: '域名就绪' },
-  { value: 'service_crash',     label: '服务崩溃' },
+  { value: 'deploy_success',         label: '部署成功' },
+  { value: 'deploy_failure',         label: '部署失败' },
+  { value: 'deploy_started',         label: '部署开始' },
+  { value: 'deploy_canceled',        label: '部署取消' },
+  { value: 'deployment_ready',       label: '域名就绪' },
+  { value: 'service_crash',          label: '服务崩溃' },
   // 代码类
-  { value: 'commit_pushed',     label: '代码推送' },
-  { value: 'pr_opened',         label: 'PR 已开启' },
-  { value: 'pr_merged',         label: 'PR 合并' },
-  { value: 'workflow_run',      label: 'Actions 工作流' },
-  { value: 'pipeline_done',     label: 'Pipeline 完成' },
-  { value: 'version_released',  label: '版本发布' },
+  { value: 'commit_pushed',          label: '代码推送' },
+  { value: 'pr_opened',              label: 'PR 已开启' },
+  { value: 'pr_merged',              label: 'PR 合并' },
+  { value: 'workflow_run',           label: 'Actions 工作流' },
+  { value: 'pipeline_done',          label: 'Pipeline 完成' },
+  { value: 'version_released',       label: '版本发布' },
   // 测试类
-  { value: 'test_passed',       label: '测试通过' },
-  { value: 'test_failed',       label: '测试失败' },
+  { value: 'test_passed',            label: '测试通过' },
+  { value: 'test_failed',            label: '测试失败' },
   // VS Code Chat 类
-  { value: 'chat_manual',       label: 'Chat 手动汇报' },
-  { value: 'chat_session_end',  label: 'Chat 会话结束' },
+  { value: 'chat_manual',            label: 'Chat 手动汇报' },
+  { value: 'chat_session_end',       label: 'Chat 会话结束' },
+  // NAS 类— 群晖 Synology
+  { value: 'nas_storage_warning',    label: 'NAS 存储空间不足' },
+  { value: 'nas_disk_warning',       label: 'NAS 硬盘严重状态' },
+  { value: 'nas_disk_failure',       label: 'NAS 硬盘故障' },
+  { value: 'nas_container_crash',    label: 'NAS 容器意外停止' },
+  { value: 'nas_security_risk',      label: 'NAS 安全风险' },
+  { value: 'nas_malware',            label: 'NAS 恶意软件' },
+  { value: 'nas_backup_failed',      label: 'NAS 备份失败' },
+  { value: 'nas_backup_success',     label: 'NAS 备份成功' },
+  { value: 'nas_system_info',        label: 'NAS 系统通知' },
 ];
 
 // 各平台 normalizer 实际支持的事件（与 backend/routes/platform-webhook.ts 对应）
@@ -89,6 +101,7 @@ const PLATFORM_EVENTS: Record<string, string[]> = {
   'vscode-chat':['chat_manual', 'chat_session_end'],
   api:          ['deploy_success', 'deploy_failure', 'deploy_started', 'commit_pushed', 'test_passed', 'test_failed', 'chat_manual', 'version_released'],
   custom:       EVENT_OPTIONS.map(o => o.value), // 自定义平台不限制事件类型
+  synology:     ['nas_storage_warning', 'nas_disk_warning', 'nas_disk_failure', 'nas_container_crash', 'nas_security_risk', 'nas_malware', 'nas_backup_failed', 'nas_backup_success', 'nas_system_info'],
 };
 
 const NOTIFY_ON_OPTIONS = [
@@ -104,6 +117,7 @@ const PROJECT_TYPES: Array<{ type: string; icon: string; name: string; desc: str
   { type: 'github',       icon: '🐙', name: 'GitHub',        desc: 'Webhook 集成' },
   { type: 'gitlab',       icon: '🦊', name: 'GitLab',        desc: 'Webhook 集成' },
   { type: 'vscode-chat',  icon: '💬', name: 'VS Code Chat',  desc: 'Copilot 汇报' },
+  { type: 'synology',     icon: '📶', name: 'Synology NAS',  desc: 'NAS 系统监控' },
   { type: 'custom',       icon: '🛠️', name: 'Custom Webhook', desc: '自定义集成' },
 ];
 
@@ -227,12 +241,12 @@ export default function Integrations() {
       const data = await res.json();
       if (res.ok && data.success) {
         setIntegrations(prev => prev.filter(i => i.id !== integration.id));
-        toastService.success(`🗑️ 集成 "${integration.projectName}" 已删除`);
+        showMessage('✅ 集成已删除');
       } else {
-        toastService.error(`删除失败: ${data.error || '未知错误'}`);
+        showMessage(`❌ 删除失败: ${data.error || '未知错误'}`);
       }
     } catch {
-      toastService.error('网络错误，请稍后重试');
+      showMessage('❌ 网络错误');
     }
   };
 
@@ -300,17 +314,16 @@ export default function Integrations() {
           setIntegrations(prev => [...prev, data.data]);
           setModalOpen(false);
           setCreatedInfo(data.data); // 显示 Webhook 配置引导
-          toastService.success(`🎉 集成 "${formProjectName}" 创建成功`);
         } else {
           setIntegrations(prev => prev.map(i => i.id === editingId ? data.data : i));
-          toastService.success(`✅ 集成已更新`);
+          showMessage('✅ 集成已更新');
           setModalOpen(false);
         }
       } else {
-        toastService.error(`操作失败: ${data.error || '未知错误'}`);
+        showMessage(`❌ 操作失败: ${data.error || '未知错误'}`);
       }
     } catch {
-      toastService.error('网络错误，请稍后重试');
+      showMessage('❌ 网络错误');
     } finally {
       setSubmitting(false);
     }
@@ -697,6 +710,30 @@ function IntegrationModal({
                   1. 前往 GitLab 项目 → Settings → Integrations<br />
                   2. URL 填入创建后生成的 Webhook 地址<br />
                   3. Secret Token 填入创建后生成的 Webhook Secret
+                </div>
+              </div>
+            );
+          case 'synology':
+            return (
+              <div style={{ ...formGroup, background: '#fff7ed', border: '1px solid #fed7aa', borderRadius: '0.5rem', padding: '1rem' }}>
+                <div style={{ fontWeight: 600, fontSize: '0.8rem', color: '#9a3412', marginBottom: '0.75rem' }}>📦 群晖 NAS (Synology DSM) 配置</div>
+                <div style={formGroup}>
+                  <label style={labelStyle}>NAS 主机名 <span style={{ color: '#9ca3af', fontWeight: 400 }}>（选填，仅用于标识）</span></label>
+                  <input value={formConfig.nasHost || ''} onChange={e => setFormConfig({ ...formConfig, nasHost: e.target.value })}
+                    placeholder="如：NAS-Home 或 192.168.1.100" style={inputStyle} />
+                </div>
+                <div style={{ background: '#fff3e0', border: '1px solid #ffcc80', borderRadius: '0.375rem', padding: '0.75rem', fontSize: '0.78rem', color: '#e65100', lineHeight: 1.8 }}>
+                  📖 <strong>配置步骤（DSM 7.x）：</strong><br />
+                  1. 控制面板 → 通知 → 高级 → 服务 → <strong>添加服务提供商</strong><br />
+                  2. 选择 <strong>HTTP</strong> 类型，填写服务商名称<br />
+                  3. URL 填入创建后生成的 Webhook 地址<br />
+                  4. 添加请求标头：<code>X-Webhook-Secret: &lt;secret&gt;</code>（创建后获取）<br />
+                  5. 添加请求标头：<code>Content-Type: application/json</code><br />
+                  6. Body 模板填写（复制粘贴）：<code>{'{"subject":"%SUBJECT%","description":"%DESCRIPTION%","hostname":"%HOSTNAME%"}'}</code><br />
+                  7. 保存后，前往 <strong>通知规则</strong> 选择此服务商，即可推送所选事件
+                </div>
+                <div style={{ background: '#fef9c3', border: '1px solid #fde68a', borderRadius: '0.375rem', padding: '0.5rem 0.75rem', fontSize: '0.75rem', color: '#713f12', marginTop: '0.5rem' }}>
+                  💡 <strong>支持的通知事件：</strong>存储空间不足 / 硬盘严重状态 / 硬盘故障 / 容器意外停止 / 安全风险 / 恶意软件 / 备份任务结果 / 系统重启
                 </div>
               </div>
             );
@@ -1093,6 +1130,16 @@ function SetupGuideModal({ integration, apiBaseUrl, onClose }: {
     'vscode-chat':{ header: '💬 VS Code Chat', bg: '#eef2ff', color: '#3730a3', steps: [] },
     api:          { header: '🔌 Direct API', bg: '#dbeafe', color: '#1e40af', steps: ['使用 POST 请求向上方 Webhook URL 发送 JSON', '请求体：{ title, summary, status, url? }', '请求头：X-Webhook-Secret: <secret>'] },
     custom:       { header: '🛠️ Custom Webhook', bg: '#f3f4f6', color: '#374151', steps: ['向上方 Webhook URL 发送 POST 请求', '请求体：{ title, summary, status, event?, url? }', '请求头：X-Webhook-Secret: <secret>'] },
+    synology:     { header: '📦 Synology NAS', bg: '#fff7ed', color: '#9a3412', steps: [
+      'DSM 控制面板 → 通知 → 高级 → 服务 → 添加服务提供商',
+      '类型选择 HTTP，填写一个服务商名称（如"飞书通知"）',
+      'URL 填写上方 Webhook 地址',
+      '添加请求标头：X-Webhook-Secret: <上方 Secret>',
+      '添加请求标头：Content-Type: application/json',
+      'Body 模板填写（复制粘贴）：{"subject":"%SUBJECT%","description":"%DESCRIPTION%","hostname":"%HOSTNAME%"}',
+      '保存服务商后，前往「通知规则」启用此服务商 → 在需要的事件类别中勾选（推荐：存储/磁盘/安全/套件）',
+      '点击「发送测试通知」验证配置是否生效',
+    ] },
   };
 
   const guide = platformInstructions[integration.projectType] || platformInstructions['custom'];

@@ -35,7 +35,7 @@ export interface Integration {
   robotId: string;
   projectName: string;
   projectSubName?: string;               // 子项目名/分支等
-  projectType: 'vercel' | 'railway' | 'github' | 'gitlab' | 'vscode-chat' | 'api' | 'custom';
+  projectType: 'vercel' | 'railway' | 'github' | 'gitlab' | 'vscode-chat' | 'api' | 'custom' | 'synology';
   config: Record<string, unknown>;       // 项目类型特定配置（仓库地址、AI 配置等）
   webhookSecret: string;                 // 自动生成，用于验证外部平台推送的签名
   triggeredEvents: string[];             // 触发事件类型

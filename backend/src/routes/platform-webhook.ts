@@ -223,6 +223,123 @@ function normalizeGitLab(headers: Record<string, any>, body: Record<string, any>
   }
 }
 
+/**
+ * 解析群晖 NAS (Synology DSM) Webhook 通知
+ *
+ * 群晖 DSM 在 控制面板 → 通知 → 高级 → 服务 中可配置 HTTP 通知
+ * 发送 POST 请求，Body 通过模板变量填入：%SUBJECT% / %DESCRIPTION% / %HOSTNAME%
+ *
+ * 支持中英文两种 DSM 界面的通知文本。
+ * 事件识别基于关键词匹配，覆盖：存储空间不足、硬盘异常/故障、容器意外停止、安全风险、恶意软件、备份任务。
+ */
+function normalizeSynology(body: Record<string, any>): NormalizedEvent {
+  // 兼容 JSON body 和 form-encoded body 的各种字段名
+  const subject = String(
+    body.subject || body.Subject || body.title || body.Title || ''
+  ).trim();
+  const description = String(
+    body.description || body.Description || body.body || body.Body || body.content || ''
+  ).trim();
+  const hostname = String(
+    body.hostname || body.Hostname || body.host || body.nas_name || 'NAS'
+  ).trim();
+
+  const text = `${subject} ${description}`.toLowerCase();
+  const summary = `**主机：** ${hostname}\n**事件：** ${subject}${description ? `\n**详情：** ${description}` : ''}`;
+
+  // ── 存储空间不足 / 卷/存储池异常 ──────────────────────────────────────
+  if (
+    (text.includes('volume') || text.includes('storage pool') || text.includes('存储空间') || text.includes('存储池') || text.includes('卷')) &&
+    (text.includes('warning') || text.includes('critical') || text.includes('degraded') || text.includes('full') ||
+     text.includes('exceeded') || text.includes('已超过') || text.includes('不足') || text.includes('警告') || text.includes('严重') || text.includes('损毁'))
+  ) {
+    return { event: 'nas_storage_warning', status: 'failure', title: '⚠️ NAS 存储空间不足', summary };
+  }
+
+  // ── 硬盘故障（需先于严重状态匹配，优先级更高）────────────────────────
+  if (
+    (text.includes('disk') || text.includes('drive') || text.includes('hdd') || text.includes('ssd') ||
+     text.includes('硬盘') || text.includes('磁盘')) &&
+    (text.includes('failed') || text.includes('failure') || text.includes('has failed') ||
+     text.includes('故障') || text.includes('已失效') || text.includes('失败'))
+  ) {
+    return { event: 'nas_disk_failure', status: 'failure', title: '🚨 NAS 硬盘发生故障', summary };
+  }
+
+  // ── 硬盘严重状态 ────────────────────────────────────────────────────────
+  if (
+    (text.includes('disk') || text.includes('drive') || text.includes('hdd') || text.includes('ssd') ||
+     text.includes('硬盘') || text.includes('磁盘')) &&
+    (text.includes('critical') || text.includes('warning') || text.includes('bad') ||
+     text.includes('predictive') || text.includes('error') || text.includes('出现问题') ||
+     text.includes('严重') || text.includes('警告') || text.includes('异常'))
+  ) {
+    return { event: 'nas_disk_warning', status: 'failure', title: '⚠️ NAS 硬盘严重状态', summary };
+  }
+
+  // ── 恶意软件（优先于安全风险匹配）──────────────────────────────────────
+  if (
+    text.includes('malware') || text.includes('virus') || text.includes('trojan') ||
+    text.includes('恶意软件') || text.includes('病毒') ||
+    (text.includes('antivirus') && (text.includes('found') || text.includes('detected') || text.includes('发现')))
+  ) {
+    return { event: 'nas_malware', status: 'failure', title: '🦠 NAS 检测到恶意软件', summary };
+  }
+
+  // ── 安全风险 ────────────────────────────────────────────────────────────
+  if (
+    (text.includes('security') || text.includes('安全')) &&
+    (text.includes('risk') || text.includes('threat') || text.includes('vulnerab') ||
+     text.includes('风险') || text.includes('威胁') || text.includes('漏洞') || text.includes('issue') || text.includes('问题'))
+  ) {
+    return { event: 'nas_security_risk', status: 'failure', title: '🔒 NAS 检测到安全风险', summary };
+  }
+
+  // ── 容器/套件意外停止 ──────────────────────────────────────────────────
+  if (
+    (text.includes('container') || text.includes('docker') || text.includes('package') ||
+     text.includes('service') || text.includes('容器') || text.includes('套件') || text.includes('服务')) &&
+    (text.includes('stopped') || text.includes('crashed') || text.includes('unexpected') ||
+     text.includes('意外') || text.includes('异常停止') || text.includes('崩溃'))
+  ) {
+    return { event: 'nas_container_crash', status: 'failure', title: '🐋 NAS 容器意外停止', summary };
+  }
+
+  // ── 备份失败 ────────────────────────────────────────────────────────────
+  if (
+    (text.includes('backup') || text.includes('备份')) &&
+    (text.includes('failed') || text.includes('failure') || text.includes('error') ||
+     text.includes('失败') || text.includes('错误'))
+  ) {
+    return { event: 'nas_backup_failed', status: 'failure', title: '💾 NAS 备份任务失败', summary };
+  }
+
+  // ── 备份成功 ────────────────────────────────────────────────────────────
+  if (
+    (text.includes('backup') || text.includes('备份')) &&
+    (text.includes('success') || text.includes('completed') || text.includes('succeeded') ||
+     text.includes('成功') || text.includes('完成'))
+  ) {
+    return { event: 'nas_backup_success', status: 'success', title: '✅ NAS 备份任务成功', summary };
+  }
+
+  // ── UPS 不间断电源 ────────────────────────────────────────────────────
+  if (text.includes('ups') || text.includes('不间断电源') || text.includes('battery')) {
+    return { event: 'nas_system_info', status: 'info', title: '🔋 NAS UPS 状态通知', summary };
+  }
+
+  // ── 系统重启 ────────────────────────────────────────────────────────────
+  if (
+    text.includes('reboot') || text.includes('restart') ||
+    (text.includes('系统') && (text.includes('重启') || text.includes('重新启动')))
+  ) {
+    return { event: 'nas_system_info', status: 'info', title: '🔄 NAS 系统重启', summary };
+  }
+
+  // ── 通用降级：未匹配已知类型，作为一般系统通知 ─────────────────────────
+  return { event: 'nas_system_info', status: 'info', title: '📢 NAS 系统通知', summary };
+}
+
 /** 解析通用格式（Direct API / VS Code Chat / Custom Webhook） */
 function normalizeGeneric(body: Record<string, any>): NormalizedEvent {
   const event = body.event || 'chat_manual';
@@ -411,6 +528,9 @@ router.post('/:integrationId', async (req: Request, res: Response) => {
         break;
       case 'gitlab':
         normalized = normalizeGitLab(req.headers as any, req.body);
+        break;
+      case 'synology':
+        normalized = normalizeSynology(req.body);
         break;
       default:
         // vscode-chat / api / custom：通用格式
