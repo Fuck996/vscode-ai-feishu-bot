@@ -266,7 +266,7 @@ if ($bytes[0] -eq 0xEF -and $bytes[1] -eq 0xBB -and $bytes[2] -eq 0xBF) {
 
 ### 对 REQUIREMENTS.md 的维护
 
-- **更新规则**：每次工作完成后立即写入结果到文档：
+- **更新规则**：每次工作完成后立即写入结果到文档REQUIREMENTS.md：
   - 将完成的条目从对应的 `待开发`/`待修复` 移到 `已完成`/`已修复`
   - 标注 ✅ 已完成 或 ✅ 已修复
   - 记录完成版本号
@@ -300,28 +300,48 @@ MCP Server ← → stdio (JSON-RPC 协议)
 
 **位置**: `mcp-server/index.js`
 
-**启动方式**: VS Code 通过 `.vscode/mcp.json` 的 SSE 启动，Token 通过系统环境变量 `FEISHU_MCP_TOKEN` 传入
+**启动方式**: VS Code 通过 `.vscode/mcp.json` 的 SSE 启动，Token 通过系统环境变量 `FEISHU_MCP_TOKEN` 传入（Token为集成的 webhookSecret）
 
-**`.vscode/mcp.json` 配置**:
+**`.vscode/mcp.json` 配置**（正式环境）:
 ```json
 {
   "servers": {
     "feishu-notifier": {
       "type": "sse",
-      "url": "http://localhost:5173/api/mcp/sse?token=${env:FEISHU_MCP_TOKEN}"
+      "url": "https://fsbot.4npc.net:2020/api/mcp/sse?token=${env:FEISHU_MCP_TOKEN}"
     }
   }
 }
 ```
 
+**本地开发备选配置**（如需本地调试）:
+```json
+{
+  "servers": {
+    "feishu-notifier": {
+      "type": "sse",
+      "url": "http://localhost:3000/api/mcp/sse?token=${env:FEISHU_MCP_TOKEN}"
+    }
+  }
+}
+```
+注意：使用本地配置需本地后端启动并运行在 3000 端口
+
 **Token 设置（一次性，不进版本控制）**:
+
+使用 **正式服务器上的集成 webhookSecret** 作为 Token：
+1. 访问前端集成管理页面
+2. 找任意 vscode-chat 类型的集成
+3. 点「📋 MCP配置」获取 TRIGGER_TOKEN 
+4. 保存为系统环境变量
+
 ```powershell
 # Windows PowerShell（用户级环境变量，重启 VS Code 后生效）
-[System.Environment]::SetEnvironmentVariable("FEISHU_MCP_TOKEN", "你的Token", "User")
+[System.Environment]::SetEnvironmentVariable("FEISHU_MCP_TOKEN", "你的webhookSecret", "User")
 ```
 ```bash
 # macOS / Linux（添加到 ~/.zshrc 或 ~/.bashrc）
-export FEISHU_MCP_TOKEN="你的Token"
+export FEISHU_MCP_TOKEN="你的webhookSecret"
 ```
 
 ### MCP 格式化规则（核心逻辑）
