@@ -125,11 +125,10 @@ const Services: React.FC = () => {
           stats: [
             { label: '关联集成', value: '3' },
             { label: '今日调用', value: '24' },
-            { label: '运行时间', value: '12h 34m' },
-            { label: '可用性', value: '99.8%' },
+            { label: '运行时间', value: '服务中' },
           ],
           isScheduled: false,
-          uptime: '12h 34m',
+          uptime: '服务中',
         },
         {
           id: 'notification-service',

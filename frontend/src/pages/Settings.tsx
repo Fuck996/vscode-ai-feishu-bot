@@ -1,6 +1,7 @@
 ﻿import React, { useState, useEffect } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import authService from '../services/auth';
+import { useToast } from '../hooks/useToast';
 
 /* ─ 类型定义 ─ */
 interface UserRow {
@@ -34,6 +35,7 @@ interface Robot {
 const Settings: React.FC = () => {
   const currentUser = authService.getCurrentUser();
   const isAdmin = currentUser?.role === 'admin';
+  const toast = useToast();
 
   const [activeMenu, setActiveMenu] = useState<'account-settings' | 'users' | 'audit'>('account-settings');
 
@@ -44,7 +46,6 @@ const Settings: React.FC = () => {
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [msg, setMsg] = useState('');
 
   // 用户管理
   const [users, setUsers] = useState<UserRow[]>([]);
@@ -65,7 +66,7 @@ const Settings: React.FC = () => {
   const [filterAuditType, setFilterAuditType] = useState('');
   const logsPerPage = 10;
 
-  const showMsg = (m: string) => { setMsg(m); setTimeout(() => setMsg(''), 3000); };
+  const showMsg = (_m: string) => {}; // 已替换为 toast，保留占位定义以兼容
 
   useEffect(() => {
     loadMyProfile();
@@ -121,7 +122,8 @@ const Settings: React.FC = () => {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ nickname }),
     });
-    showMsg(res.ok ? '\u2705 \u4fe1\u606f\u5df2\u4fdd\u5b58' : '\u274c \u4fdd\u5b58\u5931\u8d25');
+    if (res.ok) toast.success('信息已保存');
+    else toast.error('保存失败');
   };
 
   const handleSaveRecoveryRobot = async () => {
@@ -130,13 +132,14 @@ const Settings: React.FC = () => {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ recoveryRobotId }),
     });
-    showMsg(res.ok ? '\u2705 \u627e\u56de\u673a\u5668\u4eba\u5df2\u66f4\u65b0' : '\u274c \u66f4\u65b0\u5931\u8d25');
+    if (res.ok) toast.success('找回机器人已更新');
+    else toast.error('更新失败');
   };
 
   const handleChangePassword = async () => {
-    if (!currentPassword || !newPassword || !confirmPassword) { showMsg('\u274c \u8bf7\u586b\u5199\u6240\u6709\u5bc6\u7801\u5b57\u6bb5'); return; }
-    if (newPassword !== confirmPassword) { showMsg('\u274c \u65b0\u5bc6\u7801\u4e0e\u786e\u8ba4\u5bc6\u7801\u4e0d\u4e00\u81f4'); return; }
-    if (newPassword.length < 6) { showMsg('\u274c \u65b0\u5bc6\u7801\u81f3\u5c11\u9700\u89816\u4e2a\u5b57\u7b26'); return; }
+    if (!currentPassword || !newPassword || !confirmPassword) { toast.error('请填写所有密码字段'); return; }
+    if (newPassword !== confirmPassword) { toast.error('新密码与确认密码不一致'); return; }
+    if (newPassword.length < 6) { toast.error('新密码至少需要6个字符'); return; }
     const res = await authService.fetchWithAuth('/api/users/change-password', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -144,10 +147,10 @@ const Settings: React.FC = () => {
     });
     if (res.ok) {
       setCurrentPassword(''); setNewPassword(''); setConfirmPassword('');
-      showMsg('\u2705 \u5bc6\u7801\u5df2\u66f4\u6539');
+      toast.success('密码已更改');
     } else {
       const data = await res.json();
-      showMsg('\u274c ' + (data.error || '\u5bc6\u7801\u66f4\u6539\u5931\u8d25'));
+      toast.error(data.error || '密码更改失败');
     }
   };
 
@@ -169,22 +172,22 @@ const Settings: React.FC = () => {
 
   const handleUserSubmit = async () => {
     if (!editUserId) {
-      if (!newUsername || !newUserPassword) { showMsg('\u274c \u7528\u6237\u540d\u548c\u5bc6\u7801\u4e3a\u5fc5\u586b'); return; }
+      if (!newUsername || !newUserPassword) { toast.error('用户名和密码为必填'); return; }
       const res = await authService.fetchWithAuth('/api/users', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username: newUsername, password: newUserPassword, role: newUserRole, nickname: newNickname }),
       });
-      if (res.ok) { setUserModal(false); loadUsers(); showMsg('\u2705 \u7528\u6237\u5df2\u521b\u5efa'); }
-      else { const d = await res.json(); showMsg('\u274c ' + (d.error || '\u521b\u5efa\u5931\u8d25')); }
+      if (res.ok) { setUserModal(false); loadUsers(); toast.success('用户已创建'); }
+      else { const d = await res.json(); toast.error(d.error || '创建失败'); }
     } else {
       const res = await authService.fetchWithAuth('/api/users/' + editUserId, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ nickname: newNickname, role: newUserRole }),
       });
-      if (res.ok) { setUserModal(false); loadUsers(); showMsg('\u2705 \u7528\u6237\u5df2\u66f4\u65b0'); }
-      else { const d = await res.json(); showMsg('\u274c ' + (d.error || '\u66f4\u65b0\u5931\u8d25')); }
+      if (res.ok) { setUserModal(false); loadUsers(); toast.success('用户已更新'); }
+      else { const d = await res.json(); toast.error(d.error || '更新失败'); }
     }
   };
 
@@ -196,14 +199,14 @@ const Settings: React.FC = () => {
       body: JSON.stringify({ status: newStatus }),
     });
     if (res.ok) loadUsers();
-    else showMsg('\u274c \u72b6\u6001\u66f4\u65b0\u5931\u8d25');
+    else toast.error('状态更新失败');
   };
 
   const handleDeleteUser = async (u: UserRow) => {
     if (!confirm('\u786e\u5b9a\u8981\u5220\u9664\u7528\u6237\u300c' + u.username + '\u300d\u5417\uff1f\u6b64\u64cd\u4f5c\u4e0d\u53ef\u6491\u9500\u3002')) return;
     const res = await authService.fetchWithAuth('/api/users/' + u.id, { method: 'DELETE' });
-    if (res.ok) { loadUsers(); showMsg('\u2705 \u7528\u6237\u5df2\u5220\u9664'); }
-    else showMsg('\u274c \u5220\u9664\u5931\u8d25');
+    if (res.ok) { loadUsers(); toast.success('用户已删除'); }
+    else toast.error('删除失败');
   };
 
   // 审计日志辅助
@@ -278,13 +281,7 @@ const Settings: React.FC = () => {
     <div style={{ backgroundColor: '#f3f4f6', minHeight: '100vh', paddingBottom: '2rem' }}>
       <div style={{ maxWidth: '1400px', margin: '0 auto', padding: '2rem' }}>
 
-        {msg && (
-          <div style={{
-            backgroundColor: msg.startsWith('\u2705') ? '#d1fae5' : '#fee2e2',
-            color: msg.startsWith('\u2705') ? '#047857' : '#dc2626',
-            padding: '1rem', borderRadius: '0.5rem', marginBottom: '1.5rem',
-          }}>{msg}</div>
-        )}
+        {/* msg 已替换为 toast 通知，此处暫时保留占位元素 */}
 
         <div style={{ display: 'grid', gridTemplateColumns: '220px 1fr', gap: '1.5rem' }}>
 

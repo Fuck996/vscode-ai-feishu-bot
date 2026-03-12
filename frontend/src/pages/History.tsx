@@ -11,6 +11,8 @@ interface Notification {
   createdAt: string;
   message?: string;
   summary?: string;
+  details?: string;
+  action?: string;
 }
 
 interface Robot {
@@ -410,9 +412,6 @@ const History: React.FC = () => {
                 <h2 style={{ margin: 0, fontSize: '1.125rem', fontWeight: 'bold' }}>
                   {selectedNotification.title}
                 </h2>
-                <p style={{ margin: '0.25rem 0 0 0', fontSize: '0.875rem', opacity: 0.9 }}>
-                  {getStatusLabel(selectedNotification.status)}
-                </p>
               </div>
             </div>
 
@@ -461,6 +460,41 @@ const History: React.FC = () => {
                   {selectedNotification.summary || selectedNotification.message || '暂无内容'}
                 </div>
               </div>
+
+              {/* 详情字段 */}
+              {selectedNotification.details && (
+                <div style={{ marginBottom: '1.5rem' }}>
+                  <label style={{ fontSize: '0.75rem', color: '#6b7280', fontWeight: 600, display: 'block', marginBottom: '0.5rem' }}>
+                    更多详情
+                  </label>
+                  <div style={{
+                    fontSize: '0.875rem',
+                    color: '#374151',
+                    lineHeight: '1.6',
+                    whiteSpace: 'pre-wrap',
+                    wordBreak: 'break-word',
+                    backgroundColor: '#f9fafb',
+                    padding: '0.75rem',
+                    borderRadius: '0.375rem',
+                    border: '1px solid #e5e7eb'
+                  }}>
+                    {selectedNotification.details}
+                  </div>
+                </div>
+              )}
+
+              {/* 操作链接 */}
+              {selectedNotification.action && (
+                <div style={{ marginBottom: '1.5rem' }}>
+                  <label style={{ fontSize: '0.75rem', color: '#6b7280', fontWeight: 600, display: 'block', marginBottom: '0.5rem' }}>
+                    相关操作
+                  </label>
+                  <div style={{ fontSize: '0.875rem', color: '#374151', wordBreak: 'break-all' }}>
+                    {selectedNotification.action}
+                  </div>
+                </div>
+              )}
+
             </div>
 
             {/* 模态框底部 - 飞书风格时间戳 */}

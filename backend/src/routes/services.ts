@@ -5,6 +5,17 @@ import { getLogs } from '../serviceLogger';
 
 const router = Router();
 
+// 计算真实服务运行时间
+const formatUptime = (): string => {
+  const seconds = Math.floor(process.uptime());
+  const h = Math.floor(seconds / 3600);
+  const m = Math.floor((seconds % 3600) / 60);
+  const s = seconds % 60;
+  if (h > 0) return `${h}h ${m}m`;
+  if (m > 0) return `${m}m ${s}s`;
+  return `${s}s`;
+};
+
 interface AuthPayload {
   userId: string;
   username: string;
@@ -71,11 +82,10 @@ router.get('/', verifyToken, async (req: AuthRequest, res: Response) => {
         stats: [
           { label: '关联集成', value: Math.floor(totalIntegrations * 0.4).toString() },
           { label: '今日调用', value: '24' },
-          { label: '运行时间', value: '12h 34m' },
-          { label: '可用性', value: '99.8%' },
+          { label: '运行时间', value: formatUptime() },
         ],
         isScheduled: false,
-        uptime: '12h 34m',
+        uptime: formatUptime(),
       },
     ];
 

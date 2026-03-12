@@ -8,7 +8,11 @@ interface Notification {
   status: 'success' | 'error' | 'warning' | 'info';
   source: string;
   createdAt: string;
+  summary?: string;
   message?: string;
+  details?: string;
+  action?: string;
+  robotName?: string;
 }
 
 interface Robot {
@@ -603,7 +607,6 @@ const Dashboard: React.FC = () => {
                   <th style={{ padding: '0.75rem', textAlign: 'left', fontWeight: 600, fontSize: '0.875rem', color: '#6b7280', borderBottom: '1px solid #e5e7eb' }}>状态</th>
                   <th style={{ padding: '0.75rem', textAlign: 'left', fontWeight: 600, fontSize: '0.875rem', color: '#6b7280', borderBottom: '1px solid #e5e7eb' }}>最后消息</th>
                   <th style={{ padding: '0.75rem', textAlign: 'left', fontWeight: 600, fontSize: '0.875rem', color: '#6b7280', borderBottom: '1px solid #e5e7eb' }}>消息数</th>
-                  <th style={{ padding: '0.75rem', textAlign: 'left', fontWeight: 600, fontSize: '0.875rem', color: '#6b7280', borderBottom: '1px solid #e5e7eb' }}>操作</th>
                 </tr>
               </thead>
               <tbody>
@@ -618,59 +621,11 @@ const Dashboard: React.FC = () => {
                       </td>
                       <td style={{ padding: '0.75rem', fontSize: '0.875rem', color: '#374151' }}>{robot.lastMessage || '未发送'}</td>
                       <td style={{ padding: '0.75rem', fontSize: '0.875rem', color: '#374151' }}>{robot.messageCount}条</td>
-                      <td style={{ padding: '0.75rem', fontSize: '0.875rem' }}>
-                        <div style={{ display: 'flex', gap: '0.5rem' }}>
-                          <button
-                            onClick={() => testRobot(robot.id)}
-                            style={{
-                              padding: '0.375rem 0.75rem',
-                              backgroundColor: '#3b82f6',
-                              color: 'white',
-                              border: 'none',
-                              borderRadius: '0.25rem',
-                              cursor: 'pointer',
-                              fontSize: '0.75rem',
-                              whiteSpace: 'nowrap',
-                            }}
-                          >
-                            测试
-                          </button>
-                          <button
-                            style={{
-                              padding: '0.375rem 0.75rem',
-                              backgroundColor: '#e5e7eb',
-                              color: '#374151',
-                              border: 'none',
-                              borderRadius: '0.25rem',
-                              cursor: 'pointer',
-                              fontSize: '0.75rem',
-                              whiteSpace: 'nowrap',
-                            }}
-                          >
-                            编辑
-                          </button>
-                          <button
-                            onClick={() => deleteRobot(robot.id, robot.name)}
-                            style={{
-                              padding: '0.375rem 0.75rem',
-                              backgroundColor: '#f3f4f6',
-                              color: '#ef4444',
-                              border: 'none',
-                              borderRadius: '0.25rem',
-                              cursor: 'pointer',
-                              fontSize: '0.75rem',
-                              whiteSpace: 'nowrap',
-                            }}
-                          >
-                            删除
-                          </button>
-                        </div>
-                      </td>
                     </tr>
                   ))
                 ) : (
                   <tr>
-                    <td colSpan={5} style={{ padding: '2rem', textAlign: 'center', color: '#9ca3af' }}>
+                    <td colSpan={4} style={{ padding: '2rem', textAlign: 'center', color: '#9ca3af' }}>
                       暂无机器人
                     </td>
                   </tr>
@@ -722,9 +677,6 @@ const Dashboard: React.FC = () => {
                 <h2 style={{ margin: 0, fontSize: '1.125rem', fontWeight: 'bold' }}>
                   {selectedNotification.title}
                 </h2>
-                <p style={{ margin: '0.25rem 0 0 0', fontSize: '0.875rem', opacity: 0.9 }}>
-                  {getStatusLabel(selectedNotification.status)}
-                </p>
               </div>
             </div>
 
@@ -762,7 +714,7 @@ const Dashboard: React.FC = () => {
                   borderRadius: '0.375rem',
                   border: '1px solid #e5e7eb'
                 }}>
-                  {((selectedNotification as unknown) as Record<string, string>).summary || ((selectedNotification as unknown) as Record<string, string>).message || selectedNotification.title || '暂无内容'}
+                  {selectedNotification.summary || selectedNotification.details || selectedNotification.message || '暂无内容'}
                 </div>
               </div>
             </div>
