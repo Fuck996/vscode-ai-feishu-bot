@@ -19,6 +19,7 @@
 # 如需修改前端端口或添加飞书 Webhook，创建 .env 文件：
 #
 #   APP_PORT=45173          # 前端端口，如已占用可改为其他
+#   PUBLIC_BASE_URL=https://fsbot.4npc.net:2020  # Lucky/反向代理对外域名，MCP 配置回调用此地址
 #   FEISHU_WEBHOOK_URL=https://open.feishu.cn/open-apis/bot/v2/hook/...
 #   JWT_SECRET=your-strong-secret-key-here
 #
@@ -49,6 +50,7 @@ services:
       CORS_ORIGIN: "*"
       LOG_LEVEL: info
       BACKEND_URL: http://${NAS_HOSTNAME:-localhost}:${APP_PORT:-45173}
+      PUBLIC_BASE_URL: ${PUBLIC_BASE_URL:-}
       TZ: Asia/Shanghai
     volumes:
       # ✅ 数据持久化到主机路径（而非 Docker 命名卷）

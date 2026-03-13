@@ -1,6 +1,6 @@
 # 需求与BUG跟踪文档
 
-**版本：** v1.3.13 | **更新时间：** 2026-03-13 | **内容：** 修复 MCP 配置接口返回内网地址；修复 stdio MCP 配置错误提示不明确
+**版本：** v1.3.14 | **更新时间：** 2026-03-13 | **内容：** 降低 stdio MCP 启动噪音；补充 NAS 反代公开地址配置
 
 
 ## 📌 使用说明
@@ -65,6 +65,7 @@
 
 | # | 优先级 | 标题 | 根因 | 状态 | 修复版本 |
 |---|--------|------|------|------|----------|
+| BUG-U11 | 🔴 | stdio MCP 启动时持续输出异常警告 | mcp-server/index.js 将“本地没有可用集成”也作为 stderr 警告输出，且工具调用前未先刷新配置；群晖部署文件也缺少 Lucky 反代场景的 PUBLIC_BASE_URL | ✅ 已修复 | v1.3.14 |
 | BUG-U10 | 🔴 | MCP 配置接口返回内网地址且 stdio 报错不明确 | backend/routes/mcp-config.ts 错误优先使用 BACKEND_URL 生成 webhookEndpoint，导致远端配置返回内网地址；mcp-server/index.js 丢失后端错误细节，报成“无效配置响应” | ✅ 已修复 | v1.3.13 |
 | BUG-U09 | 🔴 | 添加群晖集成时验证失败 | 后端 integrations.ts validTypes 数组缺少 'synology' 类型，新建集成时拒绝请求 | ✅ 已修复 | v1.3.8 |
 | BUG-U08 | 🟡 | 弹窗第一次打开容易误关闭 | 打开弹窗的按钮点击事件冒泡至 overlay 触发关闭；将 overlay 的 onClick 改为 onMouseDown + e.target===e.currentTarget 检查（Dashboard/History/Integrations 三处） | ✅ 已修复 | v1.3.7 |
@@ -87,6 +88,7 @@
 
 | 版本 | 发布日期 | 主要变更 |
 |------|----------|----------|
+| v1.3.14 | 2026-03-13 | 修复 stdio MCP 启动期误报警：本地无集成时不再刷出大量 stderr；工具调用前会先刷新后端配置；群晖部署补充 PUBLIC_BASE_URL，适配 Lucky 反向代理外网域名 ✅ 已完成 |
 | v1.3.13 | 2026-03-13 | 修复 MCP 配置接口对外地址生成逻辑：远端 /api/mcp/config 不再返回内网地址；stdio MCP 启动与调用阶段保留后端真实错误信息；后端版本号改为从 package.json 读取，避免再次漂移 ✅ 已完成 |
 | v1.3.8 | 2026-03-13 | 修复群晖集成后端验证问题：integrations.ts validTypes 数组补充 'synology' 类型 ✅ 已完成 |
 | v1.3.7 | 2026-03-13 | 新增群晖 NAS Synology 集成；Services 管理界面重设计为横向卡片；页脚版本统一由后端 /api/version 下发；修复 Dashboard/History/Integrations 三处弹窗第一次打开容易误关闭问题 ✅ 已完成 |
