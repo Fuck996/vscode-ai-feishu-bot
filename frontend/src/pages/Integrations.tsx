@@ -723,12 +723,14 @@ function IntegrationModal({
                     placeholder="如：NAS-Home 或 192.168.1.100" style={inputStyle} />
                 </div>
                 <div style={{ background: '#fff3e0', border: '1px solid #ffcc80', borderRadius: '0.375rem', padding: '0.75rem', fontSize: '0.78rem', color: '#e65100', lineHeight: 1.8 }}>
-                  📖 <strong>配置步骤（DSM 7.x）：</strong><br />
+                  📖 <strong>配置步骤（DSM 7.x，共两页）：</strong><br />
                   1. 控制面板 → 通知 → 高级 → 服务 → <strong>添加服务提供商</strong><br />
-                  2. 类型选择 <strong>Webhook</strong>（或 HTTP），填写服务商名称（如"飞书通知"）<br />
-                  3. Webhook URL 填入创建后生成的地址（仅需 URL，无需任何请求标头）<br />
-                  4. 主题模板建议填写 <code>%SUBJECT%</code>，使 DSM 自动传递实际事件描述<br />
-                  5. 保存后，前往 <strong>通知规则</strong> → 选择此服务商 → 勾选需要的事件类别
+                  2. 类型选择 <strong>Webhook</strong>，填写服务商名称（如"飞书通知"）<br />
+                  3. <strong>【第1页】</strong>主题模板填写：<code>您的 %HOSTNAME% 在 %DATE% 的 %TIME% 发生了新的系统事件。</code><br />
+                  4. <strong>【第1页】</strong>Webhook URL 填入创建后生成的地址末尾追加 <code>?text=@@TEXT@@</code><br />
+                  5. <strong>【第2页】</strong>HTTP 方法选 <code>POST</code>，Content-Type 选 <code>application/json</code><br />
+                  6. <strong>【第2页】</strong>HTTP 主体填写：<code>{"{"}"text": "@@TEXT@@"{"}"}</code><br />
+                  7. 保存后，前往 <strong>通知规则</strong> → 选择此服务商 → 勾选需要的事件类别
                 </div>
                 <div style={{ background: '#fef9c3', border: '1px solid #fde68a', borderRadius: '0.375rem', padding: '0.5rem 0.75rem', fontSize: '0.75rem', color: '#713f12', marginTop: '0.5rem' }}>
                   ⚠️ <strong>安全说明：</strong>群晖 DSM 不支持自定义请求标头。Webhook URL 中的随机 UUID 即为鉴权凭据，请妥善保存，切勿泄露。<br />
@@ -1101,6 +1103,10 @@ function SetupGuideModal({ integration, apiBaseUrl, onClose }: {
   integration: Integration; apiBaseUrl: string; onClose: () => void;
 }) {
   const webhookUrl = `${apiBaseUrl}/api/webhook/${integration.id}`;
+  // 群晖 DSM 需要在 URL 末尾追加 ?text=@@TEXT@@，方便用户直接复制
+  const displayWebhookUrl = integration.projectType === 'synology'
+    ? `${webhookUrl}?text=@@TEXT@@`
+    : webhookUrl;
   const secret = integration.webhookSecret || '（请重新创建获取）';
 
   const [copiedUrl, setCopiedUrl] = React.useState(false);
@@ -1134,13 +1140,13 @@ function SetupGuideModal({ integration, apiBaseUrl, onClose }: {
     api:          { header: '🔌 Direct API', bg: '#dbeafe', color: '#1e40af', steps: ['使用 POST 请求向上方 Webhook URL 发送 JSON', '请求体：{ title, summary, status, url? }', '请求头：X-Webhook-Secret: <secret>'] },
     custom:       { header: '🛠️ Custom Webhook', bg: '#f3f4f6', color: '#374151', steps: ['向上方 Webhook URL 发送 POST 请求', '请求体：{ title, summary, status, event?, url? }', '请求头：X-Webhook-Secret: <secret>'] },
     synology:     { header: '📦 Synology NAS', bg: '#fff7ed', color: '#9a3412', steps: [
-      'DSM 控制面板 → 通知 → 高级 → 服务 → 添加服务提供商',
-      '类型选择 Webhook（或 HTTP），填写服务商名称（如"飞书通知"）',
-      'Webhook URL 填写上方生成的地址（只需填 URL，无需添加任何请求标头）',
-      '⚠️ 群晖 DSM 不支持自定义请求标头，URL 中的随机 UUID 即为安全凭据，请妥善保存',
-      '主题模板建议填写 %SUBJECT%，以便 DSM 传递实际事件描述（如"存储空间不足"）',
-      '保存后，前往「通知规则」启用此服务商 → 勾选需要的事件类别（推荐：存储/磁盘/安全/套件）',
-      '点击「发送测试通知」验证配置是否生效',
+      'DSM 控制面板 → 通知 → 高级 → 服务 → 添加服务提供商，类型选择 Webhook',
+      '【第1页】服务商名称填写"飞书通知"（任意），主题模板填写：您的 %HOSTNAME% 在 %DATE% 的 %TIME% 发生了新的系统事件。',
+      '【第1页】Webhook URL 填写上方已生成的完整地址（末尾已含 ?text=@@TEXT@@，可直接复制粘贴）',
+      '【第2页】点击下一步后，HTTP 方法选 POST，Content-Type 选 application/json',
+      '【第2页】HTTP 主体填写：{"text": "@@TEXT@@"}（保留双引号）',
+      '⚠️ 群晖 DSM 不支持自定义请求标头，URL 中的 UUID 即为唯一安全凭证，请妥善保存',
+      '保存后，前往「通知规则」勾选需要的事件类别（推荐：存储/磁盘/安全/套件），再点击「发送测试通知」验证',
     ] },
   };
 
@@ -1164,8 +1170,8 @@ function SetupGuideModal({ integration, apiBaseUrl, onClose }: {
           <div style={{ marginBottom: '1.25rem' }}>
             <label style={{ ...labelStyle, color: '#dc2626' }}>📡 Webhook 接收地址</label>
             <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-              <input readOnly value={webhookUrl} style={{ ...inputStyle, background: '#f9fafb', color: '#374151', fontFamily: 'monospace', fontSize: '0.8rem', flex: 1 }} />
-              <button onClick={() => copy(webhookUrl, setCopiedUrl, 'Webhook URL')} style={{ ...btnPrimary, whiteSpace: 'nowrap', background: copiedUrl ? '#10b981' : '#3b82f6' }}>
+              <input readOnly value={displayWebhookUrl} style={{ ...inputStyle, background: '#f9fafb', color: '#374151', fontFamily: 'monospace', fontSize: '0.8rem', flex: 1 }} />
+              <button onClick={() => copy(displayWebhookUrl, setCopiedUrl, 'Webhook URL')} style={{ ...btnPrimary, whiteSpace: 'nowrap', background: copiedUrl ? '#10b981' : '#3b82f6' }}>
                 {copiedUrl ? '✓ 已复制' : '📋 复制'}
               </button>
             </div>

@@ -226,20 +226,30 @@ function normalizeGitLab(headers: Record<string, any>, body: Record<string, any>
 /**
  * 解析群晖 NAS (Synology DSM) Webhook 通知
  *
- * 群晖 DSM 在 控制面板 → 通知 → 高级 → 服务 中可配置 HTTP 通知
- * 发送 POST 请求，Body 通过模板变量填入：%SUBJECT% / %DESCRIPTION% / %HOSTNAME%
+ * 群晖 DSM 通过「控制面板 → 通知 → 高级 → 服务 → 添加服务提供商 → Webhook」
+ * 配置两页 HTTP 通知，正确格式如下：
  *
- * 支持中英文两种 DSM 界面的通知文本。
+ * 第 1 页（设置 Webhook）：
+ *   - 主题模板：您的 %HOSTNAME% 在 %DATE% 的 %TIME% 发生了新的系统事件。
+ *   - Webhook URL：<集成地址>?text=@@TEXT@@
+ *
+ * 第 2 页（配置 HTTP 请求）：
+ *   - HTTP 方法：POST
+ *   - Content-Type：application/json
+ *   - HTTP 主体：{"text": "@@TEXT@@"}
+ *
+ * 实际接收到的请求：POST JSON body {"text": "<事件描述>"}，同时 URL 查询参数 text 含相同内容。
  * 事件识别基于关键词匹配，覆盖：存储空间不足、硬盘异常/故障、容器意外停止、安全风险、恶意软件、备份任务。
  */
-function normalizeSynology(body: Record<string, any>): NormalizedEvent {
-  // 群晖 DSM webhook 两种常见格式：
-  //   1. 通知服务 → Synology Chat 类型（form-urlencoded）：payload={"text":"事件描述"}
-  //   2. 通知服务 → HTTP 类型（JSON）：{"subject":"%SUBJECT%","hostname":"%HOSTNAME%",...}
-  //      或简化 JSON：{"text":"事件描述"}
-  //   两种格式都需要兼容
+function normalizeSynology(
+  body: Record<string, any>,
+  query: Record<string, any> = {},
+  config: Record<string, any> = {},
+): NormalizedEvent {
+  // 标准两页配置后请求体格式：{"text": "<事件描述>"}（Content-Type: application/json）
+  // @@TEXT@@ 由 DSM 替换为实际事件文本，同样出现在 URL 查询参数 ?text= 中
 
-  // 情况 1：form-encoded payload 字段（Synology Chat Webhook 发送）
+  // 兼容旧格式：form-encoded payload 字段（Synology Chat Webhook 发送）
   let parsedPayload: Record<string, any> = {};
   if (body.payload && typeof body.payload === 'string') {
     try {
@@ -250,17 +260,24 @@ function normalizeSynology(body: Record<string, any>): NormalizedEvent {
   }
 
   const subject = String(
+    // 标准两页配置：body.text 是主要来源
+    body.text    || body.Text    ||
+    // URL 查询参数兜底（两页配置中 URL 末尾也带有 ?text=@@TEXT@@）
+    query.text   ||
+    // 其他字段格式兼容
     body.subject || body.Subject || body.title || body.Title ||
-    body.text    || body.Text    || body.msg   || body.message ||
+    body.msg     || body.message ||
     parsedPayload.text || parsedPayload.subject || parsedPayload.title || ''
   ).trim();
   const description = String(
     body.description || body.Description || body.body || body.Body || body.content ||
     parsedPayload.description || ''
   ).trim();
+  // 主机名优先级：请求体 > URL 参数 > 集成配置（nasHost）> 默认值"NAS"
   const hostname = String(
     body.hostname || body.Hostname || body.host || body.nas_name ||
-    parsedPayload.hostname || 'NAS'
+    parsedPayload.hostname ||
+    (config.nasHost as string) || 'NAS'
   ).trim();
 
   const text = `${subject} ${description}`.toLowerCase();
@@ -550,9 +567,12 @@ router.post('/:integrationId', async (req: Request, res: Response) => {
       case 'gitlab':
         normalized = normalizeGitLab(req.headers as any, req.body);
         break;
-      case 'synology':
-        normalized = normalizeSynology(req.body);
+      case 'synology': {
+        // 传入 URL 查询参数（?text=@@TEXT@@）及集成配置（含 nasHost 等）
+        const synologyConfig = integration.config as Record<string, any>;
+        normalized = normalizeSynology(req.body, req.query as any, synologyConfig);
         break;
+      }
       default:
         // vscode-chat / api / custom：通用格式
         normalized = normalizeGeneric(req.body);
