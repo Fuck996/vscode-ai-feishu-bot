@@ -490,10 +490,10 @@ export default function Robots() {
                           </div>
                         </td>
                         {/* 列3：最后消息时间 */}
-                        <td style={{ padding: '0.875rem 0.75rem', width: '160px' }}>
+                        <td style={{ padding: '0.875rem 0.75rem', width: '190px' }}>
                           {lastMsg ? (
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
-                              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', color: '#374151', fontSize: '0.8125rem', fontWeight: 500 }}>
+                              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', color: '#374151', fontSize: '0.8125rem', fontWeight: 500, whiteSpace: 'nowrap' }}>
                                 <CalendarDays size={13} color="#57606a" />
                                 <span>最后活动：{lastMsg.date}</span>
                               </span>

@@ -519,30 +519,6 @@ const Services: React.FC = () => {
                   重启
                 </button>
 
-                <button
-                  style={{
-                    padding: '0.5rem 1rem',
-                    border: '1px solid #d1d5db',
-                    background: 'white',
-                    color: '#374151',
-                    borderRadius: '0.375rem',
-                    cursor: 'pointer',
-                    fontSize: '0.8125rem',
-                    fontWeight: 500,
-                    whiteSpace: 'nowrap',
-                  }}
-                  onClick={() => {
-                    // 重置为显示全部日志，滚动到日志面板
-                    setSelectedService('全部');
-                    setTimeout(() => {
-                      logPanelRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                    }, 100);
-                  }}
-                  onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#f3f4f6'; }}
-                  onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'white'; }}
-                >
-                  查看日志
-                </button>
               </div>
             </div>
           ))}

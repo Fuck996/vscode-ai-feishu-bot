@@ -1,5 +1,6 @@
 ﻿import React, { useState, useEffect } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import authService from '../services/auth';
 import { useToast } from '../hooks/useToast';
 
@@ -33,6 +34,7 @@ interface Robot {
 }
 
 const Settings: React.FC = () => {
+  const navigate = useNavigate();
   const currentUser = authService.getCurrentUser();
   const isAdmin = currentUser?.role === 'admin';
   const toast = useToast();
@@ -389,6 +391,23 @@ const Settings: React.FC = () => {
                     </div>
                   </div>
                 </div>
+
+                {/* 退出登录卡片 */}
+                <div style={{ background: 'white', borderRadius: '0.5rem', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', marginBottom: '1.5rem' }}>
+                  <div style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid #e5e7eb' }}>
+                    <span style={{ fontSize: '1rem', fontWeight: 600, color: '#1f2937' }}>退出登录</span>
+                  </div>
+                  <div style={{ padding: '1.5rem' }}>
+                    <p style={{ fontSize: '0.875rem', color: '#6b7280', marginBottom: '1rem' }}>退出后将返回登录页面，需重新输入密码才能访问系统。</p>
+                    <button
+                      onClick={() => { authService.logout(); navigate('/login'); }}
+                      style={{ padding: '0.5rem 1.25rem', background: '#ef4444', color: 'white', border: 'none', borderRadius: '0.375rem', cursor: 'pointer', fontSize: '0.875rem', fontWeight: 500 }}
+                    >
+                      🚪 退出登录
+                    </button>
+                  </div>
+                </div>
+
               </div>
             )}
 

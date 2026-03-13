@@ -177,14 +177,6 @@ function MainLayout({ children }: { children: React.ReactNode }) {
                 <span aria-hidden="true" className="github-topbar__avatar">👤</span>
                 <span>{userNickname || user.username}</span>
               </span>
-              <button
-                type="button"
-                onClick={handleLogout}
-                className="github-topbar__logout"
-                title="退出登录"
-              >
-                退出
-              </button>
             </div>
           )}
         </div>
