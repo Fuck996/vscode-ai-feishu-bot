@@ -306,7 +306,7 @@ MCP Server ← → stdio (JSON-RPC 协议)
 ```json
 {
   "servers": {
-    "feishu-notifier": {
+    "feishuNotifier": {
       "type": "sse",
       "url": "https://fsbot.4npc.net:2020/api/mcp/sse?token=${env:FEISHU_MCP_TOKEN}"
     }
@@ -318,7 +318,7 @@ MCP Server ← → stdio (JSON-RPC 协议)
 ```json
 {
   "servers": {
-    "feishu-notifier": {
+    "feishuNotifier": {
       "type": "sse",
       "url": "http://localhost:3000/api/mcp/sse?token=${env:FEISHU_MCP_TOKEN}"
     }
@@ -391,7 +391,7 @@ X-Trigger-Token: {integrationId对应的webhookSecret}
 
 ### 工作总结自动推送 📨
 
-**每次完成用户的任务请求后，若 `feishu-notifier` MCP 工具已连接可用，则调用 `feishu_notify` 工具将本次工作总结发送到飞书群组。**
+**每次完成用户的任务请求后，若 `feishuNotifier` MCP 工具已连接可用，则调用 `feishu_notify` 工具将本次工作总结发送到飞书群组。**
 
 #### 汇报格式规范（自动美化）
 

@@ -271,7 +271,7 @@ async function handleRPC(
           result: {
             protocolVersion: '2024-11-05',
             capabilities: { tools: {} },
-            serverInfo: { name: 'feishu-notifier', version: '1.0.0' },
+            serverInfo: { name: 'feishuNotifier', version: '1.0.0' },
           },
         });
         break;

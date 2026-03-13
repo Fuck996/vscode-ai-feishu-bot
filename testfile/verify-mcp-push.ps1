@@ -372,7 +372,7 @@ $mcpConfigPath = ".\.vscode\mcp.json"
 if (Test-Path $mcpConfigPath) {
     try {
         $mcpConfig = Get-Content $mcpConfigPath | ConvertFrom-Json
-        $mcpServer = $mcpConfig.servers."feishu-notifier"
+        $mcpServer = $mcpConfig.servers.feishuNotifier
         
         if ($mcpServer) {
             Write-Success "MCP 配置文件正确"

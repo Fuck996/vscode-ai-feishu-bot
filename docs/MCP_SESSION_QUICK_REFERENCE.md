@@ -76,7 +76,7 @@ grep "SSE" backend.log | grep -E "(建立|关闭|过期)"
 在 VS Code settings 中：
 ```json
 {
-  "mcp.clients.feishu-notifier.autoReconnect": false
+  "mcp.clients.feishuNotifier.autoReconnect": false
 }
 ```
 

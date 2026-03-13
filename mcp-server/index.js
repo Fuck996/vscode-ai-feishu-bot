@@ -140,7 +140,7 @@ let currentConfig = {
 // ─────────────────────────────────────────────
 
 const server = new Server(
-  { name: 'feishu-notifier', version: '1.0.0' },
+  { name: 'feishuNotifier', version: '1.0.0' },
   { capabilities: { tools: {} } }
 );
 

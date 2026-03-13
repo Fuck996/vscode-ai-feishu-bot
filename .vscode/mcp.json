@@ -1,0 +1,8 @@
+{
+  "servers": {
+    "feishuNotifier": {
+      "type": "sse",
+      "url": "https://fsbot.4npc.net:2020/api/mcp/sse?token=${env:FEISHU_MCP_TOKEN}"
+    }
+  }
+}
