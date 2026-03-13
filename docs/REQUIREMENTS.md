@@ -1,6 +1,6 @@
 # 需求与BUG跟踪文档
 
-**版本：** v1.3.14 | **更新时间：** 2026-03-13 | **内容：** 降低 stdio MCP 启动噪音；补充 NAS 反代公开地址配置
+**版本：** v1.3.15 | **更新时间：** 2026-03-13 | **内容：** 清理群晖 compose 中多余 BACKEND_URL；泛化 PUBLIC_BASE_URL 注释说明
 
 
 ## 📌 使用说明
@@ -65,6 +65,7 @@
 
 | # | 优先级 | 标题 | 根因 | 状态 | 修复版本 |
 |---|--------|------|------|------|----------|
+| BUG-U12 | 🟡 | 群晖 compose 中 BACKEND_URL 配置含义混淆 | 统一镜像部署下前后端内部通信不依赖 BACKEND_URL；该变量仅会误导为“业务通信必需项”，已从 compose 删除并保留 PUBLIC_BASE_URL 作为对外绝对地址覆盖项 | ✅ 已修复 | v1.3.15 |
 | BUG-U11 | 🔴 | stdio MCP 启动时持续输出异常警告 | mcp-server/index.js 将“本地没有可用集成”也作为 stderr 警告输出，且工具调用前未先刷新配置；群晖部署文件也缺少 Lucky 反代场景的 PUBLIC_BASE_URL | ✅ 已修复 | v1.3.14 |
 | BUG-U10 | 🔴 | MCP 配置接口返回内网地址且 stdio 报错不明确 | backend/routes/mcp-config.ts 错误优先使用 BACKEND_URL 生成 webhookEndpoint，导致远端配置返回内网地址；mcp-server/index.js 丢失后端错误细节，报成“无效配置响应” | ✅ 已修复 | v1.3.13 |
 | BUG-U09 | 🔴 | 添加群晖集成时验证失败 | 后端 integrations.ts validTypes 数组缺少 'synology' 类型，新建集成时拒绝请求 | ✅ 已修复 | v1.3.8 |
@@ -88,6 +89,7 @@
 
 | 版本 | 发布日期 | 主要变更 |
 |------|----------|----------|
+| v1.3.15 | 2026-03-13 | 清理 docker-compose.synology.yml 中误导性的 BACKEND_URL；PUBLIC_BASE_URL 改为通用示例并明确仅用于生成对外绝对地址，不影响同镜像内前后端通信 ✅ 已完成 |
 | v1.3.14 | 2026-03-13 | 修复 stdio MCP 启动期误报警：本地无集成时不再刷出大量 stderr；工具调用前会先刷新后端配置；群晖部署补充 PUBLIC_BASE_URL，适配 Lucky 反向代理外网域名 ✅ 已完成 |
 | v1.3.13 | 2026-03-13 | 修复 MCP 配置接口对外地址生成逻辑：远端 /api/mcp/config 不再返回内网地址；stdio MCP 启动与调用阶段保留后端真实错误信息；后端版本号改为从 package.json 读取，避免再次漂移 ✅ 已完成 |
 | v1.3.8 | 2026-03-13 | 修复群晖集成后端验证问题：integrations.ts validTypes 数组补充 'synology' 类型 ✅ 已完成 |

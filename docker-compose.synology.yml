@@ -19,7 +19,7 @@
 # 如需修改前端端口或添加飞书 Webhook，创建 .env 文件：
 #
 #   APP_PORT=45173          # 前端端口，如已占用可改为其他
-#   PUBLIC_BASE_URL=https://fsbot.4npc.net:2020  # Lucky/反向代理对外域名，MCP 配置回调用此地址
+#   PUBLIC_BASE_URL=https://your-public-domain.example.com  # 可选：仅在需要生成对外绝对地址（如 MCP/webhook 回调）时设置
 #   FEISHU_WEBHOOK_URL=https://open.feishu.cn/open-apis/bot/v2/hook/...
 #   JWT_SECRET=your-strong-secret-key-here
 #
@@ -49,7 +49,6 @@ services:
       DATABASE_PATH: /app/data/notifications.db
       CORS_ORIGIN: "*"
       LOG_LEVEL: info
-      BACKEND_URL: http://${NAS_HOSTNAME:-localhost}:${APP_PORT:-45173}
       PUBLIC_BASE_URL: ${PUBLIC_BASE_URL:-}
       TZ: Asia/Shanghai
     volumes:
