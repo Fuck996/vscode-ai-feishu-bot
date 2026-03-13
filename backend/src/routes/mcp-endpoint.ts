@@ -15,13 +15,14 @@ import axios from 'axios';
 import database from '../database';
 import logger from '../logger';
 import { buildFeishuCard } from './platform-webhook';
-import { addLog } from '../serviceLogger';
+import { addLog, type LogContext, type LogLevel } from '../serviceLogger';
 
 const router = Router();
 
 interface MCPContext {
   integration: any;
   robot: any;
+  user: any;
 }
 
 interface LegacySession {
@@ -33,6 +34,7 @@ interface StreamableSession {
   integrationId: string;
   protocolVersion: string;
   backchannelClients: Set<Response>;
+  logContext?: LogContext;
 }
 
 interface JsonRpcRequest {
@@ -79,7 +81,41 @@ async function validateMCPToken(token: string) {
   if (!integration || integration.status !== 'active' || integration.projectType !== 'vscode-chat') return null;
   const robot = await database.getRobotById(integration.robotId);
   if (!robot || robot.status !== 'active') return null;
-  return { integration, robot };
+  const user = await database.getUserById(robot.userId);
+  if (!user || user.status !== 'active') return null;
+  return { integration, robot, user };
+}
+
+function getUserDisplayName(user: any): string {
+  return (typeof user?.nickname === 'string' && user.nickname.trim()) || user?.username || '未知用户';
+}
+
+function buildMcpLogContext(context?: MCPContext | null): LogContext | undefined {
+  if (!context) {
+    return undefined;
+  }
+
+  return {
+    user: {
+      id: context.user.id,
+      username: context.user.username,
+      nickname: context.user.nickname,
+      displayName: getUserDisplayName(context.user),
+    },
+    robot: {
+      id: context.robot.id,
+      name: context.robot.name,
+    },
+    integration: {
+      id: context.integration.id,
+      name: context.integration.projectName,
+      type: context.integration.projectType,
+    },
+  };
+}
+
+function addMcpLog(level: LogLevel, message: string, context?: MCPContext | null) {
+  addLog(level, 'MCP 服务', message, buildMcpLogContext(context));
 }
 
 function extractToken(req: Request): string {
@@ -229,7 +265,7 @@ function disposeStreamableSession(sessionId: string, reason: string) {
 
   session.backchannelClients.clear();
   streamableSessions.delete(sessionId);
-  addLog('info', 'MCP 服务', `HTTP 会话关闭：${reason} [${sessionId.substring(0, 8)}...]`);
+  addLog('info', 'MCP 服务', `HTTP 会话关闭：${reason} [${sessionId.substring(0, 8)}...]`, session.logContext);
   logger.info({ sessionId, reason }, 'MCP HTTP 会话关闭');
 }
 
@@ -238,7 +274,7 @@ async function validateStreamableSession(req: Request, res: Response, sessionId:
   const context = await validateMCPToken(token);
 
   if (!context) {
-    addLog('warn', 'MCP 服务', 'HTTP 会话请求被拒绝：Token 无效或缺失');
+    addMcpLog('warn', 'HTTP 会话请求被拒绝：Token 无效或缺失');
     res.status(403).json({
       error: token ? '无效的 Token，请从集成管理页面重新获取' : '缺少认证 Token，请检查 FEISHU_MCP_TOKEN 配置',
     });
@@ -247,7 +283,7 @@ async function validateStreamableSession(req: Request, res: Response, sessionId:
 
   const session = streamableSessions.get(sessionId);
   if (!session) {
-    addLog('warn', 'MCP 服务', `HTTP 会话过期 [${sessionId.substring(0, 8)}...]`);
+    addMcpLog('warn', `HTTP 会话过期 [${sessionId.substring(0, 8)}...]`, context);
     res.status(404).json({
       error: '会话不存在或已过期，请重新建立 MCP 会话',
       details: buildSessionExpiredDetails('HTTP 会话'),
@@ -257,7 +293,7 @@ async function validateStreamableSession(req: Request, res: Response, sessionId:
   }
 
   if (session.integrationId !== context.integration.id) {
-    addLog('warn', 'MCP 服务', `HTTP 会话与 Token 不匹配 [${sessionId.substring(0, 8)}...]`);
+    addMcpLog('warn', `HTTP 会话与 Token 不匹配 [${sessionId.substring(0, 8)}...]`, context);
     res.status(403).json({ error: '当前 Token 与会话不匹配，请重新建立 MCP 会话' });
     return null;
   }
@@ -278,7 +314,7 @@ async function attachLegacySSE(req: Request, res: Response) {
   const context = await validateMCPToken(token);
 
   if (!context) {
-    addLog('warn', 'MCP 服务', 'Legacy SSE 连接被拒绝：Token 无效或缺失');
+    addMcpLog('warn', 'Legacy SSE 连接被拒绝：Token 无效或缺失');
     return res.status(403).json({
       error: token ? '无效的 Token，请从集成管理页面「📋 MCP配置」中获取正确的 Token' : '缺少认证 Token，请在 .vscode/mcp.json 中配置 FEISHU_MCP_TOKEN 环境变量',
     });
@@ -290,7 +326,7 @@ async function attachLegacySSE(req: Request, res: Response) {
   const projectName = context.integration.projectName;
   legacySessions.set(sessionId, { res, integrationId: context.integration.id });
 
-  addLog('info', 'MCP 服务', `Legacy SSE 连接建立：${projectName} [${sessionId.substring(0, 8)}...]`);
+  addMcpLog('info', `Legacy SSE 连接建立：${projectName} [${sessionId.substring(0, 8)}...]`, context);
 
   const messageUrl = buildMessageUrl(req, sessionId, token);
   res.write(`event: endpoint\ndata: ${messageUrl}\n\n`);
@@ -307,7 +343,7 @@ async function attachLegacySSE(req: Request, res: Response) {
   req.on('close', () => {
     stopHeartbeat();
     legacySessions.delete(sessionId);
-    addLog('info', 'MCP 服务', `Legacy SSE 连接关闭：${projectName} [${sessionId.substring(0, 8)}...]`);
+    addMcpLog('info', `Legacy SSE 连接关闭：${projectName} [${sessionId.substring(0, 8)}...]`, context);
     logger.info({ sessionId }, 'MCP Legacy SSE 连接关闭');
   });
 }
@@ -325,7 +361,7 @@ async function attachStreamableBackchannel(req: Request, res: Response, sessionI
   res.write(': connected\n\n');
   session.backchannelClients.add(res);
 
-  addLog('info', 'MCP 服务', `HTTP 反向通道已连接：${projectName} [${sessionId.substring(0, 8)}...]`);
+  addMcpLog('info', `HTTP 反向通道已连接：${projectName} [${sessionId.substring(0, 8)}...]`, context);
   logger.info({ sessionId, project: projectName }, 'MCP HTTP 反向通道已连接');
 
   const stopHeartbeat = startHeartbeat(res, () => {
@@ -335,7 +371,7 @@ async function attachStreamableBackchannel(req: Request, res: Response, sessionI
   req.on('close', () => {
     stopHeartbeat();
     session.backchannelClients.delete(res);
-    addLog('info', 'MCP 服务', `HTTP 反向通道已关闭：${projectName} [${sessionId.substring(0, 8)}...]`);
+    addMcpLog('info', `HTTP 反向通道已关闭：${projectName} [${sessionId.substring(0, 8)}...]`, context);
     logger.info({ sessionId }, 'MCP HTTP 反向通道已关闭');
   });
 }
@@ -363,7 +399,7 @@ router.post('/sse', async (req: Request, res: Response) => {
   const context = await validateMCPToken(token);
 
   if (!context) {
-    addLog('warn', 'MCP 服务', 'HTTP 会话请求被拒绝：Token 无效或缺失');
+    addMcpLog('warn', 'HTTP 会话请求被拒绝：Token 无效或缺失');
     return res.status(403).json({
       error: token ? '无效的 Token，请从集成管理页面重新获取' : '缺少认证 Token，请检查 FEISHU_MCP_TOKEN 配置',
     });
@@ -383,7 +419,7 @@ router.post('/sse', async (req: Request, res: Response) => {
   if (sessionId) {
     session = streamableSessions.get(sessionId);
     if (!session) {
-      addLog('warn', 'MCP 服务', `HTTP 会话过期 [${sessionId.substring(0, 8)}...]`);
+      addMcpLog('warn', `HTTP 会话过期 [${sessionId.substring(0, 8)}...]`, context);
       return res.status(404).json({
         error: '会话不存在或已过期，请重新建立 MCP 会话',
         details: buildSessionExpiredDetails('HTTP 会话'),
@@ -392,7 +428,7 @@ router.post('/sse', async (req: Request, res: Response) => {
     }
 
     if (session.integrationId !== context.integration.id) {
-      addLog('warn', 'MCP 服务', `HTTP 会话与 Token 不匹配 [${sessionId.substring(0, 8)}...]`);
+      addMcpLog('warn', `HTTP 会话与 Token 不匹配 [${sessionId.substring(0, 8)}...]`, context);
       return res.status(403).json({ error: '当前 Token 与会话不匹配，请重新建立 MCP 会话' });
     }
   } else if (msg.method !== 'initialize') {
@@ -410,12 +446,14 @@ router.post('/sse', async (req: Request, res: Response) => {
         integrationId: context.integration.id,
         protocolVersion: responseProtocolVersion,
         backchannelClients: new Set<Response>(),
+        logContext: buildMcpLogContext(context),
       });
       res.setHeader('Mcp-Session-Id', newSessionId);
-      addLog('info', 'MCP 服务', `HTTP 会话建立：${context.integration.projectName} [${newSessionId.substring(0, 8)}...]`);
+      addMcpLog('info', `HTTP 会话建立：${context.integration.projectName} [${newSessionId.substring(0, 8)}...]`, context);
       logger.info({ sessionId: newSessionId, project: context.integration.projectName, protocolVersion: responseProtocolVersion }, 'MCP HTTP 会话建立');
     } else if (session) {
       session.protocolVersion = responseProtocolVersion;
+      session.logContext = buildMcpLogContext(context);
     }
 
     if (!execution.response) {
@@ -460,7 +498,7 @@ router.post('/message', async (req: Request, res: Response) => {
 
   if (!session) {
     const errorMsg = '会话不存在或已过期，可能原因：\n1. 后端服务重启\n2. Legacy SSE 长连接已断开\n3. 网络连接中断\n请在 VS Code MCP 服务中重新建立连接';
-    addLog('warn', 'MCP 服务', `Legacy SSE 会话过期 [sessionId=${sessionId.substring(0, 8)}...]`);
+    addMcpLog('warn', `Legacy SSE 会话过期 [sessionId=${sessionId.substring(0, 8)}...]`);
     return res.status(404).json({ 
       error: '会话不存在或已过期，请重新建立 SSE 连接',
       details: errorMsg,
@@ -470,7 +508,7 @@ router.post('/message', async (req: Request, res: Response) => {
 
   const context = await validateMCPToken(token);
   if (!context) {
-    addLog('warn', 'MCP 服务', `消息请求 Token 验证失败`);
+    addMcpLog('warn', '消息请求 Token 验证失败');
     return res.status(403).json({ error: '无效 Token' });
   }
 
@@ -581,7 +619,7 @@ async function invokeFeishuNotify(
   // 使用与 platform-webhook.ts 相同的卡片构建函数
   const card = buildFeishuCard(title, summary, 'info', projectName);
 
-  addLog('info', 'MCP 服务', `feishu_notify 调用：${projectName}  「${title}」`);
+  addMcpLog('info', `feishu_notify 调用：${projectName}  「${title}」`, context);
 
   const preview = summary.substring(0, 150);
 
@@ -596,10 +634,10 @@ async function invokeFeishuNotify(
         signal: abortController.signal,
       });
 
-      addLog('info', 'MCP 服务', `飞书消息发送成功：${projectName}`);
+      addMcpLog('info', `飞书消息发送成功：${projectName}`, context);
       logger.info({ project: projectName }, 'MCP feishu_notify 飞书发送完成');
     } catch (err: any) {
-      addLog('warn', 'MCP 服务', `飞书消息发送失败：${err.message}`);
+      addMcpLog('warn', `飞书消息发送失败：${err.message}`, context);
       logger.warn(
         { project: projectName, error: err.message },
         'MCP feishu_notify 飞书发送失败（不影响工具调用结果）'

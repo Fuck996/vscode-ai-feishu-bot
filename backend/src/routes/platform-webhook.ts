@@ -12,7 +12,7 @@ import * as crypto from 'crypto';
 import axios from 'axios';
 import database from '../database';
 import logger from '../logger';
-import { addLog } from '../serviceLogger';
+import { addLog, type LogContext, type LogLevel } from '../serviceLogger';
 
 const router = Router();
 
@@ -71,6 +71,54 @@ interface NormalizedEvent {
   summary: string;
   url?: string;
   projectName?: string;  // 可选：由 MCP Server 或其他来源提供
+}
+
+interface WebhookLogEntities {
+  integration?: any;
+  robot?: any;
+  user?: any;
+}
+
+function getUserDisplayName(user: any): string {
+  return (typeof user?.nickname === 'string' && user.nickname.trim()) || user?.username || '未知用户';
+}
+
+function buildWebhookLogContext(entities?: WebhookLogEntities): LogContext | undefined {
+  if (!entities) {
+    return undefined;
+  }
+
+  const context: LogContext = {};
+
+  if (entities.user) {
+    context.user = {
+      id: entities.user.id,
+      username: entities.user.username,
+      nickname: entities.user.nickname,
+      displayName: getUserDisplayName(entities.user),
+    };
+  }
+
+  if (entities.robot) {
+    context.robot = {
+      id: entities.robot.id,
+      name: entities.robot.name,
+    };
+  }
+
+  if (entities.integration) {
+    context.integration = {
+      id: entities.integration.id,
+      name: entities.integration.projectName,
+      type: entities.integration.projectType,
+    };
+  }
+
+  return Object.keys(context).length > 0 ? context : undefined;
+}
+
+function addWebhookLog(level: LogLevel, message: string, entities?: WebhookLogEntities) {
+  addLog(level, 'Webhook 接收', message, buildWebhookLogContext(entities));
 }
 
 /** 解析 GitHub Webhook payload */
@@ -484,6 +532,9 @@ export function buildFeishuCard(title: string, summary: string, status: 'success
  */
 router.post('/:integrationId', async (req: Request, res: Response) => {
   const { integrationId } = req.params;
+  let integration: any | null = null;
+  let robot: any | null = null;
+  let user: any | null = null;
 
   try {
     // 0. 检查是否为重复事件（去重）
@@ -504,25 +555,28 @@ router.post('/:integrationId', async (req: Request, res: Response) => {
     }
     
     if (isRecentEvent(eventSignature)) {
-      addLog('info', 'Webhook 接收', `检测到重复事件，已忽略 [integrationId=${integrationId}] [sig=${eventSignature}]`);
+      addWebhookLog('info', `检测到重复事件，已忽略 [integrationId=${integrationId}] [sig=${eventSignature}]`);
       return res.json({ success: true, message: '重复事件已忽略' });
     }
 
     // 1. 查找集成配置
-    const integration = await database.getIntegrationById(integrationId);
+    integration = await database.getIntegrationById(integrationId);
     if (!integration || integration.status !== 'active') {
-      addLog('warn', 'Webhook 接收', `集成不存在或未启用 [id=${integrationId}]`);
+      addWebhookLog('warn', `集成不存在或未启用 [id=${integrationId}]`);
       return res.status(404).json({ success: false, error: '集成不存在或未启用' });
     }
 
     // 2. 查找关联机器人
-    const robot = await database.getRobotById(integration.robotId);
+    robot = await database.getRobotById(integration.robotId);
     if (!robot || robot.status !== 'active') {
-      addLog('warn', 'Webhook 接收', `关联机器人不存在或未启用 [robotId=${integration.robotId}]`);
+      addWebhookLog('warn', `关联机器人不存在或未启用 [robotId=${integration.robotId}]`, { integration });
       return res.status(404).json({ success: false, error: '关联机器人不存在或未启用' });
     }
 
-    addLog('info', 'Webhook 接收', `收到 ${integration.projectType.toUpperCase()} 事件 [集成: ${integration.projectName}]`);
+    user = await database.getUserById(robot.userId);
+    const logEntities = { integration, robot, user };
+
+    addWebhookLog('info', `收到 ${integration.projectType.toUpperCase()} 事件 [集成: ${integration.projectName}]`, logEntities);
 
     // 3. 签名/Token 验证（使用 rawBody 保证签名准确性）
     const rawBody: string = (req as any).rawBody || JSON.stringify(req.body);
@@ -547,7 +601,7 @@ router.post('/:integrationId', async (req: Request, res: Response) => {
       }
       if (!verified) {
         logger.warn('平台 Webhook 签名验证失败', { platform, integrationId });
-        addLog('warn', 'Webhook 接收', `签名验证失败 [${platform}] [${integration.projectName}]`);
+        addWebhookLog('warn', `签名验证失败 [${platform}] [${integration.projectName}]`, logEntities);
         return res.status(401).json({ success: false, error: '签名验证失败' });
       }
     }
@@ -586,7 +640,7 @@ router.post('/:integrationId', async (req: Request, res: Response) => {
 
     if (!normalized) {
       logger.info('未识别的平台事件，已忽略', { platform, integrationId });
-      addLog('info', 'Webhook 接收', `未识别的事件格式，已跳过 [${platform}] [${integration.projectName}]`);
+      addWebhookLog('info', `未识别的事件格式，已跳过 [${platform}] [${integration.projectName}]`, logEntities);
       return res.json({ success: true, message: '事件已接收，无对应处理器' });
     }
 
@@ -600,20 +654,20 @@ router.post('/:integrationId', async (req: Request, res: Response) => {
       
       if (action === 'in_progress') {
         // 跳过构建中的事件
-        addLog('info', 'Webhook 接收', `GitHub workflow_run 构建中，已跳过 [${wr?.name || 'unknown'}] [action=${action}]`);
+        addWebhookLog('info', `GitHub workflow_run 构建中，已跳过 [${wr?.name || 'unknown'}] [action=${action}]`, logEntities);
         return res.json({ success: true, message: 'GitHub workflow_run 事件已接收，构建中已跳过' });
       }
       
       if (action === 'completed' && !wr?.conclusion) {
         // 不应该出现这种情况，但防御性地处理
-        addLog('info', 'Webhook 接收', `GitHub workflow_run 状态异常（completed但无conclusion），已跳过`);
+        addWebhookLog('info', 'GitHub workflow_run 状态异常（completed但无conclusion），已跳过', logEntities);
         return res.json({ success: true, message: 'GitHub workflow_run 事件异常，已跳过' });
       }
     }
 
     // 5. 检查触发规则
     if (!shouldNotify(normalized.event, normalized.status, integration.triggeredEvents, integration.notifyOn)) {
-      addLog('info', 'Webhook 接收', `事件 "${normalized.event}" 不满足触发条件，已跳过 [${integration.projectName}]`);
+      addWebhookLog('info', `事件 "${normalized.event}" 不满足触发条件，已跳过 [${integration.projectName}]`, logEntities);
       return res.json({ success: true, message: '事件已接收，不满足触发条件，已跳过' });
     }
 
@@ -647,13 +701,13 @@ router.post('/:integrationId', async (req: Request, res: Response) => {
       if (feishuCode !== undefined && feishuCode !== 0) {
         const feishuMsg = respData?.msg || respData?.StatusMessage || '飞书返回错误';
         logger.error('飞书 API 返回错误码', { platform, integrationId, code: feishuCode, msg: feishuMsg });
-        addLog('error', 'Webhook 接收', `飞书 API 错误 code=${feishuCode}: ${feishuMsg} [${platform}] ${normalized.title}`);
+        addWebhookLog('error', `飞书 API 错误 code=${feishuCode}: ${feishuMsg} [${platform}] ${normalized.title}`, logEntities);
       } else {
-        addLog('info', 'Webhook 接收', `飞书通知已发送 [${integration.projectType}] ${normalized.title} [项目: ${finalProjectName}]`);
+        addWebhookLog('info', `飞书通知已发送 [${integration.projectType}] ${normalized.title} [项目: ${finalProjectName}]`, logEntities);
       }
     } catch (feishuError) {
       logger.error('飞书消息发送失败（Webhook 已正常接收）', { platform, integrationId, error: feishuError });
-      addLog('error', 'Webhook 接收', `飞书发送失败 [${integration.projectType}] ${normalized.title}: ${(feishuError as Error).message || '未知错误'}`);
+      addWebhookLog('error', `飞书发送失败 [${integration.projectType}] ${normalized.title}: ${(feishuError as Error).message || '未知错误'}`, logEntities);
       // 仍然返回 200：webhook 已收到，飞书发送失败属于内部问题；
       // 避免外部平台（如群晖 DSM）因收到非 200 响应而显示 "无法发送通知" 错误
       res.json({ success: true, message: '事件已接收，但飞书推送失败，请检查机器人 Webhook 地址' });
@@ -675,7 +729,7 @@ router.post('/:integrationId', async (req: Request, res: Response) => {
 
   } catch (error) {
     logger.error('平台 Webhook 处理异常', { integrationId, error });
-    addLog('error', 'Webhook 接收', `处理异常 [id=${integrationId}]: ${(error as Error).message || '未知错误'}`);
+    addWebhookLog('error', `处理异常 [id=${integrationId}]: ${(error as Error).message || '未知错误'}`, { integration, robot, user });
     res.status(500).json({ success: false, error: '内部服务器错误' });
   }
 });

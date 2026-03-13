@@ -1,5 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+
+import PageTitle from '../components/PageTitle';
 import authService from '../services/auth';
 import toastService from '../services/toastService';
 
@@ -339,7 +341,7 @@ export default function Integrations() {
   if (loading) return <div style={{ textAlign: 'center', padding: '4rem', color: '#6b7280' }}>加载中...</div>;
 
   return (
-    <div style={{ backgroundColor: '#f3f4f6', minHeight: '100vh', paddingBottom: '2rem' }}>
+    <div style={{ backgroundColor: '#f6f8fa', minHeight: '100vh', paddingBottom: '2rem' }}>
       <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '2rem' }}>
 
         {/* 面包屑 */}
@@ -352,19 +354,20 @@ export default function Integrations() {
         </div>
 
         {/* 页头 */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.5rem' }}>
-          <div>
-            <h1 style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#1f2937', margin: 0 }}>🔗 项目集成管理</h1>
-            <p style={{ fontSize: '0.875rem', color: '#6b7280', marginTop: '0.25rem' }}>{robot?.name}</p>
-          </div>
-          <button onClick={openCreateModal} style={{
-            padding: '0.5rem 1rem', backgroundColor: '#10b981', color: 'white',
-            border: 'none', borderRadius: '0.375rem', cursor: 'pointer',
-            fontSize: '0.875rem', fontWeight: 500, whiteSpace: 'nowrap',
-          }}>
-            ➕ 添加集成
-          </button>
-        </div>
+        <PageTitle
+          icon="integration"
+          title="项目集成管理"
+          description={robot?.name ? `当前机器人：${robot.name}` : '管理该机器人的项目集成与触发规则'}
+          actions={
+            <button onClick={openCreateModal} style={{
+              padding: '0.5rem 1rem', backgroundColor: '#1f883d', color: 'white',
+              border: 'none', borderRadius: '0.375rem', cursor: 'pointer',
+              fontSize: '0.875rem', fontWeight: 500, whiteSpace: 'nowrap',
+            }}>
+              添加集成
+            </button>
+          }
+        />
 
         {/* 提示 */}
         <div style={{ background: '#dbeafe', color: '#1e40af', padding: '1rem', borderRadius: '0.5rem', marginBottom: '1.5rem', fontSize: '0.875rem' }}>

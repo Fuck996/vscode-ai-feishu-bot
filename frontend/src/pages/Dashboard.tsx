@@ -2,6 +2,9 @@
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import authService from '../services/auth';
 
+import PageTitle from '../components/PageTitle';
+import SceneIcon from '../components/SceneIcon';
+
 interface Notification {
   id: string;
   title: string;
@@ -359,75 +362,77 @@ const Dashboard: React.FC = () => {
   }
 
   return (
-    <div style={{ backgroundColor: '#f3f4f6', minHeight: '100vh', paddingBottom: '2rem' }}>
+    <div style={{ backgroundColor: '#f6f8fa', minHeight: '100vh', paddingBottom: '2rem' }}>
       <div style={{ maxWidth: '1400px', margin: '0 auto', padding: '2rem' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
-          <h1 style={{ fontSize: '1.875rem', fontWeight: 'bold', color: '#1f2937', margin: 0 }}>
-            仪表板
-          </h1>
-          <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-            <button
-              onClick={() => setTimeRange('today')}
-              style={{
-                padding: '0.5rem 1rem',
-                backgroundColor: timeRange === 'today' ? '#3b82f6' : '#e5e7eb',
-                color: timeRange === 'today' ? 'white' : '#374151',
-                border: 'none',
-                borderRadius: '0.375rem',
-                cursor: 'pointer',
-                fontSize: '0.875rem',
-                fontWeight: 500,
-              }}
-            >
-              今天
-            </button>
-            <button
-              onClick={() => setTimeRange('7days')}
-              style={{
-                padding: '0.5rem 1rem',
-                backgroundColor: timeRange === '7days' ? '#3b82f6' : '#e5e7eb',
-                color: timeRange === '7days' ? 'white' : '#374151',
-                border: 'none',
-                borderRadius: '0.375rem',
-                cursor: 'pointer',
-                fontSize: '0.875rem',
-                fontWeight: 500,
-              }}
-            >
-              最近7天
-            </button>
-            <button
-              onClick={() => setTimeRange('month')}
-              style={{
-                padding: '0.5rem 1rem',
-                backgroundColor: timeRange === 'month' ? '#3b82f6' : '#e5e7eb',
-                color: timeRange === 'month' ? 'white' : '#374151',
-                border: 'none',
-                borderRadius: '0.375rem',
-                cursor: 'pointer',
-                fontSize: '0.875rem',
-                fontWeight: 500,
-              }}
-            >
-              本月
-            </button>
-            <button
-              onClick={() => setTimeRange('all')}
-              style={{
-                padding: '0.5rem 1rem',
-                backgroundColor: timeRange === 'all' ? '#3b82f6' : '#e5e7eb',
-                color: timeRange === 'all' ? 'white' : '#374151',
-                border: 'none',
-                borderRadius: '0.375rem',
-                cursor: 'pointer',
-                fontSize: '0.875rem',
-                fontWeight: 500,
-              }}
-            >
-              全部
-            </button>
-          </div>
-        </div>
+        <PageTitle
+          icon="dashboard"
+          title="仪表板"
+          description="查看通知概览、近期消息与活跃机器人状态"
+          actions={
+            <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+              <button
+                onClick={() => setTimeRange('today')}
+                style={{
+                  padding: '0.5rem 1rem',
+                  backgroundColor: timeRange === 'today' ? '#0969da' : '#eaeef2',
+                  color: timeRange === 'today' ? 'white' : '#57606a',
+                  border: 'none',
+                  borderRadius: '0.375rem',
+                  cursor: 'pointer',
+                  fontSize: '0.875rem',
+                  fontWeight: 500,
+                }}
+              >
+                今天
+              </button>
+              <button
+                onClick={() => setTimeRange('7days')}
+                style={{
+                  padding: '0.5rem 1rem',
+                  backgroundColor: timeRange === '7days' ? '#0969da' : '#eaeef2',
+                  color: timeRange === '7days' ? 'white' : '#57606a',
+                  border: 'none',
+                  borderRadius: '0.375rem',
+                  cursor: 'pointer',
+                  fontSize: '0.875rem',
+                  fontWeight: 500,
+                }}
+              >
+                最近7天
+              </button>
+              <button
+                onClick={() => setTimeRange('month')}
+                style={{
+                  padding: '0.5rem 1rem',
+                  backgroundColor: timeRange === 'month' ? '#0969da' : '#eaeef2',
+                  color: timeRange === 'month' ? 'white' : '#57606a',
+                  border: 'none',
+                  borderRadius: '0.375rem',
+                  cursor: 'pointer',
+                  fontSize: '0.875rem',
+                  fontWeight: 500,
+                }}
+              >
+                本月
+              </button>
+              <button
+                onClick={() => setTimeRange('all')}
+                style={{
+                  padding: '0.5rem 1rem',
+                  backgroundColor: timeRange === 'all' ? '#0969da' : '#eaeef2',
+                  color: timeRange === 'all' ? 'white' : '#57606a',
+                  border: 'none',
+                  borderRadius: '0.375rem',
+                  cursor: 'pointer',
+                  fontSize: '0.875rem',
+                  fontWeight: 500,
+                }}
+              >
+                全部
+              </button>
+            </div>
+          }
+        />
 
         {error && (
           <div style={{ backgroundColor: '#fee2e2', color: '#dc2626', padding: '1rem', borderRadius: '0.5rem', marginBottom: '2rem' }}>
@@ -440,55 +445,73 @@ const Dashboard: React.FC = () => {
           {/* 通知总数 */}
           <div style={{ background: 'white', borderRadius: '0.5rem', padding: '1.5rem', boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)', transition: 'transform 0.2s, box-shadow 0.2s', cursor: 'pointer' }} onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 4px 6px rgba(0, 0, 0, 0.1)'; }} onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 1px 3px rgba(0, 0, 0, 0.1)'; }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-              <span style={{ fontSize: '0.875rem', color: '#6b7280', fontWeight: 500 }}>📊 通知总数</span>
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.875rem', color: '#656d76', fontWeight: 500 }}>
+                <SceneIcon name="notification" size={16} title="通知总数" />
+                <span>通知总数</span>
+              </span>
             </div>
             <div style={{ fontSize: '2rem', fontWeight: 'bold', color: '#1f2937', marginBottom: '0.5rem' }}>{stats.total}</div>
-            <div style={{ fontSize: '0.875rem', color: '#10b981', fontWeight: 500 }}>📈 +{stats.todayTotal} 今天</div>
+            <div style={{ fontSize: '0.875rem', color: '#1a7f37', fontWeight: 500 }}>今日新增 +{stats.todayTotal}</div>
           </div>
 
           {/* 成功通知 */}
           <div style={{ background: 'white', borderRadius: '0.5rem', padding: '1.5rem', boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)', transition: 'transform 0.2s, box-shadow 0.2s', cursor: 'pointer' }} onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 4px 6px rgba(0, 0, 0, 0.1)'; }} onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 1px 3px rgba(0, 0, 0, 0.1)'; }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-              <span style={{ fontSize: '0.875rem', color: '#6b7280', fontWeight: 500 }}>✅ 成功通知</span>
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.875rem', color: '#656d76', fontWeight: 500 }}>
+                <SceneIcon name="success" size={16} title="成功通知" />
+                <span>成功通知</span>
+              </span>
             </div>
             <div style={{ fontSize: '2rem', fontWeight: 'bold', color: '#1f2937', marginBottom: '0.5rem' }}>{stats.success}</div>
-            <div style={{ fontSize: '0.875rem', color: '#10b981', fontWeight: 500 }}>📈 +{stats.todaySuccess} 今天</div>
+            <div style={{ fontSize: '0.875rem', color: '#1a7f37', fontWeight: 500 }}>今日新增 +{stats.todaySuccess}</div>
           </div>
 
           {/* 失败通知 */}
           <div style={{ background: 'white', borderRadius: '0.5rem', padding: '1.5rem', boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)', transition: 'transform 0.2s, box-shadow 0.2s', cursor: 'pointer' }} onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 4px 6px rgba(0, 0, 0, 0.1)'; }} onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 1px 3px rgba(0, 0, 0, 0.1)'; }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-              <span style={{ fontSize: '0.875rem', color: '#6b7280', fontWeight: 500 }}>❌ 失败通知</span>
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.875rem', color: '#656d76', fontWeight: 500 }}>
+                <SceneIcon name="error" size={16} title="失败通知" />
+                <span>失败通知</span>
+              </span>
             </div>
             <div style={{ fontSize: '2rem', fontWeight: 'bold', color: '#1f2937', marginBottom: '0.5rem' }}>{stats.failed}</div>
-            <div style={{ fontSize: '0.875rem', color: '#ef4444', fontWeight: 500 }}>📈 +{stats.todayFailed} 今天</div>
+            <div style={{ fontSize: '0.875rem', color: '#cf222e', fontWeight: 500 }}>今日新增 +{stats.todayFailed}</div>
           </div>
 
           {/* 警告通知 */}
           <div style={{ background: 'white', borderRadius: '0.5rem', padding: '1.5rem', boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)', transition: 'transform 0.2s, box-shadow 0.2s', cursor: 'pointer' }} onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 4px 6px rgba(0, 0, 0, 0.1)'; }} onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 1px 3px rgba(0, 0, 0, 0.1)'; }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-              <span style={{ fontSize: '0.875rem', color: '#6b7280', fontWeight: 500 }}>⚠️ 警告通知</span>
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.875rem', color: '#656d76', fontWeight: 500 }}>
+                <SceneIcon name="warning" size={16} title="警告通知" />
+                <span>警告通知</span>
+              </span>
             </div>
             <div style={{ fontSize: '2rem', fontWeight: 'bold', color: '#1f2937', marginBottom: '0.5rem' }}>{stats.warning}</div>
-            <div style={{ fontSize: '0.875rem', color: '#d97706', fontWeight: 500 }}>📈 +{stats.todayWarning} 今天</div>
+            <div style={{ fontSize: '0.875rem', color: '#9a6700', fontWeight: 500 }}>今日新增 +{stats.todayWarning}</div>
           </div>
 
           {/* 信息通知 */}
           <div style={{ background: 'white', borderRadius: '0.5rem', padding: '1.5rem', boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)', transition: 'transform 0.2s, box-shadow 0.2s', cursor: 'pointer' }} onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 4px 6px rgba(0, 0, 0, 0.1)'; }} onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 1px 3px rgba(0, 0, 0, 0.1)'; }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-              <span style={{ fontSize: '0.875rem', color: '#6b7280', fontWeight: 500 }}>📝 汇报通知</span>
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.875rem', color: '#656d76', fontWeight: 500 }}>
+                <SceneIcon name="info" size={16} title="汇报通知" />
+                <span>汇报通知</span>
+              </span>
             </div>
             <div style={{ fontSize: '2rem', fontWeight: 'bold', color: '#1f2937', marginBottom: '0.5rem' }}>{stats.info}</div>
-            <div style={{ fontSize: '0.875rem', color: '#1e40af', fontWeight: 500 }}>📈 +{stats.todayInfo} 今天</div>
+            <div style={{ fontSize: '0.875rem', color: '#0969da', fontWeight: 500 }}>今日新增 +{stats.todayInfo}</div>
           </div>
 
           {/* 活跃机器人 */}
           <div style={{ background: 'white', borderRadius: '0.5rem', padding: '1.5rem', boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)', transition: 'transform 0.2s, box-shadow 0.2s', cursor: 'pointer' }} onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 4px 6px rgba(0, 0, 0, 0.1)'; }} onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 1px 3px rgba(0, 0, 0, 0.1)'; }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-              <span style={{ fontSize: '0.875rem', color: '#6b7280', fontWeight: 500 }}>🤖 活跃机器人</span>
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.875rem', color: '#656d76', fontWeight: 500 }}>
+                <SceneIcon name="robot" size={16} title="活跃机器人" />
+                <span>活跃机器人</span>
+              </span>
             </div>
             <div style={{ fontSize: '2rem', fontWeight: 'bold', color: '#1f2937', marginBottom: '0.5rem' }}>{stats.activeRobots}</div>
-            <div style={{ fontSize: '0.875rem', color: '#10b981', fontWeight: 500 }}>✅ 已启用</div>
+            <div style={{ fontSize: '0.875rem', color: '#1a7f37', fontWeight: 500 }}>当前已启用</div>
           </div>
         </div>
 
@@ -635,7 +658,12 @@ const Dashboard: React.FC = () => {
                 {robots.length > 0 ? (
                   robots.map((robot) => (
                     <tr key={robot.id} style={{ borderBottom: '1px solid #f3f4f6' }}>
-                      <td style={{ padding: '0.75rem', fontSize: '0.875rem', color: '#374151' }}>{robot.name}</td>
+                      <td style={{ padding: '0.75rem', fontSize: '0.875rem', color: '#374151' }}>
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}>
+                          <SceneIcon name="robotMessage" size={16} title={robot.name} />
+                          <span>{robot.name}</span>
+                        </span>
+                      </td>
                       <td style={{ padding: '0.75rem', fontSize: '0.875rem', color: '#374151' }}>
                         <span style={{ color: robot.status === 'active' ? '#10b981' : '#6b7280', fontWeight: 600 }}>
                           {robot.status === 'active' ? '🟢 活跃' : '🔴 离线'}

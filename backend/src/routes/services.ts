@@ -63,27 +63,21 @@ interface AuthRequest extends Request {
 // 获取服务列表
 router.get('/', verifyToken, checkAdminRole, async (req: AuthRequest, res: Response) => {
   try {
-    const userId = (req as any).userId;
-    if (!userId) {
-      return res.status(401).json({ success: false, error: '未授权' });
-    }
+    const integrations = await db.getAllIntegrations();
+    const mcpIntegrations = integrations.filter((integration) => {
+      return integration.status === 'active' && integration.projectType === 'vscode-chat';
+    });
 
-    // 获取用户的所有机器人
-    const robots = await db.getRobots(userId);
-    
-    // 获取所有集成（来自用户的机器人）
-    let totalIntegrations = 0;
-    for (const robot of robots) {
-      const integrations = await db.getIntegrationsByRobotId(robot.id);
-      totalIntegrations += integrations.length;
-    }
-
-    // 计算今天的调用数（通知数）
+    // 计算今天的 MCP 调用数
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    const todayNotifications = await db.getNotifications(10000, 0); // 获取所有通知
-    const mcpRelatedNotifications = todayNotifications.filter((n: any) => {
-      const notificationDate = new Date(n.createdAt || '');
+    const todayNotifications = await db.getNotifications(10000, 0);
+    const mcpRelatedNotifications = todayNotifications.filter((notification: any) => {
+      if (typeof notification.source !== 'string' || !notification.source.startsWith('mcp-remote/')) {
+        return false;
+      }
+
+      const notificationDate = new Date(notification.createdAt || '');
       notificationDate.setHours(0, 0, 0, 0);
       return notificationDate.getTime() === today.getTime();
     });
@@ -98,9 +92,9 @@ router.get('/', verifyToken, checkAdminRole, async (req: AuthRequest, res: Respo
         icon: '📋',
         description: 'VS Code Copilot 工作汇报中间件，自动将任务总结发送到飞书群组',
         status: 'running',
-        associatedIntegrations: totalIntegrations,
+        associatedIntegrations: mcpIntegrations.length,
         stats: [
-          { label: '关联集成', value: totalIntegrations.toString() },
+          { label: '关联集成', value: mcpIntegrations.length.toString() },
           { label: '今日调用', value: todayCallCount.toString() },
           { label: '运行时间', value: formatUptime() },
         ],

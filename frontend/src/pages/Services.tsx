@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useCallback, useRef } from 'react';
 import SceneIcon, { SceneIconName } from '../components/SceneIcon';
+import PageTitle from '../components/PageTitle';
 import authService from '../services/auth';
 
 interface Service {
@@ -25,6 +26,21 @@ interface Log {
   level: 'info' | 'warn' | 'error';
   message: string;
   service?: string;
+  user?: {
+    id: string;
+    username: string;
+    nickname?: string;
+    displayName: string;
+  };
+  robot?: {
+    id: string;
+    name: string;
+  };
+  integration?: {
+    id: string;
+    name: string;
+    type: string;
+  };
 }
 
 interface TimeCountdown {
@@ -46,6 +62,40 @@ function getServiceIconName(service: Service): SceneIconName {
   }
 
   return 'service';
+}
+
+function getLogBadges(log: Log): Array<{ key: string; text: string; color: string }> {
+  const badges: Array<{ key: string; text: string; color: string }> = [];
+
+  if (log.user?.displayName && log.robot?.name) {
+    badges.push({
+      key: 'owner',
+      text: `[来源:${log.user.displayName}/${log.robot.name}]`,
+      color: '#34d399',
+    });
+  } else if (log.user?.displayName) {
+    badges.push({
+      key: 'user',
+      text: `[用户:${log.user.displayName}]`,
+      color: '#34d399',
+    });
+  } else if (log.robot?.name) {
+    badges.push({
+      key: 'robot',
+      text: `[机器人:${log.robot.name}]`,
+      color: '#22d3ee',
+    });
+  }
+
+  if (log.integration?.name) {
+    badges.push({
+      key: 'integration',
+      text: `[集成:${log.integration.name}]`,
+      color: '#c4b5fd',
+    });
+  }
+
+  return badges;
 }
 
 const Services: React.FC = () => {
@@ -137,9 +187,9 @@ const Services: React.FC = () => {
           icon: '📋',
           description: 'VS Code Copilot 工作汇报中间件，自动将任务总结发送到飞书群组',
           status: 'running',
-          associatedIntegrations: 3,
+          associatedIntegrations: 1,
           stats: [
-            { label: '关联集成', value: '3' },
+            { label: '关联集成', value: '1' },
             { label: '今日调用', value: '24' },
             { label: '运行时间', value: '服务中' },
           ],
@@ -294,17 +344,13 @@ const Services: React.FC = () => {
   }
 
   return (
-    <div style={{ backgroundColor: '#f3f4f6', minHeight: '100vh', paddingBottom: '2rem' }}>
+    <div style={{ backgroundColor: '#f6f8fa', minHeight: '100vh', paddingBottom: '2rem' }}>
       <div style={{ maxWidth: '1400px', margin: '0 auto', padding: '2rem' }}>
-        <div style={{ marginBottom: '2rem' }}>
-          <h1 style={{ fontSize: '1.875rem', fontWeight: 'bold', marginBottom: '0.5rem', color: '#1f2937', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-            <SceneIcon name="service" size={34} title="服务管理" />
-            <span>服务管理</span>
-          </h1>
-          <p style={{ fontSize: '0.875rem', color: '#6b7280' }}>
-            监控和管理所有集成服务，查看实时日志和服务状态
-          </p>
-        </div>
+        <PageTitle
+          icon="service"
+          title="服务管理"
+          description="监控和管理所有集成服务，查看实时日志和服务状态"
+        />
 
         {error && (
           <div style={{ backgroundColor: '#fee2e2', color: '#dc2626', padding: '1rem', borderRadius: '0.5rem', marginBottom: '2rem' }}>
@@ -598,6 +644,12 @@ const Services: React.FC = () => {
                     [{log.level.toUpperCase()}]
                   </span>
                   {log.service && <span style={{ color: '#fbbf24' }}> [{log.service}]</span>}
+                  {getLogBadges(log).map((badge) => (
+                    <span key={badge.key} style={{ color: badge.color }}>
+                      {' '}
+                      {badge.text}
+                    </span>
+                  ))}
                   {' ' + log.message}
                 </div>
               ))

@@ -1,7 +1,10 @@
 ﻿import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import authService from '../services/auth';
+
+import PageTitle from '../components/PageTitle';
+import SceneIcon from '../components/SceneIcon';
 import { useToast } from '../hooks/useToast';
+import authService from '../services/auth';
 
 interface Robot {
   id: string;
@@ -326,30 +329,33 @@ export default function Robots() {
   }
 
   return (
-    <div style={{ backgroundColor: '#f3f4f6', minHeight: '100vh', paddingBottom: '2rem' }}>
+    <div style={{ backgroundColor: '#f6f8fa', minHeight: '100vh', paddingBottom: '2rem' }}>
       <div style={{ maxWidth: '1400px', margin: '0 auto', padding: '2rem' }}>
-        {/* 页面标题和新建按钮 */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
-          <h1 style={{ fontSize: '1.875rem', fontWeight: 'bold', color: '#1f2937' }}>🤖 机器人管理</h1>
-          <button
-            style={{
-              padding: '0.5rem 1rem',
-              backgroundColor: '#10b981',
-              color: 'white',
-              border: 'none',
-              borderRadius: '0.375rem',
-              cursor: 'pointer',
-              fontSize: '0.875rem',
-              fontWeight: 500,
-              transition: 'background-color 0.2s',
-            }}
-            onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#059669')}
-            onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = '#10b981')}
-            onClick={() => setIsAddRobotModalOpen(true)}
-          >
-            ➕ 新建机器人
-          </button>
-        </div>
+        <PageTitle
+          icon="robot"
+          title="机器人管理"
+          description="创建、编辑、测试并管理你的飞书机器人实例"
+          actions={
+            <button
+              style={{
+                padding: '0.5rem 1rem',
+                backgroundColor: '#1f883d',
+                color: 'white',
+                border: 'none',
+                borderRadius: '0.375rem',
+                cursor: 'pointer',
+                fontSize: '0.875rem',
+                fontWeight: 500,
+                transition: 'background-color 0.2s',
+              }}
+              onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#1a7f37')}
+              onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = '#1f883d')}
+              onClick={() => setIsAddRobotModalOpen(true)}
+            >
+              新建机器人
+            </button>
+          }
+        />
 
         {/* 信息框 */}
         <div style={{
@@ -479,7 +485,10 @@ export default function Robots() {
                   {robots.map((robot) => (
                     <tr key={robot.id} style={{ borderBottom: '1px solid #f3f4f6' }}>
                       <td style={{ padding: '0.75rem', fontSize: '0.875rem', color: '#374151' }}>
-                        {robot.name}
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}>
+                          <SceneIcon name="robotMessage" size={16} title={robot.name} />
+                          <span>{robot.name}</span>
+                        </span>
                       </td>
                       <td style={{ padding: '0.75rem', fontSize: '0.875rem', color: '#374151' }}>
                         {getAppId(robot.id)}

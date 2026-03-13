@@ -86,11 +86,11 @@ function MainLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex flex-col min-h-screen bg-gray-50">
       {/* 导航栏 */}
-      <nav style={{ background: 'white', boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1)', padding: '1rem 2rem' }}>
+      <nav style={{ background: 'white', borderBottom: '1px solid #d0d7de', padding: '1rem 2rem' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', color: '#1f2328' }}>
             <SceneIcon name="brand" size={34} title="飞书AI通知系统" />
-            <span style={{ fontSize: '1.25rem', fontWeight: 'bold', color: '#1f2937' }}>飞书AI通知系统</span>
+            <span style={{ fontSize: '1.25rem', fontWeight: 'bold', color: 'inherit' }}>飞书AI通知系统</span>
           </div>
           
           <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
@@ -102,16 +102,16 @@ function MainLayout({ children }: { children: React.ReactNode }) {
                 borderRadius: '0.375rem',
                 transition: 'background-color 0.2s',
                 textDecoration: 'none',
-                color: isActive('/') ? '#1e40af' : '#6b7280',
+                color: isActive('/') ? '#0969da' : '#57606a',
                 fontSize: '0.875rem',
                 border: 'none',
-                backgroundColor: isActive('/') ? '#dbeafe' : 'transparent',
-                fontWeight: isActive('/') ? 500 : 400,
+                backgroundColor: isActive('/') ? '#ddf4ff' : 'transparent',
+                fontWeight: isActive('/') ? 600 : 400,
               }}
               title="仪表板"
             >
               <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}>
-                <SceneIcon name="dashboard" size={18} title="仪表板" />
+                <SceneIcon name="dashboard" size={18} title="仪表板" inheritColor />
                 <span>仪表板</span>
               </span>
             </button>
@@ -124,16 +124,16 @@ function MainLayout({ children }: { children: React.ReactNode }) {
                 borderRadius: '0.375rem',
                 transition: 'background-color 0.2s',
                 textDecoration: 'none',
-                color: isActive('/robots') ? '#1e40af' : '#6b7280',
+                color: isActive('/robots') ? '#0969da' : '#57606a',
                 fontSize: '0.875rem',
                 border: 'none',
-                backgroundColor: isActive('/robots') ? '#dbeafe' : 'transparent',
-                fontWeight: isActive('/robots') ? 500 : 400,
+                backgroundColor: isActive('/robots') ? '#ddf4ff' : 'transparent',
+                fontWeight: isActive('/robots') ? 600 : 400,
               }}
               title="机器人管理"
             >
               <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}>
-                <SceneIcon name="robot" size={18} title="机器人管理" />
+                <SceneIcon name="robot" size={18} title="机器人管理" inheritColor />
                 <span>机器人</span>
               </span>
             </button>
@@ -146,16 +146,16 @@ function MainLayout({ children }: { children: React.ReactNode }) {
                 borderRadius: '0.375rem',
                 transition: 'background-color 0.2s',
                 textDecoration: 'none',
-                color: isActive('/history') ? '#1e40af' : '#6b7280',
+                color: isActive('/history') ? '#0969da' : '#57606a',
                 fontSize: '0.875rem',
                 border: 'none',
-                backgroundColor: isActive('/history') ? '#dbeafe' : 'transparent',
-                fontWeight: isActive('/history') ? 500 : 400,
+                backgroundColor: isActive('/history') ? '#ddf4ff' : 'transparent',
+                fontWeight: isActive('/history') ? 600 : 400,
               }}
               title="历史"
             >
               <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}>
-                <SceneIcon name="history" size={18} title="历史" />
+                <SceneIcon name="history" size={18} title="历史" inheritColor />
                 <span>历史</span>
               </span>
             </button>
@@ -169,16 +169,16 @@ function MainLayout({ children }: { children: React.ReactNode }) {
                   borderRadius: '0.375rem',
                   transition: 'background-color 0.2s',
                   textDecoration: 'none',
-                  color: isActive('/services') ? '#1e40af' : '#6b7280',
+                  color: isActive('/services') ? '#0969da' : '#57606a',
                   fontSize: '0.875rem',
                   border: 'none',
-                  backgroundColor: isActive('/services') ? '#dbeafe' : 'transparent',
-                  fontWeight: isActive('/services') ? 500 : 400,
+                  backgroundColor: isActive('/services') ? '#ddf4ff' : 'transparent',
+                  fontWeight: isActive('/services') ? 600 : 400,
                 }}
                 title="服务管理"
               >
                 <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}>
-                  <SceneIcon name="service" size={18} title="服务管理" />
+                  <SceneIcon name="service" size={18} title="服务管理" inheritColor />
                   <span>服务</span>
                 </span>
               </button>
@@ -192,25 +192,25 @@ function MainLayout({ children }: { children: React.ReactNode }) {
                 borderRadius: '0.375rem',
                 transition: 'background-color 0.2s',
                 textDecoration: 'none',
-                color: isActive('/settings') ? '#1e40af' : '#6b7280',
+                color: isActive('/settings') ? '#0969da' : '#57606a',
                 fontSize: '0.875rem',
                 border: 'none',
-                backgroundColor: isActive('/settings') ? '#dbeafe' : 'transparent',
-                fontWeight: isActive('/settings') ? 500 : 400,
+                backgroundColor: isActive('/settings') ? '#ddf4ff' : 'transparent',
+                fontWeight: isActive('/settings') ? 600 : 400,
               }}
               title="设置"
             >
               <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}>
-                <SceneIcon name="settings" size={18} title="设置" />
+                <SceneIcon name="settings" size={18} title="设置" inheritColor />
                 <span>设置</span>
               </span>
             </button>
           </div>
 
           {user && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#6b7280', fontSize: '0.875rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#57606a', fontSize: '0.875rem' }}>
               <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}>
-                <SceneIcon name="user" size={18} title="当前用户" />
+                <span aria-hidden="true" style={{ fontSize: '1rem', lineHeight: 1 }}>👤</span>
                 <span>{userNickname || user.username}</span>
               </span>
               <button

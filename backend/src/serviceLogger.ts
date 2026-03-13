@@ -7,12 +7,39 @@
 
 export type LogLevel = 'info' | 'warn' | 'error';
 
+export interface LogUserInfo {
+  id: string;
+  username: string;
+  nickname?: string;
+  displayName: string;
+}
+
+export interface LogRobotInfo {
+  id: string;
+  name: string;
+}
+
+export interface LogIntegrationInfo {
+  id: string;
+  name: string;
+  type: string;
+}
+
+export interface LogContext {
+  user?: LogUserInfo;
+  robot?: LogRobotInfo;
+  integration?: LogIntegrationInfo;
+}
+
 export interface LogEntry {
   id: number;
   timestamp: string;
   level: LogLevel;
   service: string;
   message: string;
+  user?: LogUserInfo;
+  robot?: LogRobotInfo;
+  integration?: LogIntegrationInfo;
 }
 
 const MAX_ENTRIES = 200;
@@ -32,9 +59,16 @@ function now(): string {
   });
 }
 
-export function addLog(level: LogLevel, service: string, message: string): void {
+export function addLog(level: LogLevel, service: string, message: string, context?: LogContext): void {
   counter += 1;
-  const entry: LogEntry = { id: counter, timestamp: now(), level, service, message };
+  const entry: LogEntry = {
+    id: counter,
+    timestamp: now(),
+    level,
+    service,
+    message,
+    ...(context || {}),
+  };
   buffer.push(entry);
   if (buffer.length > MAX_ENTRIES) {
     buffer.splice(0, buffer.length - MAX_ENTRIES);

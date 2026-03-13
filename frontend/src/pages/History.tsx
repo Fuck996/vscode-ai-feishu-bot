@@ -2,6 +2,8 @@
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import authService from '../services/auth';
 
+import PageTitle from '../components/PageTitle';
+
 interface Notification {
   id: string;
   title: string;
@@ -185,11 +187,13 @@ const History: React.FC = () => {
   }
 
   return (
-    <div style={{ backgroundColor: '#f3f4f6', minHeight: '100vh', paddingBottom: '2rem' }}>
+    <div style={{ backgroundColor: '#f6f8fa', minHeight: '100vh', paddingBottom: '2rem' }}>
       <div style={{ maxWidth: '1400px', margin: '0 auto', padding: '2rem' }}>
-        <h1 style={{ fontSize: '1.875rem', fontWeight: 'bold', marginBottom: '2rem', color: '#1f2937' }}>
-          通知历史
-        </h1>
+        <PageTitle
+          icon="history"
+          title="通知历史"
+          description="筛选并查看所有通知记录、来源与状态变化"
+        />
 
         {error && (
           <div style={{ backgroundColor: '#fee2e2', color: '#dc2626', padding: '1rem', borderRadius: '0.5rem', marginBottom: '2rem' }}>
