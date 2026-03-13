@@ -8,7 +8,7 @@ import {
   useLocation,
 } from 'react-router-dom';
 import authService from './services/auth';
-import SceneIcon from './components/SceneIcon';
+import SceneIcon, { type SceneIconName } from './components/SceneIcon';
 import Dashboard from './pages/Dashboard';
 import History from './pages/History';
 import Settings from './pages/Settings';
@@ -20,6 +20,54 @@ import ForgotPassword from './pages/ForgotPassword';
 import ForceChangePassword from './pages/ForceChangePassword';
 import ToastContainer from './components/ToastContainer';
 import './index.css';
+
+interface NavigationItem {
+  path: string;
+  matchPaths: string[];
+  label: string;
+  title: string;
+  icon: SceneIconName;
+  adminOnly?: boolean;
+}
+
+const NAVIGATION_ITEMS: NavigationItem[] = [
+  {
+    path: '/dashboard',
+    matchPaths: ['/dashboard'],
+    label: '仪表板',
+    title: '仪表板',
+    icon: 'dashboard',
+  },
+  {
+    path: '/robots',
+    matchPaths: ['/robots'],
+    label: '机器人',
+    title: '机器人管理',
+    icon: 'robot',
+  },
+  {
+    path: '/history',
+    matchPaths: ['/history'],
+    label: '历史',
+    title: '历史',
+    icon: 'history',
+  },
+  {
+    path: '/services',
+    matchPaths: ['/services'],
+    label: '服务',
+    title: '服务管理',
+    icon: 'service',
+    adminOnly: true,
+  },
+  {
+    path: '/settings',
+    matchPaths: ['/settings'],
+    label: '设置',
+    title: '设置',
+    icon: 'settings',
+  },
+];
 
 // 受保护的路由组件
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -79,154 +127,60 @@ function MainLayout({ children }: { children: React.ReactNode }) {
     navigate('/login');
   };
 
-  const isActive = (path: string) => {
-    return location.pathname === path || (path === '/' && location.pathname === '/dashboard');
+  const normalizedPath = location.pathname === '/' ? '/dashboard' : location.pathname;
+
+  const isActive = (matchPaths: string[]) => {
+    return matchPaths.some((path) => normalizedPath === path || normalizedPath.startsWith(`${path}/`));
   };
 
   return (
     <div className="flex flex-col min-h-screen bg-gray-50">
       {/* 导航栏 */}
-      <nav style={{ background: 'white', borderBottom: '1px solid #d0d7de', padding: '1rem 2rem' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', color: '#1f2328' }}>
-            <SceneIcon name="brand" size={34} title="飞书AI通知系统" />
-            <span style={{ fontSize: '1.25rem', fontWeight: 'bold', color: 'inherit' }}>飞书AI通知系统</span>
-          </div>
+      <nav className="github-topbar">
+        <div className="github-topbar__inner">
+          <button
+            type="button"
+            className="github-topbar__brand"
+            onClick={() => navigate('/dashboard')}
+            title="飞书AI通知系统"
+          >
+            <SceneIcon name="brand" size={30} title="飞书AI通知系统" />
+            <span className="github-topbar__brand-title">飞书AI通知系统</span>
+          </button>
           
-          <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
-            <button
-              onClick={() => navigate('/')}
-              style={{
-                padding: '0.5rem 1rem',
-                cursor: 'pointer',
-                borderRadius: '0.375rem',
-                transition: 'background-color 0.2s',
-                textDecoration: 'none',
-                color: isActive('/') ? '#0969da' : '#57606a',
-                fontSize: '0.875rem',
-                border: 'none',
-                backgroundColor: isActive('/') ? '#ddf4ff' : 'transparent',
-                fontWeight: isActive('/') ? 600 : 400,
-              }}
-              title="仪表板"
-            >
-              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}>
-                <SceneIcon name="dashboard" size={18} title="仪表板" inheritColor />
-                <span>仪表板</span>
-              </span>
-            </button>
-            
-            <button
-              onClick={() => navigate('/robots')}
-              style={{
-                padding: '0.5rem 1rem',
-                cursor: 'pointer',
-                borderRadius: '0.375rem',
-                transition: 'background-color 0.2s',
-                textDecoration: 'none',
-                color: isActive('/robots') ? '#0969da' : '#57606a',
-                fontSize: '0.875rem',
-                border: 'none',
-                backgroundColor: isActive('/robots') ? '#ddf4ff' : 'transparent',
-                fontWeight: isActive('/robots') ? 600 : 400,
-              }}
-              title="机器人管理"
-            >
-              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}>
-                <SceneIcon name="robot" size={18} title="机器人管理" inheritColor />
-                <span>机器人</span>
-              </span>
-            </button>
-            
-            <button
-              onClick={() => navigate('/history')}
-              style={{
-                padding: '0.5rem 1rem',
-                cursor: 'pointer',
-                borderRadius: '0.375rem',
-                transition: 'background-color 0.2s',
-                textDecoration: 'none',
-                color: isActive('/history') ? '#0969da' : '#57606a',
-                fontSize: '0.875rem',
-                border: 'none',
-                backgroundColor: isActive('/history') ? '#ddf4ff' : 'transparent',
-                fontWeight: isActive('/history') ? 600 : 400,
-              }}
-              title="历史"
-            >
-              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}>
-                <SceneIcon name="history" size={18} title="历史" inheritColor />
-                <span>历史</span>
-              </span>
-            </button>
-            
-            {user?.role === 'admin' && (
-              <button
-                onClick={() => navigate('/services')}
-                style={{
-                  padding: '0.5rem 1rem',
-                  cursor: 'pointer',
-                  borderRadius: '0.375rem',
-                  transition: 'background-color 0.2s',
-                  textDecoration: 'none',
-                  color: isActive('/services') ? '#0969da' : '#57606a',
-                  fontSize: '0.875rem',
-                  border: 'none',
-                  backgroundColor: isActive('/services') ? '#ddf4ff' : 'transparent',
-                  fontWeight: isActive('/services') ? 600 : 400,
-                }}
-                title="服务管理"
-              >
-                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}>
-                  <SceneIcon name="service" size={18} title="服务管理" inheritColor />
-                  <span>服务</span>
-                </span>
-              </button>
-            )}
-            
-            <button
-              onClick={() => navigate('/settings')}
-              style={{
-                padding: '0.5rem 1rem',
-                cursor: 'pointer',
-                borderRadius: '0.375rem',
-                transition: 'background-color 0.2s',
-                textDecoration: 'none',
-                color: isActive('/settings') ? '#0969da' : '#57606a',
-                fontSize: '0.875rem',
-                border: 'none',
-                backgroundColor: isActive('/settings') ? '#ddf4ff' : 'transparent',
-                fontWeight: isActive('/settings') ? 600 : 400,
-              }}
-              title="设置"
-            >
-              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}>
-                <SceneIcon name="settings" size={18} title="设置" inheritColor />
-                <span>设置</span>
-              </span>
-            </button>
+          <div className="github-topbar__links" aria-label="主导航">
+            {NAVIGATION_ITEMS.filter((item) => !item.adminOnly || user?.role === 'admin').map((item) => {
+              const active = isActive(item.matchPaths);
+
+              return (
+                <button
+                  key={item.path}
+                  type="button"
+                  className={`github-nav-item${active ? ' is-active' : ''}`}
+                  onClick={() => navigate(item.path)}
+                  title={item.title}
+                  aria-current={active ? 'page' : undefined}
+                >
+                  <span className="github-nav-item__content">
+                    <SceneIcon name={item.icon} size={18} title={item.title} inheritColor />
+                    <span>{item.label}</span>
+                    <span className="github-nav-item__indicator" aria-hidden="true" />
+                  </span>
+                </button>
+              );
+            })}
           </div>
 
           {user && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#57606a', fontSize: '0.875rem' }}>
-              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}>
-                <span aria-hidden="true" style={{ fontSize: '1rem', lineHeight: 1 }}>👤</span>
+            <div className="github-topbar__actions">
+              <span className="github-topbar__user">
+                <span aria-hidden="true" className="github-topbar__avatar">👤</span>
                 <span>{userNickname || user.username}</span>
               </span>
               <button
+                type="button"
                 onClick={handleLogout}
-                style={{
-                  padding: '0.5rem 1rem',
-                  backgroundColor: '#ef4444',
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: '0.375rem',
-                  cursor: 'pointer',
-                  fontSize: '0.875rem',
-                  transition: 'background-color 0.2s',
-                }}
-                onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#dc2626')}
-                onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = '#ef4444')}
+                className="github-topbar__logout"
                 title="退出登录"
               >
                 退出
@@ -244,7 +198,7 @@ function MainLayout({ children }: { children: React.ReactNode }) {
       {/* 页脚 */}
       <footer className="bg-gray-100 border-t border-gray-200 mt-8">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <p className="text-center text-sm text-gray-600" style={{ textAlign: 'center' }}>
+          <p className="github-footer__text text-center text-sm text-gray-600">
             © 2026 飞书AI通知系统. 所有权利保留. | 系统版本 v{backendVersion} | 更新: {new Date().toLocaleString('zh-CN', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })}
           </p>
         </div>
@@ -311,19 +265,8 @@ export default function App() {
 
   if (!isInitialized) {
     return (
-      <div style={{
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        minHeight: '100vh',
-        backgroundColor: '#f3f4f6',
-      }}>
-        <div style={{
-          fontSize: '18px',
-          color: '#6b7280',
-        }}>
-          加载中...
-        </div>
+      <div className="app-loading">
+        <div className="app-loading__text">加载中...</div>
       </div>
     );
   }

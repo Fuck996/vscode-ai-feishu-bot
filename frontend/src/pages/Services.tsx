@@ -1,6 +1,5 @@
 import React, { useEffect, useState, useCallback, useRef } from 'react';
 import SceneIcon, { SceneIconName } from '../components/SceneIcon';
-import PageTitle from '../components/PageTitle';
 import authService from '../services/auth';
 
 interface Service {
@@ -346,12 +345,6 @@ const Services: React.FC = () => {
   return (
     <div style={{ backgroundColor: '#f6f8fa', minHeight: '100vh', paddingBottom: '2rem' }}>
       <div style={{ maxWidth: '1400px', margin: '0 auto', padding: '2rem' }}>
-        <PageTitle
-          icon="service"
-          title="服务管理"
-          description="监控和管理所有集成服务，查看实时日志和服务状态"
-        />
-
         {error && (
           <div style={{ backgroundColor: '#fee2e2', color: '#dc2626', padding: '1rem', borderRadius: '0.5rem', marginBottom: '2rem' }}>
             {error}

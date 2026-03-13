@@ -62,7 +62,6 @@ export default function Login() {
             <SceneIcon name="brand" size={72} title="飞书通知系统" />
           </div>
           <h1>飞书通知系统</h1>
-          <p>登录</p>
         </div>
 
         <form onSubmit={handleSubmit} className="auth-form">
@@ -131,11 +130,6 @@ export default function Login() {
           </div>
         </form>
 
-        <div className="auth-footer">
-          <p style={{ fontSize: '0.85rem', color: '#666' }}>
-            首次登录后需要修改密码。初始凭证在服务器启动时输出到控制台。
-          </p>
-        </div>
       </div>
     </div>
   );

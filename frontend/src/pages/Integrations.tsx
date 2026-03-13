@@ -1,7 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 
-import PageTitle from '../components/PageTitle';
 import authService from '../services/auth';
 import toastService from '../services/toastService';
 
@@ -353,25 +352,14 @@ export default function Integrations() {
           <span style={{ color: '#1f2937', fontWeight: 500 }}>项目集成</span>
         </div>
 
-        {/* 页头 */}
-        <PageTitle
-          icon="integration"
-          title="项目集成管理"
-          description={robot?.name ? `当前机器人：${robot.name}` : '管理该机器人的项目集成与触发规则'}
-          actions={
-            <button onClick={openCreateModal} style={{
-              padding: '0.5rem 1rem', backgroundColor: '#1f883d', color: 'white',
-              border: 'none', borderRadius: '0.375rem', cursor: 'pointer',
-              fontSize: '0.875rem', fontWeight: 500, whiteSpace: 'nowrap',
-            }}>
-              添加集成
-            </button>
-          }
-        />
-
-        {/* 提示 */}
-        <div style={{ background: '#dbeafe', color: '#1e40af', padding: '1rem', borderRadius: '0.5rem', marginBottom: '1.5rem', fontSize: '0.875rem' }}>
-          💡 项目集成定义了哪些外部系统事件会触发此机器人发送飞书通知。每个集成可独立启用或停用。
+        <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '1.5rem' }}>
+          <button onClick={openCreateModal} style={{
+            padding: '0.5rem 1rem', backgroundColor: '#1f883d', color: 'white',
+            border: 'none', borderRadius: '0.375rem', cursor: 'pointer',
+            fontSize: '0.875rem', fontWeight: 500, whiteSpace: 'nowrap',
+          }}>
+            添加集成
+          </button>
         </div>
 
         {/* 全局消息 */}

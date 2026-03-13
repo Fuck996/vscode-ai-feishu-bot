@@ -1,8 +1,8 @@
-﻿import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
+import { CalendarDays, ChevronDown, Clock3, MoreHorizontal, Search } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-
-import PageTitle from '../components/PageTitle';
 import SceneIcon from '../components/SceneIcon';
+
 import { useToast } from '../hooks/useToast';
 import authService from '../services/auth';
 
@@ -23,6 +23,12 @@ interface RobotsResponse {
   error?: string;
 }
 
+interface ActionMenuState {
+  robotId: string;
+  top: number;
+  left: number;
+}
+
 export default function Robots() {
   const navigate = useNavigate();
   const toast = useToast();
@@ -36,12 +42,23 @@ export default function Robots() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState({ name: '', description: '', webhookUrl: '' });
   const [editFormData, setEditFormData] = useState({ name: '', description: '', webhookUrl: '' });
+  const [searchQuery, setSearchQuery] = useState('');
+  const [openActionMenu, setOpenActionMenu] = useState<ActionMenuState | null>(null);
+  const [openFilterMenu, setOpenFilterMenu] = useState(false);
+  const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive'>('all');
 
   const API_BASE_URL = '';  // 使用相对路径，走 Vite 代理转发到后端
 
   useEffect(() => {
     fetchRobots();
   }, []);
+
+  useEffect(() => {
+    if (!openActionMenu) return undefined;
+    const handler = () => setOpenActionMenu(null);
+    window.addEventListener('click', handler);
+    return () => window.removeEventListener('click', handler);
+  }, [openActionMenu]);
 
   const fetchRobots = async () => {
     try {
@@ -328,304 +345,241 @@ export default function Robots() {
     );
   }
 
-  return (
-    <div style={{ backgroundColor: '#f6f8fa', minHeight: '100vh', paddingBottom: '2rem' }}>
-      <div style={{ maxWidth: '1400px', margin: '0 auto', padding: '2rem' }}>
-        <PageTitle
-          icon="robot"
-          title="机器人管理"
-          description="创建、编辑、测试并管理你的飞书机器人实例"
-          actions={
-            <button
-              style={{
-                padding: '0.5rem 1rem',
-                backgroundColor: '#1f883d',
-                color: 'white',
-                border: 'none',
-                borderRadius: '0.375rem',
-                cursor: 'pointer',
-                fontSize: '0.875rem',
-                fontWeight: 500,
-                transition: 'background-color 0.2s',
-              }}
-              onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#1a7f37')}
-              onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = '#1f883d')}
-              onClick={() => setIsAddRobotModalOpen(true)}
-            >
-              新建机器人
-            </button>
-          }
-        />
 
-        {/* 信息框 */}
-        <div style={{
-          backgroundColor: '#dbeafe',
-          color: '#1e40af',
-          padding: '1rem',
-          borderRadius: '0.5rem',
-          marginBottom: '2rem',
-          fontSize: '0.875rem',
-        }}>
-          💡 在此管理飞书机器人，可以创建、编辑、删除和测试机器人。每个机器人可接收来自不同应用的通知。
+  const openActionMenuAt = (event: React.MouseEvent<HTMLButtonElement>, robotId: string) => {
+    event.stopPropagation();
+    const rect = event.currentTarget.getBoundingClientRect();
+    setOpenActionMenu(current => {
+      if (current?.robotId === robotId) return null;
+      return { robotId, top: rect.bottom + 8, left: rect.right - 132 };
+    });
+  };
+
+  // 过滤机器人列表
+  const filteredRobots = robots.filter(robot => {
+    if (statusFilter !== 'all' && robot.status !== statusFilter) return false;
+    if (searchQuery.trim() !== '' && !robot.name.toLowerCase().includes(searchQuery.toLowerCase())) return false;
+    return true;
+  });
+
+  // 格式化最后消息时间
+  const formatLastMessageDate = (dateStr: string) => {
+    try {
+      const date = new Date(dateStr);
+      return {
+        date: date.toLocaleDateString('zh-CN', { year: 'numeric', month: '2-digit', day: '2-digit' }),
+        time: date.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false }),
+      };
+    } catch {
+      return { date: '未知', time: '' };
+    }
+  };
+
+  return (
+    <div style={{ backgroundColor: '#f3f4f6', minHeight: '100vh', paddingBottom: '2rem' }}>
+      <div style={{ maxWidth: '1400px', margin: '0 auto', padding: '2rem' }}>
+
+        {/* 搜索框 - 卡片外右上角 */}
+        <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '1.25rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.4rem 0.75rem', border: '1px solid #d0d7de', borderRadius: '2rem', backgroundColor: 'white', width: '220px' }}>
+            <Search size={14} color="#57606a" />
+            <input
+              type="text"
+              placeholder="搜索机器人名称"
+              value={searchQuery}
+              onChange={e => setSearchQuery(e.target.value)}
+              style={{ border: 'none', outline: 'none', fontSize: '0.8125rem', width: '100%', color: '#24292f', backgroundColor: 'transparent' }}
+            />
+          </div>
         </div>
 
         {/* 错误提示 */}
         {error && (
-          <div style={{ backgroundColor: '#fee2e2', color: '#dc2626', padding: '1rem', borderRadius: '0.5rem', marginBottom: '2rem' }}>
+          <div style={{ backgroundColor: '#fee2e2', color: '#dc2626', padding: '1rem', borderRadius: '0.5rem', marginBottom: '1.5rem' }}>
             {error}
           </div>
         )}
 
-        {/* 机器人列表 */}
-        {robots.length === 0 ? (
-          <div style={{
-            background: 'white',
-            borderRadius: '0.5rem',
-            boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
-            padding: '3rem 1rem',
-            textAlign: 'center',
-            color: '#9ca3af',
-            fontSize: '0.875rem',
-          }}>
-            <p style={{ marginBottom: '0.5rem' }}>暂无机器人实例</p>
-            <p>点击"新建机器人"创建您的第一个飞书机器人</p>
-          </div>
-        ) : (
-          <div style={{
-            background: 'white',
-            borderRadius: '0.5rem',
-            boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
-            overflow: 'hidden',
-          }}>
-            <div style={{ overflowX: 'auto', padding: '1.5rem' }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '1100px' }}>
-                <thead style={{ backgroundColor: '#f9fafb' }}>
-                  <tr>
-                    <th style={{
-                      padding: '0.75rem',
-                      textAlign: 'left',
-                      fontWeight: 600,
-                      fontSize: '0.875rem',
-                      color: '#6b7280',
-                      borderBottom: '1px solid #e5e7eb',
-                      width: '14%',
-                    }}>
-                      机器人名称
-                    </th>
-                    <th style={{
-                      padding: '0.75rem',
-                      textAlign: 'left',
-                      fontWeight: 600,
-                      fontSize: '0.875rem',
-                      color: '#6b7280',
-                      borderBottom: '1px solid #e5e7eb',
-                      width: '10%',
-                    }}>
-                      App ID
-                    </th>
-                    <th style={{
-                      padding: '0.75rem',
-                      textAlign: 'left',
-                      fontWeight: 600,
-                      fontSize: '0.875rem',
-                      color: '#6b7280',
-                      borderBottom: '1px solid #e5e7eb',
-                      width: '11%',
-                    }}>
-                      快捷开关
-                    </th>
-                    <th style={{
-                      padding: '0.75rem',
-                      textAlign: 'left',
-                      fontWeight: 600,
-                      fontSize: '0.875rem',
-                      color: '#6b7280',
-                      borderBottom: '1px solid #e5e7eb',
-                      width: '10%',
-                    }}>
-                      创建时间
-                    </th>
-                    <th style={{
-                      padding: '0.75rem',
-                      textAlign: 'left',
-                      fontWeight: 600,
-                      fontSize: '0.875rem',
-                      color: '#6b7280',
-                      borderBottom: '1px solid #e5e7eb',
-                      width: '7%',
-                    }}>
-                      消息数
-                    </th>
-                    <th style={{
-                      padding: '0.75rem',
-                      textAlign: 'left',
-                      fontWeight: 600,
-                      fontSize: '0.875rem',
-                      color: '#6b7280',
-                      borderBottom: '1px solid #e5e7eb',
-                      width: '15%',
-                    }}>
-                      最后消息时间
-                    </th>
-                    <th style={{
-                      padding: '0.75rem',
-                      textAlign: 'left',
-                      fontWeight: 600,
-                      fontSize: '0.875rem',
-                      color: '#6b7280',
-                      borderBottom: '1px solid #e5e7eb',
-                      width: '33%',
-                      minWidth: '220px',
-                    }}>
-                      操作
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {robots.map((robot) => (
-                    <tr key={robot.id} style={{ borderBottom: '1px solid #f3f4f6' }}>
-                      <td style={{ padding: '0.75rem', fontSize: '0.875rem', color: '#374151' }}>
-                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}>
-                          <SceneIcon name="robotMessage" size={16} title={robot.name} />
-                          <span>{robot.name}</span>
-                        </span>
-                      </td>
-                      <td style={{ padding: '0.75rem', fontSize: '0.875rem', color: '#374151' }}>
-                        {getAppId(robot.id)}
-                      </td>
-                      <td style={{ padding: '0.75rem', fontSize: '0.875rem' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                          <button
-                            onClick={() => handleToggleRobotStatus(robot)}
-                            style={{
-                              width: '44px',
-                              height: '24px',
-                              backgroundColor: robot.status === 'active' ? '#10b981' : '#cbd5e1',
-                              borderRadius: '12px',
-                              position: 'relative',
-                              cursor: 'pointer',
-                              transition: 'background-color 0.2s',
-                              border: 'none',
-                              padding: 0,
-                            }}
-                            title={robot.status === 'active' ? '点击禁用' : '点击启用'}
-                          >
-                            <div
-                              style={{
-                                width: '20px',
-                                height: '20px',
-                                backgroundColor: 'white',
-                                borderRadius: '10px',
-                                position: 'absolute',
-                                top: '2px',
-                                left: robot.status === 'active' ? '22px' : '2px',
-                                transition: 'left 0.2s',
-                              }}
-                            />
-                          </button>
-                          <span style={{
-                            fontSize: '0.75rem',
-                            fontWeight: 600,
-                            color: robot.status === 'active' ? '#10b981' : '#6b7280',
-                          }}>
-                            {robot.status === 'active' ? '已启用' : '已禁用'}
-                          </span>
-                        </div>
-                      </td>
-                      <td style={{ padding: '0.75rem', fontSize: '0.875rem', color: '#374151' }}>
-                        {getCreateDate(robot.createdAt)}
-                      </td>
-                      <td style={{ padding: '0.75rem', fontSize: '0.875rem', color: '#374151' }}>
-                        {robot.messageCount || 0}条
-                      </td>
-                      <td style={{ padding: '0.75rem', fontSize: '0.875rem', color: '#374151' }}>
-                        {robot.lastMessageAt
-                          ? new Date(robot.lastMessageAt).toLocaleString('zh-CN')
-                          : '暂无消息'
-                        }
-                      </td>
-                      <td style={{ padding: '0.75rem', fontSize: '0.875rem' }}>
-                        <div style={{ display: 'flex', gap: '0.375rem', flexWrap: 'nowrap', alignItems: 'center' }}>
-                          <button
-                            onClick={() => handleTestRobot(robot.id)}
-                            disabled={testingRobotId === robot.id || robot.status !== 'active'}
-                            style={{
-                              padding: '0.375rem 0.75rem',
-                              backgroundColor: '#3b82f6',
-                              color: 'white',
-                              border: 'none',
-                              borderRadius: '0.25rem',
-                              cursor: testingRobotId === robot.id || robot.status !== 'active' ? 'not-allowed' : 'pointer',
-                              transition: 'background-color 0.2s',
-                              opacity: testingRobotId === robot.id || robot.status !== 'active' ? 0.5 : 1,
-                              whiteSpace: 'nowrap',
-                            }}
-                            title="测试连接"
-                          >
-                            {testingRobotId === robot.id ? '测试中...' : '测试'}
-                          </button>
-                          <button
-                            onClick={() => navigate(`/robots/${robot.id}/integrations`)}
-                            style={{
-                              padding: '0.375rem 0.75rem',
-                              backgroundColor: '#64748b',
-                              color: 'white',
-                              border: 'none',
-                              borderRadius: '0.25rem',
-                              cursor: 'pointer',
-                              transition: 'background-color 0.2s',
-                              whiteSpace: 'nowrap',
-                            }}
-                            onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#475569')}
-                            onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = '#64748b')}
-                            title="管理集成"
-                          >
-                            集成
-                          </button>
-                          <button
-                            onClick={() => handleOpenEditModal(robot)}
-                            style={{
-                              padding: '0.375rem 0.75rem',
-                              backgroundColor: '#e5e7eb',
-                              color: '#374151',
-                              border: 'none',
-                              borderRadius: '0.25rem',
-                              cursor: 'pointer',
-                              transition: 'background-color 0.2s',
-                              whiteSpace: 'nowrap',
-                            }}
-                            onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#d1d5db')}
-                            onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = '#e5e7eb')}
-                            title="编辑"
-                          >
-                            编辑
-                          </button>
-                          <button
-                            onClick={() => handleDeleteRobot(robot.id)}
-                            style={{
-                              padding: '0.375rem 0.75rem',
-                              backgroundColor: '#f3f4f6',
-                              color: '#ef4444',
-                              border: 'none',
-                              borderRadius: '0.25rem',
-                              cursor: 'pointer',
-                              transition: 'background-color 0.2s',
-                              whiteSpace: 'nowrap',
-                            }}
-                            title="删除"
-                          >
-                            删除
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+        {/* 机器人列表卡片 */}
+        <div style={{ background: 'white', borderRadius: '0.5rem', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', overflow: 'hidden' }}>
+          {/* 卡片标头 */}
+          <div style={{ padding: '1rem 1.5rem', borderBottom: '1px solid #e5e7eb', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem' }}>
+            {/* 左侧：标题 + 数量 */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.625rem' }}>
+              <span style={{ fontSize: '0.9375rem', fontWeight: 700, color: '#1f2328' }}>机器人管理</span>
+              <span style={{ fontSize: '0.8125rem', color: '#656d76' }}>共 {filteredRobots.length} 个</span>
+            </div>
+            {/* 右侧：状态筛选 + 新建按钮 */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+              {/* 状态筛选下拉 */}
+              <div style={{ position: 'relative' }} onClick={e => e.stopPropagation()}>
+                <button
+                  type="button"
+                  onClick={() => setOpenFilterMenu(!openFilterMenu)}
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem', padding: '0.3rem 0.6rem', fontSize: '0.8125rem', fontWeight: 500, color: '#24292f', border: '1px solid #d0d7de', borderRadius: '0.375rem', backgroundColor: 'white', cursor: 'pointer' }}
+                >
+                  状态
+                  {statusFilter !== 'all' && <span style={{ backgroundColor: '#0969da', color: 'white', borderRadius: '999px', fontSize: '0.6875rem', padding: '0 5px', marginLeft: '2px' }}>1</span>}
+                  <ChevronDown size={14} />
+                </button>
+                {openFilterMenu && (
+                  <div style={{ position: 'absolute', top: 'calc(100% + 0.375rem)', right: 0, minWidth: '120px', padding: '0.4rem', backgroundColor: '#ffffff', border: '1px solid #d0d7de', borderRadius: '0.75rem', boxShadow: '0 8px 24px rgba(31,35,40,0.12)', zIndex: 20 }}>
+                    {[
+                      { label: '全部', value: 'all' },
+                      { label: '启用', value: 'active' },
+                      { label: '禁用', value: 'inactive' },
+                    ].map(opt => (
+                      <button
+                        key={opt.value}
+                        type="button"
+                        onClick={() => { setStatusFilter(opt.value as 'all' | 'active' | 'inactive'); setOpenFilterMenu(false); }}
+                        style={{ width: '100%', textAlign: 'left', padding: '0.45rem 0.75rem', border: 'none', borderRadius: '0.5rem', backgroundColor: statusFilter === opt.value ? '#f3f4f6' : 'transparent', color: '#1f2328', cursor: 'pointer', fontSize: '0.875rem', fontWeight: statusFilter === opt.value ? 600 : 400 }}
+                      >
+                        {opt.label}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+              <button
+                onClick={() => setIsAddRobotModalOpen(true)}
+                style={{ padding: '0.45rem 0.875rem', backgroundColor: '#10b981', color: 'white', border: 'none', borderRadius: '0.375rem', cursor: 'pointer', fontSize: '0.8125rem', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '0.375rem', whiteSpace: 'nowrap' }}
+                onMouseEnter={e => (e.currentTarget.style.backgroundColor = '#059669')}
+                onMouseLeave={e => (e.currentTarget.style.backgroundColor = '#10b981')}
+              >
+                ＋ 新建机器人
+              </button>
             </div>
           </div>
-        )}
+
+          {/* 表格区域 */}
+          <div style={{ overflowX: 'auto' }}>
+            {filteredRobots.length === 0 ? (
+              <div style={{ padding: '3rem 1.5rem', textAlign: 'center', color: '#9ca3af', fontSize: '0.875rem' }}>
+                {robots.length === 0 ? (
+                  <p>暂无机器人，点击"新建机器人"创建第一个</p>
+                ) : (
+                  <p>没有符合条件的机器人</p>
+                )}
+              </div>
+            ) : (
+              <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '700px' }}>
+                <tbody>
+                  {filteredRobots.map(robot => {
+                    const lastMsg = robot.lastMessageAt ? formatLastMessageDate(robot.lastMessageAt) : null;
+                    return (
+                      <tr key={robot.id} style={{ borderBottom: '1px solid #f3f4f6' }}>
+                        {/* 列1：名称 + 消息数 */}
+                        <td style={{ padding: '0.875rem 1.5rem' }}>
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}>
+                              <SceneIcon name="robotMessage" size={16} title={robot.name} />
+                              <span style={{ fontWeight: 600, color: '#1f2328', fontSize: '0.875rem' }}>{robot.name}</span>
+                            </span>
+                            <span style={{ color: '#656d76', fontSize: '0.75rem' }}>{robot.messageCount || 0} 条记录</span>
+                          </div>
+                        </td>
+                        {/* 列2：创建时间 + App ID */}
+                        <td style={{ padding: '0.875rem 0.75rem', width: '200px' }}>
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', color: '#374151', fontSize: '0.8125rem', fontWeight: 500 }}>
+                              <CalendarDays size={13} color="#57606a" />
+                              <span>创建日期：{getCreateDate(robot.createdAt)}</span>
+                            </span>
+                            <span style={{ color: '#656d76', fontSize: '0.75rem', paddingLeft: '1.2rem' }}>APP ID: {getAppId(robot.id)}</span>
+                          </div>
+                        </td>
+                        {/* 列3：最后消息时间 */}
+                        <td style={{ padding: '0.875rem 0.75rem', width: '160px' }}>
+                          {lastMsg ? (
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', color: '#374151', fontSize: '0.8125rem', fontWeight: 500 }}>
+                                <CalendarDays size={13} color="#57606a" />
+                                <span>最后活动：{lastMsg.date}</span>
+                              </span>
+                              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', color: '#656d76', fontSize: '0.75rem' }}>
+                                <Clock3 size={13} color="#57606a" />
+                                <span>{lastMsg.time}</span>
+                              </span>
+                            </div>
+                          ) : (
+                            <span style={{ color: '#9ca3af', fontSize: '0.8125rem' }}>未发送</span>
+                          )}
+                        </td>
+                        {/* 列4：快捷开关 */}
+                        <td style={{ padding: '0.875rem 0.75rem', width: '90px' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                            <button
+                              onClick={() => handleToggleRobotStatus(robot)}
+                              style={{ width: '40px', height: '22px', backgroundColor: robot.status === 'active' ? '#10b981' : '#cbd5e1', borderRadius: '11px', position: 'relative', cursor: 'pointer', border: 'none', padding: 0, transition: 'background-color 0.2s', flexShrink: 0 }}
+                            >
+                              <div style={{ width: '18px', height: '18px', backgroundColor: 'white', borderRadius: '9px', position: 'absolute', top: '2px', left: robot.status === 'active' ? '20px' : '2px', transition: 'left 0.2s' }} />
+                            </button>
+                            <span style={{ fontSize: '0.75rem', fontWeight: 600, color: robot.status === 'active' ? '#10b981' : '#9ca3af', whiteSpace: 'nowrap' }}>
+                              {robot.status === 'active' ? '启用' : '禁用'}
+                            </span>
+                          </div>
+                        </td>
+                        {/* 列5：操作菜单 */}
+                        <td style={{ padding: '0.875rem 1rem', width: '56px', textAlign: 'right', position: 'relative' }}>
+                          <div style={{ display: 'inline-flex', position: 'relative' }} onClick={e => e.stopPropagation()}>
+                            <button
+                              type="button"
+                              onClick={(event) => openActionMenuAt(event, robot.id)}
+                              style={{ width: '32px', height: '32px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', border: '1px solid #d0d7de', borderRadius: '0.5rem', backgroundColor: '#ffffff', color: '#57606a', cursor: 'pointer' }}
+                              aria-label="更多操作"
+                            >
+                              <MoreHorizontal size={16} />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            )}
+          </div>
+        </div>
       </div>
+
+
+      {/* 三点菜单浮层（fixed 定位避免被 overflow 截断）*/}
+      {openActionMenu ? (
+        <div
+          style={{
+            position: 'fixed',
+            top: openActionMenu.top,
+            left: openActionMenu.left,
+            minWidth: '132px',
+            padding: '0.4rem',
+            backgroundColor: '#ffffff',
+            border: '1px solid #d0d7de',
+            borderRadius: '0.75rem',
+            boxShadow: '0 12px 28px rgba(31, 35, 40, 0.12)',
+            zIndex: 9999,
+          }}
+          onClick={(event) => event.stopPropagation()}
+        >
+          {([
+            { label: '测试', color: '#1f2328', action: () => { handleTestRobot(openActionMenu.robotId); setOpenActionMenu(null); } },
+            { label: '集成', color: '#1f2328', action: () => { navigate(`/robots/${openActionMenu.robotId}/integrations`); setOpenActionMenu(null); } },
+            { label: '编辑', color: '#1f2328', action: () => { const r = robots.find(x => x.id === openActionMenu.robotId); if (r) handleOpenEditModal(r); setOpenActionMenu(null); } },
+            { label: '删除', color: '#cf222e', action: () => { handleDeleteRobot(openActionMenu.robotId); setOpenActionMenu(null); } },
+          ] as const).map(item => (
+            <button
+              key={item.label}
+              type="button"
+              onClick={item.action}
+              style={{ width: '100%', textAlign: 'left', padding: '0.45rem 0.75rem', border: 'none', borderRadius: '0.5rem', backgroundColor: 'transparent', color: item.color, cursor: 'pointer', fontSize: '0.875rem', fontWeight: 500 }}
+              onMouseEnter={e => (e.currentTarget.style.backgroundColor = '#f6f8fa')}
+              onMouseLeave={e => (e.currentTarget.style.backgroundColor = 'transparent')}
+            >
+              {item.label}
+            </button>
+          ))}
+        </div>
+      ) : null}
 
       {/* 编辑机器人模态框 */}
       {isEditRobotModalOpen && editingRobot && (
