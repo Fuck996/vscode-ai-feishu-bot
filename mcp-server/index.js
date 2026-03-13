@@ -44,36 +44,38 @@ if (!PROJECT_NAME) {
   }
 }
 
-// 可选：尝试从后端获取配置（如果后端已启动）
+// 从后端获取配置（支持通过 BACKEND_URL 指定后端地址）
 async function fetchConfigFromBackend() {
-  if (!WEBHOOK_ENDPOINT || !TRIGGER_TOKEN) {
-    try {
-      const response = await new Promise((resolve, reject) => {
-        const url = new URL('http://localhost:3000/api/mcp/config');
-        http.get(url, { timeout: 2000 }, (res) => {
-          let data = '';
-          res.on('data', chunk => data += chunk);
-          res.on('end', () => {
-            try {
-              const json = JSON.parse(data);
-              if (json.success && json.data) {
-                resolve(json.data);
-              } else {
-                reject(new Error('无效的配置响应'));
-              }
-            } catch (e) {
-              reject(e);
+  const backendUrl = (process.env.BACKEND_URL || 'http://localhost:3000').replace(/\/$/, '');
+  const configUrl = `${backendUrl}/api/mcp/config`;
+  
+  try {
+    const response = await new Promise((resolve, reject) => {
+      const url = new URL(configUrl);
+      const lib = url.protocol === 'https:' ? https : http;
+      
+      lib.get(url, { timeout: 3000 }, (res) => {
+        let data = '';
+        res.on('data', chunk => data += chunk);
+        res.on('end', () => {
+          try {
+            const json = JSON.parse(data);
+            if (json.success && json.data) {
+              resolve(json.data);
+            } else {
+              reject(new Error('无效的配置响应'));
             }
-          });
-        }).on('error', reject);
-      });
-      return response;
-    } catch (e) {
-      process.stderr.write(`[飞书 MCP Server] 无法从后端获取配置: ${e.message}，使用环境变量\n`);
-      return null;
-    }
+          } catch (e) {
+            reject(e);
+          }
+        });
+      }).on('error', reject);
+    });
+    return response;
+  } catch (e) {
+    process.stderr.write(`[飞书 MCP Server] 无法从后端 ${configUrl} 获取配置: ${e.message}\n`);
+    return null;
   }
-  return null;
 }
 
 // 初始化配置
@@ -289,25 +291,31 @@ function postJson(url, token, body) {
 // ─────────────────────────────────────────────
 
 async function main() {
-  // 尝试从后端获取配置
+  // 1. 优先从后端获取配置（支持远端 MCP Server 通过 BACKEND_URL 连接）
   const backendConfig = await fetchConfigFromBackend();
   if (backendConfig) {
     currentConfig.webhookEndpoint = backendConfig.webhookEndpoint;
     currentConfig.triggerToken = backendConfig.triggerToken;
     currentConfig.projectName = backendConfig.projectName;
-    process.stderr.write(`[飞书 MCP Server] 已从后端获取配置 (集成: ${backendConfig.integrationId})\n`);
-  } else if (currentConfig.webhookEndpoint && currentConfig.triggerToken) {
-    process.stderr.write(`[飞书 MCP Server] 使用环境变量配置\n`);
-  } else {
-    process.stderr.write(`[飞书 MCP Server] 警告：未配置 WEBHOOK_ENDPOINT 或 TRIGGER_TOKEN\n`);
-    process.stderr.write(`[飞书 MCP Server] 提示：如使用 stdio 模式，请确保后端 (localhost:3000) 已启动以自动获取配置，或在启动参数中设置环境变量\n`);
-    process.stderr.write(`[飞书 MCP Server] 提示：如使用 SSE 模式（.vscode/mcp.json 配置远端 URL），无需设置上述环境变量，此警告可忽略\n`);
+    process.stderr.write(`[飞书 MCP Server] ✅ 已从后端获取配置 (集成: ${backendConfig.integrationId})\n`);
+  }
+  
+  // 2. 如果还是没有配置，再尝试环境变量
+  if (!currentConfig.webhookEndpoint || !currentConfig.triggerToken) {
+    if (WEBHOOK_ENDPOINT && TRIGGER_TOKEN) {
+      process.stderr.write(`[飞书 MCP Server] ✅ 使用环境变量配置\n`);
+    } else {
+      process.stderr.write(`[飞书 MCP Server] ⚠️  警告：未配置完整的 WEBHOOK_ENDPOINT 或 TRIGGER_TOKEN\n`);
+      process.stderr.write(`[飞书 MCP Server] 💡 请检查：\n`);
+      process.stderr.write(`     - 后端是否已启动 (http://localhost:3000 或 BACKEND_URL)\n`);
+      process.stderr.write(`     - 或者手动设置环境变量：WEBHOOK_ENDPOINT 和 TRIGGER_TOKEN\n`);
+    }
   }
 
   const transport = new StdioServerTransport();
   await server.connect(transport);
   // 注意：不要向 stdout 输出任何内容（MCP 协议通过 stdout 通信）
-  process.stderr.write('[飞书 MCP Server] 已启动，等待工具调用...\n');
+  process.stderr.write('[飞书 MCP Server] ✅ 已启动，等待工具调用...\n');
 }
 
 main().catch((err) => {
