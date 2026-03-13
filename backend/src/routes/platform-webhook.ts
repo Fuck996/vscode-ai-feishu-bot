@@ -569,7 +569,13 @@ router.post('/:integrationId', async (req: Request, res: Response) => {
         break;
       case 'synology': {
         // 传入 URL 查询参数（?text=@@TEXT@@）及集成配置（含 nasHost 等）
-        const synologyConfig = integration.config as Record<string, any>;
+        // 使用 ?? {} 防止 config 为 null 时导致 TypeError
+        const synologyConfig = (integration.config ?? {}) as Record<string, any>;
+        // 记录群晖收到的原始数据，便于排查"发送成功但飞书未收到"问题
+        logger.info(
+          { bodyKeys: Object.keys(req.body), queryKeys: Object.keys(req.query), bodyText: String(req.body?.text || '').substring(0, 200) },
+          `群晖 Synology Webhook 原始数据 [${integrationId}]`
+        );
         normalized = normalizeSynology(req.body, req.query as any, synologyConfig);
         break;
       }
@@ -627,13 +633,24 @@ router.post('/:integrationId', async (req: Request, res: Response) => {
     );
     
     // 发送飞书通知（内部错误不向 webhook 发送方返回 500，以免外部平台报错）
+    // 注意：飞书 Webhook API 在请求参数错误时仍返回 HTTP 200，但 body 中 code != 0
+    // 例如：{"code": 19001, "msg": "param invalid"} 或 {"StatusCode": 0, "StatusMessage": "success"}
     try {
-      await axios.post(robot.webhookUrl, card, {
+      const feishuResp = await axios.post(robot.webhookUrl, card, {
         headers: {
           'Content-Type': 'application/json; charset=utf-8',
         },
       });
-      addLog('info', 'Webhook 接收', `飞书通知已发送 [${integration.projectType}] ${normalized.title} [项目: ${finalProjectName}]`);
+      // 检查飞书 API 逻辑错误（HTTP 200 但 code != 0 或 StatusCode != 0）
+      const respData = feishuResp.data;
+      const feishuCode = respData?.code ?? respData?.StatusCode;
+      if (feishuCode !== undefined && feishuCode !== 0) {
+        const feishuMsg = respData?.msg || respData?.StatusMessage || '飞书返回错误';
+        logger.error('飞书 API 返回错误码', { platform, integrationId, code: feishuCode, msg: feishuMsg });
+        addLog('error', 'Webhook 接收', `飞书 API 错误 code=${feishuCode}: ${feishuMsg} [${platform}] ${normalized.title}`);
+      } else {
+        addLog('info', 'Webhook 接收', `飞书通知已发送 [${integration.projectType}] ${normalized.title} [项目: ${finalProjectName}]`);
+      }
     } catch (feishuError) {
       logger.error('飞书消息发送失败（Webhook 已正常接收）', { platform, integrationId, error: feishuError });
       addLog('error', 'Webhook 接收', `飞书发送失败 [${integration.projectType}] ${normalized.title}: ${(feishuError as Error).message || '未知错误'}`);

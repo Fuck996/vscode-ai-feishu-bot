@@ -486,7 +486,7 @@ export default function Integrations() {
                               >
                                 {copiedUrlId === integration.id + '_url' ? '✓ URL' : '📋 URL'}
                               </button>
-                              {integration.webhookSecret && integration.projectType !== 'synology' && (
+                              {integration.webhookSecret && (
                                 <button
                                   onClick={() => copyText(integration.webhookSecret!, integration.id + '_token', setCopiedTokenId, 'Secret Token')}
                                   style={{ ...btnSecondary, background: copiedTokenId === integration.id + '_token' ? '#d1fae5' : undefined, color: copiedTokenId === integration.id + '_token' ? '#065f46' : undefined }}
@@ -727,13 +727,14 @@ function IntegrationModal({
                   1. 控制面板 → 通知 → 高级 → 服务 → <strong>添加服务提供商</strong><br />
                   2. 类型选择 <strong>Webhook</strong>，填写服务商名称（如"飞书通知"）<br />
                   3. <strong>【第1页】</strong>主题模板填写：<code>您的 %HOSTNAME% 在 %DATE% 的 %TIME% 发生了新的系统事件。</code><br />
-                  4. <strong>【第1页】</strong>Webhook URL 填入创建后生成的地址末尾追加 <code>?text=@@TEXT@@</code><br />
+                  4. <strong>【第1页】</strong>Webhook URL 直接填入创建后生成的地址（无需追加任何参数）<br />
                   5. <strong>【第2页】</strong>HTTP 方法选 <code>POST</code>，Content-Type 选 <code>application/json</code><br />
-                  6. <strong>【第2页】</strong>HTTP 主体填写：<code>{"{"}"text": "@@TEXT@@"{"}"}</code><br />
-                  7. 保存后，前往 <strong>通知规则</strong> → 选择此服务商 → 勾选需要的事件类别
+                  6. <strong>【第2页】</strong>点击"+ 添加标头"，参数 <code>X-Webhook-Secret</code>，值填写创建后生成的 Webhook Secret<br />
+                  7. <strong>【第2页】</strong>HTTP 主体填写：<code>{"{"}"text": "@@TEXT@@"{"}"}</code><br />
+                  8. 保存后，前往 <strong>通知规则</strong> → 选择此服务商 → 勾选需要的事件类别
                 </div>
                 <div style={{ background: '#fef9c3', border: '1px solid #fde68a', borderRadius: '0.375rem', padding: '0.5rem 0.75rem', fontSize: '0.75rem', color: '#713f12', marginTop: '0.5rem' }}>
-                  ⚠️ <strong>安全说明：</strong>群晖 DSM 不支持自定义请求标头。Webhook URL 中的随机 UUID 即为鉴权凭据，请妥善保存，切勿泄露。<br />
+                  🔒 <strong>安全说明：</strong>群晖 DSM 支持自定义 HTTP 标头，建议在第2页添加标头 <code>X-Webhook-Secret</code> 并填入集成的 Webhook Secret，可防止伪造请求。<br />
                   💡 <strong>支持的通知事件：</strong>存储空间不足 / 硬盘严重状态 / 硬盘故障 / 容器意外停止 / 安全风险 / 恶意软件 / 备份任务结果 / 系统重启
                 </div>
               </div>
@@ -1103,10 +1104,9 @@ function SetupGuideModal({ integration, apiBaseUrl, onClose }: {
   integration: Integration; apiBaseUrl: string; onClose: () => void;
 }) {
   const webhookUrl = `${apiBaseUrl}/api/webhook/${integration.id}`;
-  // 群晖 DSM 需要在 URL 末尾追加 ?text=@@TEXT@@，方便用户直接复制
-  const displayWebhookUrl = integration.projectType === 'synology'
-    ? `${webhookUrl}?text=@@TEXT@@`
-    : webhookUrl;
+  // 群晖类型不需要在 URL 追加 ?text=@@TEXT@@（@会被URL编码无法被DSM识别）
+  // 实际消息通过 HTTP 主体 {"text": "@@TEXT@@"} 传递
+  const displayWebhookUrl = webhookUrl;
   const secret = integration.webhookSecret || '（请重新创建获取）';
 
   const [copiedUrl, setCopiedUrl] = React.useState(false);
@@ -1141,12 +1141,12 @@ function SetupGuideModal({ integration, apiBaseUrl, onClose }: {
     custom:       { header: '🛠️ Custom Webhook', bg: '#f3f4f6', color: '#374151', steps: ['向上方 Webhook URL 发送 POST 请求', '请求体：{ title, summary, status, event?, url? }', '请求头：X-Webhook-Secret: <secret>'] },
     synology:     { header: '📦 Synology NAS', bg: '#fff7ed', color: '#9a3412', steps: [
       'DSM 控制面板 → 通知 → 高级 → 服务 → 添加服务提供商，类型选择 Webhook',
-      '【第1页】服务商名称填写"飞书通知"（任意），主题模板填写：您的 %HOSTNAME% 在 %DATE% 的 %TIME% 发生了新的系统事件。',
-      '【第1页】Webhook URL 填写上方已生成的完整地址（末尾已含 ?text=@@TEXT@@，可直接复制粘贴）',
-      '【第2页】点击下一步后，HTTP 方法选 POST，Content-Type 选 application/json',
-      '【第2页】HTTP 主体填写：{"text": "@@TEXT@@"}（保留双引号）',
-      '⚠️ 群晖 DSM 不支持自定义请求标头，URL 中的 UUID 即为唯一安全凭证，请妥善保存',
-      '保存后，前往「通知规则」勾选需要的事件类别（推荐：存储/磁盘/安全/套件），再点击「发送测试通知」验证',
+      '【第1页】服务商名称填写"飞书通知"，主题模板填写：您的 %HOSTNAME% 在 %DATE% 的 %TIME% 发生了新的系统事件。',
+      '【第1页】Webhook URL 直接填写上方地址（不要追加任何参数）',
+      '【第2页】HTTP 方法选 POST，Content-Type 选 application/json',
+      '【第2页】点击"+ 添加标头"，参数填写 X-Webhook-Secret，值填写上方 Webhook Secret（安全认证）',
+      '【第2页】HTTP 主体填写：{"text": "@@TEXT@@"}（保留双引号和@@符号，DSM 会自动替换为实际消息）',
+      '保存后，前往「通知规则」勾选需要的事件类别，再点击「发送测试通知」验证',
     ] },
   };
 
