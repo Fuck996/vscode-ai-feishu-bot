@@ -250,7 +250,7 @@ const History: React.FC = () => {
           </div>
 
           <div style={{ overflowX: 'auto', padding: '0 1.5rem' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', tableLayout: 'fixed' }}>
               <tbody>
                 {paginatedNotifications.length > 0 ? (
                   paginatedNotifications.map(notification => {
@@ -259,7 +259,7 @@ const History: React.FC = () => {
                     return (
                       <tr key={notification.id} style={{ borderBottom: '1px solid #f3f4f6' }}>
                         {/* 标题 + 来源 */}
-                        <td style={{ padding: '1rem 0.75rem', fontSize: '0.875rem', maxWidth: '300px' }}>
+                        <td style={{ padding: '1rem 0.75rem', fontSize: '0.875rem', width: '260px' }}>
                           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem', minWidth: 0 }}>
                             <span style={{ color: '#1f2328', fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                               {notification.title}
@@ -270,7 +270,7 @@ const History: React.FC = () => {
                           </div>
                         </td>
                         {/* 状态 */}
-                        <td style={{ padding: '1rem 0.75rem', fontSize: '0.875rem', width: '100%', textAlign: 'center' }}>
+                        <td style={{ padding: '1rem 0.75rem', fontSize: '0.875rem', textAlign: 'center' }}>
                           <span style={{ display: 'inline-flex', alignItems: 'center', padding: '0.25rem 0.7rem', borderRadius: '999px', fontSize: '0.75rem', fontWeight: 600, lineHeight: 1, color: statusStyle.color, backgroundColor: statusStyle.backgroundColor }}>
                             {getStatusText(notification.status)}
                           </span>
