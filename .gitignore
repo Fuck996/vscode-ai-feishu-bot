@@ -32,14 +32,12 @@ build/
 .env.local
 .env.*.local
 
-# IDE
+# IDE（mcp.json 仅供本地使用，不进仓库）
 .vscode/*
 !.vscode/
 !.vscode/extensions.json
 !.vscode/launch.json
 !.vscode/settings.json
-!.vscode/mcp.json
-!.vscode/mcp.json.example
 
 !testfile/diagnose-mcp.ps1
 

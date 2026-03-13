@@ -1,6 +1,6 @@
 # 飞书 AI 通知系统 - 开发规范指南
 
-**版本：** v1.4.1 | **更新时间：** 2026-03-13 | **内容：** 添加MCP服务器健康检查流程，推送通知前自动重启过期会话
+**版本：** v1.4.2 | **更新时间：** 2026-03-13 | **内容：** 移除本地 MCP 配置示例与真实域名，明确本地配置不入库
 
 ---
 
@@ -300,49 +300,13 @@ MCP Server ← → stdio (JSON-RPC 协议)
 
 **位置**: `mcp-server/index.js`
 
-**启动方式**: VS Code 通过 `.vscode/mcp.json` 的 SSE 启动，Token 通过系统环境变量 `FEISHU_MCP_TOKEN` 传入（Token为集成的 webhookSecret）
+**启动方式**: VS Code 通过本地 MCP 配置接入远端 SSE，Token 通过系统环境变量 `FEISHU_MCP_TOKEN` 传入（值为集成的 webhookSecret）
 
-**`.vscode/mcp.json` 配置**（正式环境）:
-```json
-{
-  "servers": {
-    "feishuNotifier": {
-      "type": "sse",
-      "url": "https://fsbot.4npc.net:2020/api/mcp/sse?token=${env:FEISHU_MCP_TOKEN}"
-    }
-  }
-}
-```
-
-**本地开发备选配置**（如需本地调试）:
-```json
-{
-  "servers": {
-    "feishuNotifier": {
-      "type": "sse",
-      "url": "http://localhost:3000/api/mcp/sse?token=${env:FEISHU_MCP_TOKEN}"
-    }
-  }
-}
-```
-注意：使用本地配置需本地后端启动并运行在 3000 端口
-
-**Token 设置（一次性，不进版本控制）**:
-
-使用 **正式服务器上的集成 webhookSecret** 作为 Token：
-1. 访问前端集成管理页面
-2. 找任意 vscode-chat 类型的集成
-3. 点「📋 MCP配置」获取 TRIGGER_TOKEN 
-4. 保存为系统环境变量
-
-```powershell
-# Windows PowerShell（用户级环境变量，重启 VS Code 后生效）
-[System.Environment]::SetEnvironmentVariable("FEISHU_MCP_TOKEN", "你的webhookSecret", "User")
-```
-```bash
-# macOS / Linux（添加到 ~/.zshrc 或 ~/.bashrc）
-export FEISHU_MCP_TOKEN="你的webhookSecret"
-```
+**本地配置约定**：
+- `.vscode/mcp.json` 属于开发者本地工程配置，不纳入版本控制
+- 具体 `mcp.json` 内容以系统内置教程或前端「📋 MCP配置」弹窗为准
+- 规范文档中不记录真实域名、Token 或可直接复用的本地配置片段
+- 本地调试如需切换地址，应在个人环境中单独维护，不回写仓库
 
 ### MCP 格式化规则（核心逻辑）
 

@@ -17,6 +17,20 @@ if ($token) {
     Write-Host ""
 }
 
+$mcpConfigPath = ".\.vscode\mcp.json"
+$mcpConfig = $null
+$mcpSseUrl = $null
+
+if (Test-Path $mcpConfigPath) {
+    try {
+        $mcpConfig = Get-Content $mcpConfigPath | ConvertFrom-Json
+        $mcpSseUrl = $mcpConfig.servers.feishuNotifier.url
+    } catch {
+        $mcpConfig = $null
+        $mcpSseUrl = $null
+    }
+}
+
 # 2. 检查后端是否运行
 Write-Host "2️⃣  检查后端服务是否正在运行" -ForegroundColor Yellow
 try {
@@ -30,9 +44,9 @@ try {
 
 # 3. 检查 MCP SSE 端点（需要有效的 token）
 Write-Host "3️⃣  检查 MCP SSE 端点" -ForegroundColor Yellow
-if ($token) {
+if ($token -and $mcpSseUrl) {
     try {
-        $url = "https://fsbot.4npc.net:2020/api/mcp/sse?token=$token"
+        $url = $mcpSseUrl -replace '\$\{env:FEISHU_MCP_TOKEN\}', $token
         $response = Invoke-WebRequest -Uri $url -ErrorAction SilentlyContinue
         Write-Host "✅ MCP 端点响应正常" -ForegroundColor Green
     } catch {
@@ -45,18 +59,18 @@ if ($token) {
             Write-Host "❌ 连接失败: $statusCode" -ForegroundColor Red
         }
     }
-} else {
+} elseif (-not $token) {
     Write-Host "⏭️  跳过（环境变量未设置）" -ForegroundColor Gray
+} else {
+    Write-Host "⏭️  跳过（本地 .vscode/mcp.json 未配置或无法解析）" -ForegroundColor Gray
 }
 
 Write-Host ""
 
 # 4. 检查配置文件
 Write-Host "4️⃣  检查 .vscode/mcp.json 配置" -ForegroundColor Yellow
-$mcpConfigPath = ".\.vscode\mcp.json"
-if (Test-Path $mcpConfigPath) {
-    $config = Get-Content $mcpConfigPath | ConvertFrom-Json
-    $url = $config.servers.feishuNotifier.url
+if ($mcpConfig) {
+    $url = $mcpConfig.servers.feishuNotifier.url
     Write-Host "✅ 配置文件存在" -ForegroundColor Green
     Write-Host "   URL: $url" -ForegroundColor Gray
 } else {
@@ -73,7 +87,7 @@ Write-Host "[ ] 2. 后端服务正在运行"
 Write-Host "[ ] 3. Token 是有效的 webhookSecret（从集成页面获取）"
 Write-Host "[ ] 4. 对应的集成状态为 'active'（已启用）"
 Write-Host "[ ] 5. 已重启 VS Code（环境变量变更需要重启）"
-Write-Host "[ ] 6. 网络连接正常（可访问 https://fsbot.4npc.net:2020）"
+Write-Host "[ ] 6. 网络连接正常（可访问你在本地 MCP 配置中填写的地址）"
 Write-Host ""
 
 Write-Host "💡 快速修复步骤" -ForegroundColor Cyan

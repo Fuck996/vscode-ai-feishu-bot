@@ -128,7 +128,7 @@ npm run dev
 例：`NewPass@123`
 
 ### 5. MCP 配置（Copilot 自动汇报）
-在项目根目录 `.vscode/mcp.json` 已预配置。设置环境变量并重启 VS Code 即可：
+`.vscode/mcp.json` 属于本地工程文件，不随仓库分发。创建 `vscode-chat` 类型集成后，请按系统内置教程或前端「📋 MCP配置」弹窗在本地生成配置；随后设置环境变量并重启 VS Code：
 ```powershell
 [System.Environment]::SetEnvironmentVariable("FEISHU_MCP_TOKEN", "<集成Token>", "User")
 ```

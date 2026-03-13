@@ -1,6 +1,6 @@
 # 需求与BUG跟踪文档
 
-**版本：** v1.3.16 | **更新时间：** 2026-03-13 | **内容：** MCP 服务器名改为 camelCase 的 feishuNotifier，绕开旧缓存键
+**版本：** v1.3.17 | **更新时间：** 2026-03-13 | **内容：** 回退本地 mcp.json 出仓并清理规范文档中的敏感 MCP 配置说明
 
 
 ## 📌 使用说明
@@ -90,6 +90,7 @@
 
 | 版本 | 发布日期 | 主要变更 |
 |------|----------|----------|
+| v1.3.17 | 2026-03-13 | 回退 `.vscode/mcp.json` 的版本控制，恢复本地配置文件策略；README 改为引导按系统教程本地生成 MCP 配置；清理 AI 规范文档与测试脚本中的真实域名硬编码 ✅ 已完成 |
 | v1.3.16 | 2026-03-13 | MCP 服务器名由 `feishu-notifier` 改为 camelCase 的 `feishuNotifier`，同步更新 workspace MCP 配置、stdio/远端 server name、诊断脚本与说明文档，用新键绕开 VS Code 旧缓存 ✅ 已完成 |
 | v1.3.15 | 2026-03-13 | 清理 docker-compose.synology.yml 中误导性的 BACKEND_URL；PUBLIC_BASE_URL 改为通用示例并明确仅用于生成对外绝对地址，不影响同镜像内前后端通信 ✅ 已完成 |
 | v1.3.14 | 2026-03-13 | 修复 stdio MCP 启动期误报警：本地无集成时不再刷出大量 stderr；工具调用前会先刷新后端配置；群晖部署补充 PUBLIC_BASE_URL，适配 Lucky 反向代理外网域名 ✅ 已完成 |

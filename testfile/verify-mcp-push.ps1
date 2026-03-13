@@ -14,8 +14,8 @@
 # ═══════════════════════════════════════════════════════════
 
 # NAS 部署情况
-$BACKEND_URL = "https://fsbot.4npc.net:2020"      # 替换为你的后端地址
-$APP_URL = "http://192.168.1.100:45173"           # NAS 应用地址（可选）
+$BACKEND_URL = "https://your-public-domain.example.com:2020"   # 替换为你的后端外网地址
+$APP_URL = "http://your-nas-ip-or-domain:45173"                # NAS 应用地址（可选）
 
 # 登录凭证（用于获取功能列表）
 $TEST_USERNAME = "admin"
