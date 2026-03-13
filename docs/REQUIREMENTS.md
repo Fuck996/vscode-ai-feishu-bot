@@ -1,6 +1,6 @@
 # 需求与BUG跟踪文档
 
-**版本：** v1.3.17 | **更新时间：** 2026-03-13 | **内容：** 回退本地 mcp.json 出仓并清理规范文档中的敏感 MCP 配置说明
+**版本：** v1.3.18 | **更新时间：** 2026-03-13 | **内容：** 修复 MCP 配置弹窗残留旧键名，并统一机器人页集成入口与辅助提示中的旧命名残留
 
 
 ## 📌 使用说明
@@ -65,6 +65,7 @@
 
 | # | 优先级 | 标题 | 根因 | 状态 | 修复版本 |
 |---|--------|------|------|------|----------|
+| BUG-U14 | 🟡 | MCP 配置弹窗和机器人页集成入口仍残留旧样式 | frontend/src/pages/Integrations.tsx 生成的 `mcp.json` 片段仍输出旧键名 `feishu-notifier`；frontend/src/pages/Robots.tsx 的集成按钮仍保留颜文字与高饱和紫色；scripts/start.ps1 仍提示旧的 VS Code 扩展配置流程；同时 backend/frontend 包名与 lock 文件顶层元数据未同步到新命名 | ✅ 已修复 | v1.3.18 |
 | BUG-U13 | 🔴 | VS Code 持续命中旧的 MCP 服务器缓存键 | 服务器名长期使用 `feishu-notifier`，VS Code 工作区日志持续以该键恢复 LocalProcess 进程；改名为 camelCase `feishuNotifier` 以强制切换到新键并规避旧缓存/同步状态 | ✅ 已修复 | v1.3.16 |
 | BUG-U12 | 🟡 | 群晖 compose 中 BACKEND_URL 配置含义混淆 | 统一镜像部署下前后端内部通信不依赖 BACKEND_URL；该变量仅会误导为“业务通信必需项”，已从 compose 删除并保留 PUBLIC_BASE_URL 作为对外绝对地址覆盖项 | ✅ 已修复 | v1.3.15 |
 | BUG-U11 | 🔴 | stdio MCP 启动时持续输出异常警告 | mcp-server/index.js 将“本地没有可用集成”也作为 stderr 警告输出，且工具调用前未先刷新配置；群晖部署文件也缺少 Lucky 反代场景的 PUBLIC_BASE_URL | ✅ 已修复 | v1.3.14 |
@@ -90,6 +91,7 @@
 
 | 版本 | 发布日期 | 主要变更 |
 |------|----------|----------|
+| v1.3.18 | 2026-03-13 | 修复创建集成弹窗生成的 MCP 配置仍使用旧键名 `feishu-notifier`；机器人页“集成”按钮去掉颜文字并改为低饱和色；启动脚本切换到当前 MCP 配置提示；同步 backend/frontend 包名与 lock 元数据到 `feishu-bot-*` ✅ 已完成 |
 | v1.3.17 | 2026-03-13 | 回退 `.vscode/mcp.json` 的版本控制，恢复本地配置文件策略；README 改为引导按系统教程本地生成 MCP 配置；清理 AI 规范文档与测试脚本中的真实域名硬编码 ✅ 已完成 |
 | v1.3.16 | 2026-03-13 | MCP 服务器名由 `feishu-notifier` 改为 camelCase 的 `feishuNotifier`，同步更新 workspace MCP 配置、stdio/远端 server name、诊断脚本与说明文档，用新键绕开 VS Code 旧缓存 ✅ 已完成 |
 | v1.3.15 | 2026-03-13 | 清理 docker-compose.synology.yml 中误导性的 BACKEND_URL；PUBLIC_BASE_URL 改为通用示例并明确仅用于生成对外绝对地址，不影响同镜像内前后端通信 ✅ 已完成 |

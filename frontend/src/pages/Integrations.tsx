@@ -998,7 +998,7 @@ function VscodeChatMcpGuide({ apiBaseUrl, token }: { apiBaseUrl: string; token: 
   // 使用 ${env:FEISHU_MCP_TOKEN} 语法，token 存在系统环境变量中，不写入文件
   const mcpJson = JSON.stringify({
     servers: {
-      'feishu-notifier': {
+      feishuNotifier: {
         type: 'sse',
         url: `${mcpSseUrl}?token=\${env:FEISHU_MCP_TOKEN}`,
       }

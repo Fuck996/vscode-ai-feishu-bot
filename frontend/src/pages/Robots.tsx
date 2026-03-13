@@ -559,7 +559,7 @@ export default function Robots() {
                             onClick={() => navigate(`/robots/${robot.id}/integrations`)}
                             style={{
                               padding: '0.375rem 0.75rem',
-                              backgroundColor: '#a855f7',
+                              backgroundColor: '#64748b',
                               color: 'white',
                               border: 'none',
                               borderRadius: '0.25rem',
@@ -567,11 +567,11 @@ export default function Robots() {
                               transition: 'background-color 0.2s',
                               whiteSpace: 'nowrap',
                             }}
-                            onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#9333ea')}
-                            onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = '#a855f7')}
+                            onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#475569')}
+                            onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = '#64748b')}
                             title="管理集成"
                           >
-                            🔗 集成
+                            集成
                           </button>
                           <button
                             onClick={() => handleOpenEditModal(robot)}

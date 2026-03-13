@@ -98,9 +98,8 @@ Write-Host "5. 🔧 在 VSCode 中配置扩展 (见下方)" -ForegroundColor Whi
 Write-Host ""
 
 Write-Host "🔌 VSCode 扩展配置：" -ForegroundColor Cyan
-Write-Host "1. 按 Ctrl+, 打开设置" -ForegroundColor White
-Write-Host "2. 搜索 'feishu-notifier'" -ForegroundColor White
-Write-Host "3. 填入：" -ForegroundColor White
-Write-Host "   serverUrl: http://localhost:3000" -ForegroundColor White
-Write-Host "4. 按 Ctrl+Shift+F 快速发送通知！" -ForegroundColor Cyan
+Write-Host "1. 按系统教程设置 FEISHU_MCP_TOKEN 用户环境变量" -ForegroundColor White
+Write-Host "2. 在当前工程本地创建 .vscode/mcp.json" -ForegroundColor White
+Write-Host "3. 使用 feishuNotifier 作为 MCP 服务器键名" -ForegroundColor White
+Write-Host "4. 重启 VS Code 后在 Chat 中验证连接" -ForegroundColor Cyan
 Write-Host ""
