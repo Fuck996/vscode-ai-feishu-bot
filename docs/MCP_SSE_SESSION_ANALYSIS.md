@@ -1,6 +1,6 @@
 # MCP SSE 会话过期问题分析和解决方案
 
-**版本：** v1.0 | **更新时间：** 2026-03-12 | **解决方案已部署：** v1.3.6
+**版本：** v1.3.19 | **更新时间：** 2026-03-13 | **解决方案已部署：** v1.3.19
 
 ---
 
@@ -14,7 +14,6 @@
 **发生频率**：偶发性，特别是在以下场景：
 - 后端服务重启
 - 网络长连接不稳定
-- 长时间无操作
 - 通过代理/防火墙访问
 
 ---
@@ -25,12 +24,12 @@
 
 ```
 VS Code MCP Client
-      ↓ (GET /api/mcp/sse?token=xxx)
+  ↓ (优先 POST /api/mcp/sse?token=xxx)
 backend/routes/mcp-endpoint.ts
-      ├─ Map<sessionId, session>（内存存储）
-      ├─ 心跳保活（原间隔 25 秒）
-      └─ 消息通道（POST /api/mcp/message）
-      ↓
+  ├─ Streamable HTTP 会话（Mcp-Session-Id）
+  ├─ Legacy SSE 回退（GET /api/mcp/sse + POST /api/mcp/message）
+  └─ 心跳保活（15 秒）
+  ↓
 飞书通知系统
 ```
 
@@ -38,6 +37,7 @@ backend/routes/mcp-endpoint.ts
 - 后端服务崩溃或重启
 - 内存溢出导致的进程终止
 - 负载均衡切换到新实例
+- legacy SSE 模式下长连接断开后，VS Code 会将服务器状态标记为 Error
 
 ### 2. 心跳间隔不够激进
 
@@ -116,32 +116,23 @@ const heartbeat = setInterval(() => {
 - 降低长连接被中断的概率
 - 成本：增加 40% 的心跳流量（约每小时增加 240 B）
 
-### 2. 活动超时保护
+### 2. Streamable HTTP 会话支持
 
-**添加**：60 秒无活动自动关闭连接
+**新增**：同一地址支持 Streamable HTTP 的 `POST /api/mcp/sse`
 
 ```typescript
-let activityTimeout: NodeJS.Timeout;
-function resetActivityTimeout() {
-  clearTimeout(activityTimeout);
-  activityTimeout = setTimeout(() => {
-    addLog('warn', 'MCP 服务', `SSE 连接因长时间无活动被关闭`);
-    res.end();
-  }, 60000);  // ← 60 秒无活动则关闭
-}
-
-// 每次 VS Code 发送消息时重置计时器
-const originalWrite = res.write.bind(res);
-res.write = function(chunk: any, encoding?: any, callback?: any) {
-  resetActivityTimeout();
-  return originalWrite(chunk, encoding, callback);
-};
+router.post('/sse', async (req, res) => {
+  // 1. 读取 Mcp-Session-Id
+  // 2. initialize 时创建新会话并返回响应头
+  // 3. 普通请求命中旧会话时直接返回 JSON-RPC 响应
+  // 4. 会话不存在时返回 404，让 VS Code 自动新建会话
+});
 ```
 
 **效果**：
-- 防止僵尸连接占用资源
-- 清晰的关闭时间点便于日志追踪
-- 避免累积大量无效的 SSE 连接
+- VS Code 可以继续停留在 HTTP 会话模式
+- 会话丢失后由客户端自动新建，而不是卡死在旧的 SSE 通道
+- 与官方 MCP Streamable HTTP 行为保持一致
 
 ### 3. 写入异常处理
 
@@ -164,6 +155,15 @@ const heartbeat = setInterval(() => {
 - 快速发现网络故障
 - 及时释放资源
 
+### 3. Legacy SSE 回退保留
+
+**保留**：`GET /api/mcp/sse` 与 `POST /api/mcp/message`
+
+**效果**：
+- 旧客户端仍可连接
+- 新客户端优先使用 HTTP，会在需要时才回退
+- 回退模式断线后仍可能需要手动 Restart Server
+
 ### 4. 错误诊断增强
 
 **改进**：详细的会话过期错误信息
@@ -172,8 +172,8 @@ const heartbeat = setInterval(() => {
 if (!session) {
   const errorMsg = '会话不存在或已过期，可能原因：\n' +
     '1. 后端服务重启\n' +
-    '2. SSE 连接长时间无活动被断开\n' +
-    '3. 网络连接中断\n' +
+    '2. 反向代理或隧道切断了长连接\n' +
+    '3. 客户端仍在使用旧会话 ID\n' +
     '请在 VS Code MCP 服务中重新连接';
   addLog('warn', 'MCP 服务', `会话过期 [sessionId=${sessionId.substring(0, 8)}...]`);
   return res.status(404).json({ 
@@ -225,15 +225,15 @@ npm start          # 终端 B（终端 A 会自动关闭）
 # 结果：用户无感知，自动恢复
 ```
 
-### 测试场景 3：长时间无操作测试
+### 测试场景 3：HTTP 会话丢失自动恢复测试
 
 ```bash
-# 1. 建立 MCP SSE 连接
-# 2. 等待 60 秒不发送任何消息
-# 3. 观察后端日志
+# 1. 建立 MCP HTTP 会话
+# 2. 重启后端，清空内存中的会话
+# 3. 在 VS Code 再次调用工具
 # 期望日志：
-# [warn] SSE 连接因长时间无活动被关闭: MyIntegration
-# 结果：连接被主动关闭，资源释放
+# [warn] HTTP 会话过期 ...
+# 随后客户端自动重新 initialize 新会话
 ```
 
 ---
@@ -247,7 +247,7 @@ npm start          # 终端 B（终端 A 会自动关闭）
 | **每小时心跳数** | 144 个 | 240 个 | +96 个 (+67%) |
 | **每小时增加流量** | - | ~2.88 KB | 极小 |
 | **连接过期概率** | 高（15-20s 后） | 低（40-50s 后最多） | 显著降低 |
-| **内存占用** | 每个连接 ~200 B | 每个连接 ~210 B | +10 B（可忽略） |
+| **内存占用** | 每个连接 ~200 B | 每个连接 ~220 B | +20 B（可忽略） |
 
 **结论**：流量增加极小，稳定性显著提升
 
@@ -260,18 +260,18 @@ npm start          # 终端 B（终端 A 会自动关闭）
 当 VS Code MCP 客户端收到 404 错误时的行为：
 
 ```typescript
-// MCP 客户端内部逻辑（伪代码）
+// Streamable HTTP 客户端内部逻辑（伪代码）
 async function makeRPCCall() {
   try {
-    // 1. 发送消息到 /api/mcp/message?sessionId=xxx
-    const response = await post(messageUrl, jsonRpcPayload);
+    // 1. 发送消息到 /api/mcp/sse，并附带 Mcp-Session-Id
+    const response = await post(mcpEndpoint, jsonRpcPayload, { headers: { 'Mcp-Session-Id': sessionId } });
     
     if (response.status === 404) {
       // 2. 检测到会话过期
       console.warn('会话已过期: ' + response.body.error);
       
-      // 3. 自动重新建立 SSE 连接（get /api/mcp/sse）
-      const newSession = await establishSSEConnection();
+      // 3. 自动重新发送 initialize，请求新会话 ID
+      const newSession = await establishHttpSession();
       
       // 4. 重试原请求
       return this.makeRPCCall();  // 递归重试
@@ -283,9 +283,9 @@ async function makeRPCCall() {
 ```
 
 **用户体验**：
-- ✅ 无需手动操作
-- ✅ 通常 < 1 秒恢复
-- ✅ 背景自动进行，用户无感知
+- ✅ Streamable HTTP 模式下通常无需手动操作
+- ⚠️ legacy SSE 模式断开后会进入 Error，需要手动 Restart Server
+- ✅ 推荐配置切到 `type: "http"` 以尽量避免 legacy SSE
 
 ---
 

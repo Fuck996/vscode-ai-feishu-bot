@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useCallback, useRef } from 'react';
+import SceneIcon, { SceneIconName } from '../components/SceneIcon';
 import authService from '../services/auth';
 
 interface Service {
@@ -31,6 +32,20 @@ interface TimeCountdown {
   hours: number;
   minutes: number;
   seconds: number;
+}
+
+function getServiceIconName(service: Service): SceneIconName {
+  const fingerprint = `${service.id} ${service.name} ${service.type}`.toLowerCase();
+
+  if (fingerprint.includes('mcp') || fingerprint.includes('vscode')) {
+    return 'vscode';
+  }
+
+  if (fingerprint.includes('通知') || fingerprint.includes('webhook') || fingerprint.includes('push')) {
+    return 'notification';
+  }
+
+  return 'service';
 }
 
 const Services: React.FC = () => {
@@ -282,8 +297,9 @@ const Services: React.FC = () => {
     <div style={{ backgroundColor: '#f3f4f6', minHeight: '100vh', paddingBottom: '2rem' }}>
       <div style={{ maxWidth: '1400px', margin: '0 auto', padding: '2rem' }}>
         <div style={{ marginBottom: '2rem' }}>
-          <h1 style={{ fontSize: '1.875rem', fontWeight: 'bold', marginBottom: '0.5rem', color: '#1f2937' }}>
-            📡 服务管理
+          <h1 style={{ fontSize: '1.875rem', fontWeight: 'bold', marginBottom: '0.5rem', color: '#1f2937', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+            <SceneIcon name="service" size={34} title="服务管理" />
+            <span>服务管理</span>
           </h1>
           <p style={{ fontSize: '0.875rem', color: '#6b7280' }}>
             监控和管理所有集成服务，查看实时日志和服务状态
@@ -345,7 +361,7 @@ const Services: React.FC = () => {
                     fontSize: '1.75rem',
                   }}
                 >
-                  {service.icon}
+                  <SceneIcon name={getServiceIconName(service)} size={40} title={service.name} />
                 </div>
                 <div
                   style={{
@@ -389,7 +405,8 @@ const Services: React.FC = () => {
                 {/* 错误提示 */}
                 {service.status === 'error' && service.lastError && (
                   <div style={{ marginTop: '0.75rem', padding: '0.5rem 0.75rem', backgroundColor: '#fef2f2', borderRadius: '0.375rem', borderLeft: '3px solid #ef4444', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                    <span style={{ fontSize: '0.75rem', color: '#dc2626' }}>⚠️ {service.lastError}</span>
+                    <SceneIcon name="warning" size={18} title="服务异常" />
+                    <span style={{ fontSize: '0.75rem', color: '#dc2626' }}>{service.lastError}</span>
                   </div>
                 )}
               </div>
@@ -496,7 +513,8 @@ const Services: React.FC = () => {
         <div ref={logPanelRef} style={{ background: 'white', borderRadius: '0.75rem', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', padding: '1.5rem' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
             <div style={{ fontSize: '1.125rem', fontWeight: 600, color: '#1f2937', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              📊 实时日志
+              <SceneIcon name="history" size={24} title="实时日志" />
+              <span>实时日志</span>
               {activeLogs.length > 0 && (
                 <span style={{ fontSize: '0.75rem', fontWeight: 500, color: '#6b7280', background: '#f3f4f6', padding: '0.125rem 0.5rem', borderRadius: '1rem' }}>
                   {activeLogs.length} 条
@@ -522,7 +540,7 @@ const Services: React.FC = () => {
                 e.currentTarget.style.backgroundColor = autoRefresh ? '#dbeafe' : 'white';
               }}
             >
-              {autoRefresh ? '🔄 自动刷新' : '⏸️ 暂停'}
+              {autoRefresh ? '自动刷新' : '暂停刷新'}
             </button>
           </div>
 

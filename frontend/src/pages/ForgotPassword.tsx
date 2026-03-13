@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import SceneIcon from '../components/SceneIcon';
 import '../styles/auth.css';
 
 // 密码找回 - 3步流程：输入用户名 → 输入验证码 → 设置新密码
@@ -97,7 +98,10 @@ export default function ForgotPassword() {
     <div className="auth-container">
       <div className="auth-card" style={{ maxWidth: '420px' }}>
         <div className="auth-header">
-          <h1>🔑 密码找回</h1>
+          <div className="auth-header-visual">
+            <SceneIcon name="key" size={72} title="密码找回" />
+          </div>
+          <h1>密码找回</h1>
           <p>{stepLabels[step - 1]}</p>
         </div>
 
@@ -137,8 +141,9 @@ export default function ForgotPassword() {
                 required
               />
             </div>
-            <div style={{ background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: '0.375rem', padding: '0.75rem', fontSize: '0.8rem', color: '#1e40af', marginBottom: '1rem' }}>
-              💡 系统将通过您账户配置的飞书机器人发送6位验证码
+            <div style={{ background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: '0.375rem', padding: '0.75rem', fontSize: '0.8rem', color: '#1e40af', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.625rem' }}>
+              <SceneIcon name="info" size={22} title="提示" />
+              <span>系统将通过您账户配置的飞书机器人发送6位验证码</span>
             </div>
             <button type="submit" className="submit-button" disabled={isLoading}>
               {isLoading ? '发送中...' : '发送验证码'}
@@ -219,7 +224,7 @@ export default function ForgotPassword() {
             onClick={() => navigate('/login')}
             style={{ background: 'none', border: 'none', color: '#3b82f6', cursor: 'pointer', fontSize: '0.875rem', textDecoration: 'underline' }}
           >
-            ← 返回登录
+            返回登录
           </button>
         </div>
       </div>

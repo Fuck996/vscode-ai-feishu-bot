@@ -7,8 +7,8 @@ import {
   useNavigate,
   useLocation,
 } from 'react-router-dom';
-import { Bell, Settings as SettingsIcon, BarChart3, LogOut, Zap } from 'lucide-react';
 import authService from './services/auth';
+import SceneIcon from './components/SceneIcon';
 import Dashboard from './pages/Dashboard';
 import History from './pages/History';
 import Settings from './pages/Settings';
@@ -88,8 +88,8 @@ function MainLayout({ children }: { children: React.ReactNode }) {
       {/* 导航栏 */}
       <nav style={{ background: 'white', boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1)', padding: '1rem 2rem' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <span style={{ fontSize: '1.5rem' }}>🔔</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+            <SceneIcon name="brand" size={34} title="飞书AI通知系统" />
             <span style={{ fontSize: '1.25rem', fontWeight: 'bold', color: '#1f2937' }}>飞书AI通知系统</span>
           </div>
           
@@ -110,7 +110,10 @@ function MainLayout({ children }: { children: React.ReactNode }) {
               }}
               title="仪表板"
             >
-              📊 仪表板
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}>
+                <SceneIcon name="dashboard" size={18} title="仪表板" />
+                <span>仪表板</span>
+              </span>
             </button>
             
             <button
@@ -129,7 +132,10 @@ function MainLayout({ children }: { children: React.ReactNode }) {
               }}
               title="机器人管理"
             >
-              🤖 机器人
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}>
+                <SceneIcon name="robot" size={18} title="机器人管理" />
+                <span>机器人</span>
+              </span>
             </button>
             
             <button
@@ -148,7 +154,10 @@ function MainLayout({ children }: { children: React.ReactNode }) {
               }}
               title="历史"
             >
-              📜 历史
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}>
+                <SceneIcon name="history" size={18} title="历史" />
+                <span>历史</span>
+              </span>
             </button>
             
             {user?.role === 'admin' && (
@@ -168,7 +177,10 @@ function MainLayout({ children }: { children: React.ReactNode }) {
                 }}
                 title="服务管理"
               >
-                📡 服务
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <SceneIcon name="service" size={18} title="服务管理" />
+                  <span>服务</span>
+                </span>
               </button>
             )}
             
@@ -188,13 +200,19 @@ function MainLayout({ children }: { children: React.ReactNode }) {
               }}
               title="设置"
             >
-              ⚙️ 设置
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}>
+                <SceneIcon name="settings" size={18} title="设置" />
+                <span>设置</span>
+              </span>
             </button>
           </div>
 
           {user && (
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#6b7280', fontSize: '0.875rem' }}>
-              <span>👤 {userNickname || user.username}</span>
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}>
+                <SceneIcon name="user" size={18} title="当前用户" />
+                <span>{userNickname || user.username}</span>
+              </span>
               <button
                 onClick={handleLogout}
                 style={{

@@ -309,6 +309,45 @@ class DatabaseService {
     return this.integrations.filter(i => i.robotId === robotId);
   }
 
+  async getUserIntegrations(
+    userId: string,
+    filters: { projectType?: Integration['projectType']; status?: Integration['status'] } = {}
+  ): Promise<Integration[]> {
+    const userRobotIds = new Set(
+      this.robots.filter(robot => robot.userId === userId).map(robot => robot.id)
+    );
+
+    return this.integrations.filter(integration => {
+      if (!userRobotIds.has(integration.robotId)) {
+        return false;
+      }
+
+      if (filters.projectType && integration.projectType !== filters.projectType) {
+        return false;
+      }
+
+      if (filters.status && integration.status !== filters.status) {
+        return false;
+      }
+
+      return true;
+    });
+  }
+
+  async getOwnedIntegrationById(userId: string, integrationId: string): Promise<Integration | null> {
+    const integration = await this.getIntegrationById(integrationId);
+    if (!integration) {
+      return null;
+    }
+
+    const robot = await this.getRobotById(integration.robotId);
+    if (!robot || robot.userId !== userId) {
+      return null;
+    }
+
+    return integration;
+  }
+
   async getIntegrationById(integrationId: string): Promise<Integration | null> {
     return this.integrations.find(i => i.id === integrationId) || null;
   }

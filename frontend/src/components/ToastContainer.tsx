@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import toastService, { Toast, ToastType } from '../services/toastService';
+import SceneIcon, { SceneIconName } from './SceneIcon';
 
 /**
  * Toast 显示组件
@@ -16,16 +17,16 @@ const ToastContainer: React.FC = () => {
     return unsubscribe;
   }, []);
 
-  const getIcon = (type: ToastType): string => {
+  const getIcon = (type: ToastType): SceneIconName => {
     switch (type) {
       case 'success':
-        return '✅';
+        return 'success';
       case 'error':
-        return '❌';
+        return 'error';
       case 'warning':
-        return '⚠️';
+        return 'warning';
       case 'info':
-        return 'ℹ️';
+        return 'info';
     }
   };
 
@@ -106,9 +107,7 @@ const ToastContainer: React.FC = () => {
               }}
               onClick={() => toastService.remove(toast.id)}
             >
-              <span style={{ fontSize: '1.25rem', flexShrink: 0 }}>
-                {getIcon(toast.type)}
-              </span>
+              <SceneIcon name={getIcon(toast.type)} size={24} title="通知类型" />
               <div
                 style={{
                   flex: 1,

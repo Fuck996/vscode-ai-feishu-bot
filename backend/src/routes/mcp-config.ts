@@ -7,6 +7,7 @@
 import { Router, Request, Response } from 'express';
 import { config } from '../config';
 import database from '../database';
+import { authMiddleware } from '../middleware/auth';
 
 function normalizeForwardedHeader(value: string | string[] | undefined): string {
   const rawValue = Array.isArray(value) ? value[0] : value;
@@ -26,33 +27,70 @@ function getPublicBase(req: Request): string {
 
 const router = Router();
 
+function buildMcpConfigResponse(req: Request, integration: any) {
+  return {
+    integrationId: integration.id,
+    webhookEndpoint: `${getPublicBase(req)}/api/webhook/${integration.id}`,
+    triggerToken: integration.webhookSecret || '',
+    projectName: integration.projectName,
+    projectType: integration.projectType,
+  };
+}
+
+async function resolveUserMcpIntegration(userId: string, integrationId?: string) {
+  if (integrationId) {
+    const integration = await database.getOwnedIntegrationById(userId, integrationId);
+    if (!integration) {
+      return { status: 404, error: '集成不存在或无权访问' };
+    }
+
+    if (integration.projectType !== 'vscode-chat') {
+      return { status: 400, error: '该集成不是 VS Code Chat 类型，不能用作 MCP 配置' };
+    }
+
+    if (integration.status !== 'active') {
+      return { status: 400, error: '该集成未启用，请先启用后再配置 MCP' };
+    }
+
+    return { integration };
+  }
+
+  const integrations = await database.getUserIntegrations(userId, {
+    projectType: 'vscode-chat',
+    status: 'active',
+  });
+
+  if (integrations.length === 0) {
+    return { status: 400, error: '当前用户没有可用的 VS Code Chat 集成，请先创建并启用一个' };
+  }
+
+  return { integration: integrations[0] };
+}
+
 /**
  * GET /api/mcp/config
- * 获取默认的 MCP 配置（第一个活跃集成）
- * 
- * 由 MCP Server 在启动时调用（无需认证，因为是初始化阶段）
+ * 获取当前登录用户的 MCP 配置
  */
-router.get('/config', async (req: Request, res: Response) => {
+router.get('/config', authMiddleware, async (req: Request, res: Response) => {
   try {
-    // 获取第一个活跃集成，如果没有则返回任何可用的集成
-    const integration = await database.getFirstActiveIntegration();
-    
-    if (!integration) {
-      return res.status(400).json({
+    const userId = (req as any).userId as string | undefined;
+    const integrationId = typeof req.query.integrationId === 'string' ? req.query.integrationId : undefined;
+
+    if (!userId) {
+      return res.status(401).json({ success: false, error: '未认证' });
+    }
+
+    const result = await resolveUserMcpIntegration(userId, integrationId);
+    if (!result.integration) {
+      return res.status(result.status || 400).json({
         success: false,
-        error: '没有可用的集成，请先在前端创建一个'
+        error: result.error || '没有可用的 MCP 集成',
       });
     }
 
     res.json({
       success: true,
-      data: {
-        integrationId: integration.id,
-        webhookEndpoint: `${getPublicBase(req)}/api/webhook/${integration.id}`,
-        triggerToken: integration.webhookSecret || '',
-        projectName: integration.projectName,
-        projectType: integration.projectType,
-      }
+      data: buildMcpConfigResponse(req, result.integration),
     });
   } catch (error) {
     console.error('获取 MCP 配置错误:', error);
@@ -62,29 +100,31 @@ router.get('/config', async (req: Request, res: Response) => {
 
 /**
  * GET /api/mcp/config/:integrationId
- * 获取特定集成的 MCP 配置
+ * 获取当前登录用户指定集成的 MCP 配置
  */
-router.get('/config/:integrationId', async (req: Request, res: Response) => {
+router.get('/config/:integrationId', authMiddleware, async (req: Request, res: Response) => {
   try {
+    const userId = (req as any).userId as string | undefined;
     const { integrationId } = req.params;
-    const integration = await database.getIntegrationById(integrationId);
 
-    if (!integration) {
-      return res.status(404).json({ success: false, error: '集成不存在' });
+    if (!userId) {
+      return res.status(401).json({ success: false, error: '未认证' });
+    }
+
+    const result = await resolveUserMcpIntegration(userId, integrationId);
+    if (!result.integration) {
+      return res.status(result.status || 400).json({
+        success: false,
+        error: result.error || '没有可用的 MCP 集成',
+      });
     }
 
     res.json({
       success: true,
-      data: {
-        integrationId: integration.id,
-        webhookEndpoint: `${getPublicBase(req)}/api/webhook/${integration.id}`,
-        triggerToken: integration.webhookSecret || '',
-        projectName: integration.projectName,
-        projectType: integration.projectType,
-      }
+      data: buildMcpConfigResponse(req, result.integration),
     });
   } catch (error) {
-    console.error('获取集成配置错误:', error);
+    console.error('获取 MCP 配置错误:', error);
     res.status(500).json({ success: false, error: '内部服务器错误' });
   }
 });

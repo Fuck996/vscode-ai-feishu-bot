@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Eye, EyeOff } from 'lucide-react';
+import SceneIcon from '../components/SceneIcon';
 import authService from '../services/auth';
 import { validatePasswordStrength, validatePasswordMatch } from '../utils/validation';
 import '../styles/auth.css';
@@ -75,7 +76,10 @@ export default function ForceChangePassword() {
     <div className="auth-container">
       <div className="auth-card">
         <div className="auth-header">
-          <h1>🔑 首次登录 - 强制修改密码</h1>
+          <div className="auth-header-visual">
+            <SceneIcon name="key" size={72} title="首次登录修改密码" />
+          </div>
+          <h1>首次登录 - 强制修改密码</h1>
           <p>为了安全起见，请修改初始密码</p>
         </div>
 
@@ -144,7 +148,10 @@ export default function ForceChangePassword() {
             </div>
 
             {confirmPassword && !passwordsMatch && (
-              <div className="password-error">❌ 两次输入密码不一致</div>
+              <div className="password-error" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <SceneIcon name="error" size={18} title="错误" />
+                <span>两次输入密码不一致</span>
+              </div>
             )}
           </div>
 

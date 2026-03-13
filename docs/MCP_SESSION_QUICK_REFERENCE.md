@@ -1,87 +1,60 @@
-# MCP SSE 会话过期 - 快速参考
+# MCP 会话快速参考
+**版本：** v1.3.19 | **更新时间：** 2026-03-13 | **内容：** 修正 VS Code MCP 重连说明，并区分 Streamable HTTP 与 legacy SSE
 
 ## 症状诊断
 
-| 现象 | 原因 | 解决方案 |
-|------|------|---------|
-| 代理请求返回 404 | 后端重启或网络中断 | 自动重连，无需操作 |
-| VS Code MCP 工具调用失败 | 会话超时 | 重启 VS Code 或等待自动恢复 |
-| MCP 工具间歇性不可用 | 网络不稳定 | 检查网络，查看后端日志 |
+| 现象 | 连接模式 | 根因 | 处理方式 |
+|------|----------|------|----------|
+| `404 status sending message ... will retry with new session ID` | Streamable HTTP | 后端重启或内存中的会话已丢失 | VS Code 会在下一次工具调用时自动新建会话，通常无需人工干预 |
+| MCP 服务器状态变成 Error | legacy SSE | 长连接断开后客户端进入错误状态 | 在 VS Code 执行 `MCP: List Servers` → `Restart Server` |
+| 工具偶发不可用 | 任一模式 | 隧道、反向代理或网络波动 | 先看 MCP 输出日志，再看后端 `/api/mcp/sse` 访问日志 |
+
+## 当前实现
+
+- 后端 `/api/mcp/sse` 已同时支持 Streamable HTTP 和 legacy SSE。
+- VS Code `mcp.json` 没有公开的 `autoReconnect` 配置项。
+- `400/404` 后的自动重试是 VS Code 在 Streamable HTTP 会话里的内建行为，不是配置开关。
+
+## 推荐配置
+
+```json
+{
+  "servers": {
+    "feishuNotifier": {
+      "type": "http",
+      "url": "https://example.com/api/mcp/sse?token=${env:FEISHU_MCP_TOKEN}"
+    }
+  }
+}
+```
 
 ## 日志关键字搜索
 
 ```bash
-# 查看会话过期的详细原因
-grep "会话不存在或已过期" backend.log
+# 查看 HTTP 会话建立/过期
+grep "HTTP 会话" backend.log
 
-# 查看心跳状态
-grep "ping" backend.log | tail -20
+# 查看 legacy SSE 回退连接
+grep "Legacy SSE" backend.log
 
-# 查看无活动断开
-grep "长时间无活动被关闭" backend.log
-
-# 查看连接建立成功
-grep "SSE 连接建立" backend.log
+# 查看 /api/mcp/sse 的整体访问情况
+grep "/api/mcp/sse" backend.log
 ```
 
-## 性能指标
+## 排查顺序
 
-- **心跳间隔**：15 秒（改进前 25 秒）
-- **无活动超时**：60 秒
-- **自动恢复时间**：< 1 秒
-- **每小时额外流量**：~2.88 KB（极小）
+1. 先看 VS Code MCP 输出，确认当前是 `will retry with new session ID` 还是 `Error reading SSE stream`。
+2. 再看后端日志，确认是 `HTTP 会话过期` 还是 `Legacy SSE 连接关闭`。
+3. 如果仍停留在 legacy SSE 模式，重启 MCP 服务器后再发起一次工具调用，让客户端重新走 HTTP 会话模式。
 
-## 配置调优（如需）
+## 补充说明
 
-### backend/src/routes/mcp-endpoint.ts
-
-```typescript
-// 心跳间隔（毫秒）- 建议 10-20 秒
-const HEARTBEAT_INTERVAL = 15000;
-
-// 无活动超时（毫秒）- 建议 30-120 秒
-const INACTIVITY_TIMEOUT = 60000;
-```
-
-## 常见问题
-
-**Q: 无法连接到 MCP 服务**
-- A: 检查后端是否启动 (`npm start`)
-- 验证环境变量 `FEISHU_MCP_TOKEN` 是否设置
-- 查看后端日志中 `/api/mcp/sse` 的访问记录
-
-**Q: MCP 工具间歇性失败**
-- A: 这是正常的网络波动，VS Code MCP 会自动重试
-- 如果频繁发生，检查网络质量
-
-**Q: 我能否手动控制心跳间隔**
-- A: 可以，修改 `HEARTBEAT_INTERVAL` 常量
-- 建议值：10-20 秒（太短会增加流量，太长容易超时）
-
-## 监控建议
-
-```bash
-# 实时监控 MCP 连接状态
-tail -f backend.log | grep "MCP"
-
-# 统计会话过期次数
-grep "会话过期" backend.log | wc -l
-
-# 查看每个集成的连接稳定性
-grep "SSE" backend.log | grep -E "(建立|关闭|过期)"
-```
-
-## 如何禁用自动重连
-
-在 VS Code settings 中：
-```json
-{
-  "mcp.clients.feishuNotifier.autoReconnect": false
-}
-```
-
-*注：不建议禁用，会影响用户体验*
+- 官方配置里不存在 `mcp.clients.feishuNotifier.autoReconnect` 这样的设置项。
+- 如果工具调用长期卡在 Error，优先检查外层隧道、反向代理或网络设备是否会主动切断长连接。
 
 ---
 
-**更新于：** 2026-03-12 | **版本：** v1.3.6+
+**文档版本：** v1.3.19
+
+**变更记录：**
+- v1.3.19 - 2026-03-13 - Copilot - 修正 MCP 重连配置说明

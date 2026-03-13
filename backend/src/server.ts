@@ -84,21 +84,63 @@ app.use(
   })
 );
 
-// 速率限制（开发环境下禁用）
-// 排除 MCP 端点：SSE 连接是长连接且已有 Token 认证保护，不应被 IP 速率限制干扰
-// 若不排除，VS Code 每次连接消耗 2 次配额（POST 405 + GET），重连多次后触发 429
-// 429 响应含 Retry-After: 900，VS Code MCP 客户端将等待 15 分钟后重试
-const limiter = config.nodeEnv === 'production' ? rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 分钟
-  max: 100, // 限制每个 IP 100 个请求
-  message: { success: false, error: '请求过于频繁，请15分钟后再试' },
-  standardHeaders: true,
-  legacyHeaders: false,
-  // 跳过 MCP 路由：/api/mcp/sse、/api/mcp/message、/api/mcp/config
-  skip: (req: Request) => req.originalUrl.startsWith('/api/mcp'),
-}) : (req: Request, res: Response, next: NextFunction) => next();
+function createJsonRateLimiter(options: {
+  windowMs: number;
+  max: number;
+  message: string;
+  skipSuccessfulRequests?: boolean;
+}) {
+  if (config.nodeEnv !== 'production') {
+    return (_req: Request, _res: Response, next: NextFunction) => next();
+  }
 
-app.use('/api/', limiter);
+  return rateLimit({
+    windowMs: options.windowMs,
+    max: options.max,
+    message: { success: false, error: options.message },
+    standardHeaders: true,
+    legacyHeaders: false,
+    skipSuccessfulRequests: options.skipSuccessfulRequests ?? false,
+  });
+}
+
+// 仅限制公开入口，避免已登录后台页面和 MCP 长连接被全局配额误伤。
+const authLoginLimiter = createJsonRateLimiter({
+  windowMs: 15 * 60 * 1000,
+  max: 10,
+  message: '登录尝试过于频繁，请15分钟后再试',
+  skipSuccessfulRequests: true,
+});
+
+const passwordRecoveryLimiter = createJsonRateLimiter({
+  windowMs: 15 * 60 * 1000,
+  max: 8,
+  message: '密码找回请求过于频繁，请15分钟后再试',
+});
+
+const publicApiLimiter = createJsonRateLimiter({
+  windowMs: 15 * 60 * 1000,
+  max: 120,
+  message: '公开接口请求过于频繁，请15分钟后再试',
+});
+
+const webhookLimiter = createJsonRateLimiter({
+  windowMs: 15 * 60 * 1000,
+  max: 600,
+  message: 'Webhook 请求过于频繁，请稍后再试',
+});
+
+app.use('/api/auth/login', authLoginLimiter);
+app.use('/api/auth/forgot-password', passwordRecoveryLimiter);
+app.use('/api/auth/verify-reset-code', passwordRecoveryLimiter);
+app.use('/api/auth/reset-password', passwordRecoveryLimiter);
+app.use('/api/version', publicApiLimiter);
+app.use('/api/health', publicApiLimiter);
+app.use('/api/status', publicApiLimiter);
+app.use('/api/notify', publicApiLimiter);
+app.use('/api/stats', publicApiLimiter);
+app.use('/api/mcp/config', publicApiLimiter);
+app.use('/api/webhook', webhookLimiter);
 
 // 请求体解析（同时捕获 rawBody，用于平台 Webhook 签名验证）
 app.use(express.json({

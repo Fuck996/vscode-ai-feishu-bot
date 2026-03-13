@@ -12,6 +12,10 @@
  *   WEBHOOK_ENDPOINT  — 完整的 Webhook 端点 URL
  *   TRIGGER_TOKEN     — 集成的 webhookSecret
  *   PROJECT_NAME      — 项目名称（可选，默认从 package.json 读取）
+ *
+ * 本地 stdio 多用户模式：
+ *   BACKEND_AUTH_TOKEN — 当前登录用户的后端 JWT
+ *   MCP_INTEGRATION_ID — 当前用户名下的 vscode-chat 集成 ID
  */
 
 const { Server } = require('@modelcontextprotocol/sdk/server/index.js');
@@ -28,7 +32,10 @@ const path = require('path');
 const WEBHOOK_ENDPOINT = (process.env.WEBHOOK_ENDPOINT || '').trim();
 const TRIGGER_TOKEN    = (process.env.TRIGGER_TOKEN    || '').trim();
 const PROJECT_NAME_ENV = (process.env.PROJECT_NAME     || '').trim();
+const BACKEND_AUTH_TOKEN = (process.env.BACKEND_AUTH_TOKEN || '').trim();
+const MCP_INTEGRATION_ID = (process.env.MCP_INTEGRATION_ID || '').trim();
 const DEFAULT_BACKEND_URL = 'http://localhost:3000';
+const HAS_EXPLICIT_WEBHOOK_CONFIG = Boolean(WEBHOOK_ENDPOINT && TRIGGER_TOKEN);
 
 let lastBackendConfigError = '';
 
@@ -76,15 +83,26 @@ if (!PROJECT_NAME) {
 // 从后端获取配置（支持通过 BACKEND_URL 指定后端地址）
 async function fetchConfigFromBackend(options = {}) {
   const { silent = false } = options;
+
+  if (!MCP_INTEGRATION_ID || !BACKEND_AUTH_TOKEN) {
+    lastBackendConfigError = '缺少 MCP_INTEGRATION_ID 或 BACKEND_AUTH_TOKEN，无法按当前用户安全获取 MCP 配置';
+    return null;
+  }
+
   const backendUrl = (process.env.BACKEND_URL || DEFAULT_BACKEND_URL).replace(/\/$/, '');
-  const configUrl = `${backendUrl}/api/mcp/config`;
+  const configUrl = `${backendUrl}/api/mcp/config/${encodeURIComponent(MCP_INTEGRATION_ID)}`;
   
   try {
     const response = await new Promise((resolve, reject) => {
       const url = new URL(configUrl);
       const lib = url.protocol === 'https:' ? https : http;
 
-      const req = lib.get(url, { timeout: 3000 }, (res) => {
+      const req = lib.get(url, {
+        timeout: 3000,
+        headers: {
+          Authorization: `Bearer ${BACKEND_AUTH_TOKEN}`,
+        },
+      }, (res) => {
         let data = '';
         res.setEncoding('utf8');
         res.on('data', chunk => data += chunk);
@@ -221,12 +239,14 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
     throw new Error(`未知工具: ${request.params.name}`);
   }
 
-  // 工具调用前先尝试刷新一次配置，避免后端在 MCP 启动后才可用时一直沿用空配置。
-  const freshConfig = await fetchConfigFromBackend({ silent: true });
-  if (freshConfig) {
-    currentConfig.webhookEndpoint = freshConfig.webhookEndpoint;
-    currentConfig.triggerToken    = freshConfig.triggerToken;
-    currentConfig.projectName     = freshConfig.projectName;
+  // 仅在未显式提供 webhook 配置时，才从后端按用户+集成刷新配置。
+  if (!HAS_EXPLICIT_WEBHOOK_CONFIG) {
+    const freshConfig = await fetchConfigFromBackend({ silent: true });
+    if (freshConfig) {
+      currentConfig.webhookEndpoint = freshConfig.webhookEndpoint;
+      currentConfig.triggerToken    = freshConfig.triggerToken;
+      currentConfig.projectName     = freshConfig.projectName;
+    }
   }
 
   if (!currentConfig.webhookEndpoint || !currentConfig.triggerToken) {
@@ -237,7 +257,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
     }
 
     throw new Error(
-      `飞书 MCP Server 未配置：${lastBackendConfigError || '未能从后端配置接口获取 webhookEndpoint 或 triggerToken'}。请检查 BACKEND_URL 指向的后端是否可访问，或为备用本地模式显式设置 WEBHOOK_ENDPOINT 和 TRIGGER_TOKEN`
+      `飞书 MCP Server 未配置：${lastBackendConfigError || '未能从后端安全配置接口获取 webhookEndpoint 或 triggerToken'}。请显式设置 WEBHOOK_ENDPOINT 和 TRIGGER_TOKEN，或同时设置 BACKEND_AUTH_TOKEN 与 MCP_INTEGRATION_ID 以按当前用户的集成获取配置`
     );
   }
 
@@ -347,23 +367,27 @@ function postJson(url, token, body) {
 // ─────────────────────────────────────────────
 
 async function main() {
-  // 1. 优先从后端获取配置（支持远端 MCP Server 通过 BACKEND_URL 连接）
-  const backendConfig = await fetchConfigFromBackend({ silent: true });
-  if (backendConfig) {
-    currentConfig.webhookEndpoint = backendConfig.webhookEndpoint;
-    currentConfig.triggerToken = backendConfig.triggerToken;
-    currentConfig.projectName = backendConfig.projectName;
+  // 1. 仅在未显式提供 webhook 配置时，才尝试通过后端按用户读取集成配置。
+  if (!HAS_EXPLICIT_WEBHOOK_CONFIG) {
+    const backendConfig = await fetchConfigFromBackend({ silent: true });
+    if (backendConfig) {
+      currentConfig.webhookEndpoint = backendConfig.webhookEndpoint;
+      currentConfig.triggerToken = backendConfig.triggerToken;
+      currentConfig.projectName = backendConfig.projectName;
+    }
   }
   
-  // 2. 如果还是没有配置，再尝试环境变量
+  // 2. 如果还是没有配置，再输出诊断信息
   if (!currentConfig.webhookEndpoint || !currentConfig.triggerToken) {
-    if (!WEBHOOK_ENDPOINT || !TRIGGER_TOKEN) {
+    if (!HAS_EXPLICIT_WEBHOOK_CONFIG) {
       if (!isNoIntegrationError(lastBackendConfigError) && lastBackendConfigError) {
-      process.stderr.write(`[飞书 MCP Server] ⚠️  警告：未能从后端配置接口获取完整配置\n`);
-      process.stderr.write(`[飞书 MCP Server] 💡 请检查：\n`);
+        process.stderr.write(`[飞书 MCP Server] ⚠️  警告：未能从后端安全配置接口获取完整配置\n`);
+        process.stderr.write(`[飞书 MCP Server] 💡 请检查：\n`);
         process.stderr.write(`     - BACKEND_URL 对应的后端是否已启动（默认 ${DEFAULT_BACKEND_URL}）\n`);
-      process.stderr.write(`     - /api/mcp/config 是否返回 success/data/webhookEndpoint/triggerToken\n`);
-      process.stderr.write(`     - 若使用备用本地模式，可显式设置 WEBHOOK_ENDPOINT 和 TRIGGER_TOKEN\n`);
+        process.stderr.write(`     - BACKEND_AUTH_TOKEN 是否为当前登录用户的有效 JWT\n`);
+        process.stderr.write(`     - MCP_INTEGRATION_ID 是否属于当前用户且类型为 vscode-chat\n`);
+        process.stderr.write(`     - /api/mcp/config/:integrationId 是否返回 success/data/webhookEndpoint/triggerToken\n`);
+        process.stderr.write(`     - 若使用备用本地模式，可显式设置 WEBHOOK_ENDPOINT 和 TRIGGER_TOKEN\n`);
       }
     }
   }

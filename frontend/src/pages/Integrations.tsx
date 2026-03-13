@@ -999,7 +999,7 @@ function VscodeChatMcpGuide({ apiBaseUrl, token }: { apiBaseUrl: string; token: 
   const mcpJson = JSON.stringify({
     servers: {
       feishuNotifier: {
-        type: 'sse',
+        type: 'http',
         url: `${mcpSseUrl}?token=\${env:FEISHU_MCP_TOKEN}`,
       }
     }

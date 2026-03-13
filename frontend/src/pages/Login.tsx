@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Eye, EyeOff } from 'lucide-react';
+import SceneIcon from '../components/SceneIcon';
 import authService from '../services/auth';
 import { validateUsername } from '../utils/validation';
 import '../styles/auth.css';
@@ -57,7 +58,10 @@ export default function Login() {
     <div className="auth-container">
       <div className="auth-card">
         <div className="auth-header">
-          <h1>🤖 飞书通知系统</h1>
+          <div className="auth-header-visual">
+            <SceneIcon name="brand" size={72} title="飞书通知系统" />
+          </div>
+          <h1>飞书通知系统</h1>
           <p>登录</p>
         </div>
 
