@@ -29,6 +29,28 @@ const WEBHOOK_ENDPOINT = (process.env.WEBHOOK_ENDPOINT || '').trim();
 const TRIGGER_TOKEN    = (process.env.TRIGGER_TOKEN    || '').trim();
 const PROJECT_NAME_ENV = (process.env.PROJECT_NAME     || '').trim();
 
+function formatBackendConfigError(statusCode, payload) {
+  const errorMessage = payload && typeof payload.error === 'string'
+    ? payload.error
+    : payload && typeof payload.message === 'string'
+    ? payload.message
+    : '';
+
+  if (statusCode >= 400) {
+    return errorMessage ? `HTTP ${statusCode}: ${errorMessage}` : `HTTP ${statusCode}`;
+  }
+
+  if (payload && payload.success && payload.data) {
+    return '配置响应缺少 webhookEndpoint 或 triggerToken';
+  }
+
+  if (errorMessage) {
+    return errorMessage;
+  }
+
+  return '无效的配置响应';
+}
+
 // 从 backend/package.json 读取项目名称
 let PROJECT_NAME = PROJECT_NAME_ENV;
 if (!PROJECT_NAME) {
@@ -53,23 +75,39 @@ async function fetchConfigFromBackend() {
     const response = await new Promise((resolve, reject) => {
       const url = new URL(configUrl);
       const lib = url.protocol === 'https:' ? https : http;
-      
-      lib.get(url, { timeout: 3000 }, (res) => {
+
+      const req = lib.get(url, { timeout: 3000 }, (res) => {
         let data = '';
+        res.setEncoding('utf8');
         res.on('data', chunk => data += chunk);
         res.on('end', () => {
+          const trimmedData = data.trim();
+          let json = null;
+
           try {
-            const json = JSON.parse(data);
-            if (json.success && json.data) {
-              resolve(json.data);
-            } else {
-              reject(new Error('无效的配置响应'));
-            }
+            json = trimmedData ? JSON.parse(trimmedData) : null;
           } catch (e) {
-            reject(e);
+            if (res.statusCode >= 200 && res.statusCode < 300) {
+              reject(new Error(`配置响应不是有效 JSON: ${trimmedData || '<empty>'}`));
+            } else {
+              reject(new Error(`HTTP ${res.statusCode}: ${trimmedData || '<empty>'}`));
+            }
+            return;
           }
+
+          if (json && json.success && json.data?.webhookEndpoint && json.data?.triggerToken) {
+              resolve(json.data);
+              return;
+          }
+
+          reject(new Error(formatBackendConfigError(res.statusCode || 0, json)));
         });
-      }).on('error', reject);
+      });
+
+      req.setTimeout(3000, () => {
+        req.destroy(new Error('请求超时'));
+      });
+      req.on('error', reject);
     });
     return response;
   } catch (e) {
@@ -173,7 +211,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 
   if (!currentConfig.webhookEndpoint || !currentConfig.triggerToken) {
     throw new Error(
-      '飞书 MCP Server 未配置：请确保后端已启动或在 .vscode/mcp.json 中设置 WEBHOOK_ENDPOINT 和 TRIGGER_TOKEN'
+      '飞书 MCP Server 未配置：未能从后端配置接口获取 webhookEndpoint 或 triggerToken。请检查 BACKEND_URL 指向的后端是否可访问，或为备用本地模式显式设置 WEBHOOK_ENDPOINT 和 TRIGGER_TOKEN'
     );
   }
 
@@ -305,10 +343,11 @@ async function main() {
     if (WEBHOOK_ENDPOINT && TRIGGER_TOKEN) {
       process.stderr.write(`[飞书 MCP Server] ✅ 使用环境变量配置\n`);
     } else {
-      process.stderr.write(`[飞书 MCP Server] ⚠️  警告：未配置完整的 WEBHOOK_ENDPOINT 或 TRIGGER_TOKEN\n`);
+      process.stderr.write(`[飞书 MCP Server] ⚠️  警告：未能从后端配置接口获取完整配置\n`);
       process.stderr.write(`[飞书 MCP Server] 💡 请检查：\n`);
-      process.stderr.write(`     - 后端是否已启动 (http://localhost:3000 或 BACKEND_URL)\n`);
-      process.stderr.write(`     - 或者手动设置环境变量：WEBHOOK_ENDPOINT 和 TRIGGER_TOKEN\n`);
+      process.stderr.write(`     - BACKEND_URL 对应的后端是否已启动（默认 http://localhost:3000）\n`);
+      process.stderr.write(`     - /api/mcp/config 是否返回 success/data/webhookEndpoint/triggerToken\n`);
+      process.stderr.write(`     - 若使用备用本地模式，可显式设置 WEBHOOK_ENDPOINT 和 TRIGGER_TOKEN\n`);
     }
   }
 

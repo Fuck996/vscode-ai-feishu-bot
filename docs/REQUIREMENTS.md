@@ -1,6 +1,6 @@
 # 需求与BUG跟踪文档
 
-**版本：** v1.3.7 | **更新时间：** 2026-03-13 | **内容：** 页脚版本统一由后端下发；修复弹窗第一次打开容易误关闭问题
+**版本：** v1.3.13 | **更新时间：** 2026-03-13 | **内容：** 修复 MCP 配置接口返回内网地址；修复 stdio MCP 配置错误提示不明确
 
 
 ## 📌 使用说明
@@ -65,6 +65,7 @@
 
 | # | 优先级 | 标题 | 根因 | 状态 | 修复版本 |
 |---|--------|------|------|------|----------|
+| BUG-U10 | 🔴 | MCP 配置接口返回内网地址且 stdio 报错不明确 | backend/routes/mcp-config.ts 错误优先使用 BACKEND_URL 生成 webhookEndpoint，导致远端配置返回内网地址；mcp-server/index.js 丢失后端错误细节，报成“无效配置响应” | ✅ 已修复 | v1.3.13 |
 | BUG-U09 | 🔴 | 添加群晖集成时验证失败 | 后端 integrations.ts validTypes 数组缺少 'synology' 类型，新建集成时拒绝请求 | ✅ 已修复 | v1.3.8 |
 | BUG-U08 | 🟡 | 弹窗第一次打开容易误关闭 | 打开弹窗的按钮点击事件冒泡至 overlay 触发关闭；将 overlay 的 onClick 改为 onMouseDown + e.target===e.currentTarget 检查（Dashboard/History/Integrations 三处） | ✅ 已修复 | v1.3.7 |
 | BUG-U06 | 🟡 | Dashboard/History 弹窗标题有多个错乱图标 | Modal 头部同时显示 emoji符号和 getStatusLabel() 文字，删除标题下方的 p 标签 | ✅ 已修复 | v1.3.3 |
@@ -86,6 +87,7 @@
 
 | 版本 | 发布日期 | 主要变更 |
 |------|----------|----------|
+| v1.3.13 | 2026-03-13 | 修复 MCP 配置接口对外地址生成逻辑：远端 /api/mcp/config 不再返回内网地址；stdio MCP 启动与调用阶段保留后端真实错误信息；后端版本号改为从 package.json 读取，避免再次漂移 ✅ 已完成 |
 | v1.3.8 | 2026-03-13 | 修复群晖集成后端验证问题：integrations.ts validTypes 数组补充 'synology' 类型 ✅ 已完成 |
 | v1.3.7 | 2026-03-13 | 新增群晖 NAS Synology 集成；Services 管理界面重设计为横向卡片；页脚版本统一由后端 /api/version 下发；修复 Dashboard/History/Integrations 三处弹窗第一次打开容易误关闭问题 ✅ 已完成 |
 | v1.3.6 | 2026-03-12 | 审计日志功能完善：用户新建/编辑/删除/密码修改、机器人新建/编辑/删除、集成新建/编辑/删除/状态切换全部记录；每条审计日志包含用户名、操作类型、资源类型、详细描述、操作状态；前后端版本同步更新 ✅ 已完成 |

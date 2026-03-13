@@ -1,3 +1,6 @@
+import * as fs from 'fs';
+import * as path from 'path';
+
 import express, { Express, Request, Response, NextFunction } from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
@@ -32,6 +35,18 @@ if (typeof global !== 'undefined') {
 }
 
 const app: Express = express();
+
+function readAppVersion(): string {
+  try {
+    const packageJsonPath = path.join(__dirname, '../package.json');
+    const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'));
+    return typeof packageJson.version === 'string' ? packageJson.version : '0.0.0';
+  } catch (error) {
+    logger.warn({ error }, '读取 package.json 版本失败，回退到默认版本号');
+    return '0.0.0';
+  }
+}
+
 // 信任反向代理（nginx/Docker），使速率限制器使用真实客户端 IP
 // 若不设置，nginx 后面所有请求都视为同一 IP，共享速率限额
 app.set('trust proxy', 1);
@@ -107,7 +122,7 @@ app.use('/api/mcp', mcpConfigRouter);    // MCP 配置读取
 app.use('/api', webhookRouter);
 
 // 版本端点
-const APP_VERSION = '1.3.8';
+const APP_VERSION = readAppVersion();
 app.get('/api/version', (req: Request, res: Response) => {
   res.json({
     backend: APP_VERSION,

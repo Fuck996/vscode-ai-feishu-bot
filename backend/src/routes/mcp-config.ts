@@ -8,11 +8,19 @@ import { Router, Request, Response } from 'express';
 import { config } from '../config';
 import database from '../database';
 
-// 动态构建后端基础地址（优先环境变量，其次根据实际运行端口）
-function getBackendBase(req: Request): string {
-  if (process.env.BACKEND_URL) return process.env.BACKEND_URL.replace(/\/$/, '');
-  const proto = req.headers['x-forwarded-proto'] || 'http';
-  const host  = req.headers['x-forwarded-host']  || req.headers.host || `localhost:${config.port}`;
+function normalizeForwardedHeader(value: string | string[] | undefined): string {
+  const rawValue = Array.isArray(value) ? value[0] : value;
+  return (rawValue || '').split(',')[0].trim();
+}
+
+// 动态构建对外可访问的基础地址。
+// 优先使用显式公开地址，其次使用反向代理转发头，避免返回容器/内网地址。
+function getPublicBase(req: Request): string {
+  const configuredPublicBase = (process.env.PUBLIC_BASE_URL || '').trim().replace(/\/$/, '');
+  if (configuredPublicBase) return configuredPublicBase;
+
+  const proto = normalizeForwardedHeader(req.headers['x-forwarded-proto']) || req.protocol || 'http';
+  const host = normalizeForwardedHeader(req.headers['x-forwarded-host']) || req.get('host') || `localhost:${config.port}`;
   return `${proto}://${host}`;
 }
 
@@ -40,7 +48,7 @@ router.get('/config', async (req: Request, res: Response) => {
       success: true,
       data: {
         integrationId: integration.id,
-        webhookEndpoint: `${getBackendBase(req)}/api/webhook/${integration.id}`,
+        webhookEndpoint: `${getPublicBase(req)}/api/webhook/${integration.id}`,
         triggerToken: integration.webhookSecret || '',
         projectName: integration.projectName,
         projectType: integration.projectType,
@@ -69,7 +77,7 @@ router.get('/config/:integrationId', async (req: Request, res: Response) => {
       success: true,
       data: {
         integrationId: integration.id,
-        webhookEndpoint: `${getBackendBase(req)}/api/webhook/${integration.id}`,
+        webhookEndpoint: `${getPublicBase(req)}/api/webhook/${integration.id}`,
         triggerToken: integration.webhookSecret || '',
         projectName: integration.projectName,
         projectType: integration.projectType,
