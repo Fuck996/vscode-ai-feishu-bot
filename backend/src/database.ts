@@ -340,6 +340,14 @@ class DatabaseService {
     return this.integrations.find(i => i.webhookSecret === secret && i.status === 'active') ?? null;
   }
 
+  async getAllIntegrations(): Promise<Integration[]> {
+    return this.integrations;
+  }
+
+  async getFirstActiveIntegration(): Promise<Integration | null> {
+    return this.integrations.find(i => i.status === 'active') || this.integrations[0] || null;
+  }
+
   // ===== Notification 相关操作 =====
 
 

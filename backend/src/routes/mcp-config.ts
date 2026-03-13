@@ -26,23 +26,13 @@ const router = Router();
  */
 router.get('/config', async (req: Request, res: Response) => {
   try {
-    // 获取所有集成（直接从数据库），找第一个活跃的
-    const allIntegrations = (database as any).integrations || [];
-    
-    if (allIntegrations.length === 0) {
-      return res.status(400).json({
-        success: false,
-        error: '没有可用的集成，请先在前端创建一个'
-      });
-    }
-
-    // 找第一个活跃集成
-    const integration = allIntegrations.find((i: any) => i.status === 'active') || allIntegrations[0];
+    // 获取第一个活跃集成，如果没有则返回任何可用的集成
+    const integration = await database.getFirstActiveIntegration();
     
     if (!integration) {
       return res.status(400).json({
         success: false,
-        error: '没有可用的集成'
+        error: '没有可用的集成，请先在前端创建一个'
       });
     }
 
