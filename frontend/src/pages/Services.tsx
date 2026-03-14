@@ -1183,12 +1183,7 @@ const Services: React.FC = () => {
                             </td>
                             {/* 摘要 */}
                             <td style={{ padding: '1rem 0.75rem' }}>
-                              <span style={{ fontSize: '0.8125rem', color: '#6b7280', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' } as React.CSSProperties}>{record.summary}</span>
-                            </td>
-                            {/* 条数 */}
-                            <td style={{ padding: '1rem 0.75rem', width: '70px', textAlign: 'center' }}>
-                              <span style={{ fontWeight: 700, fontSize: '0.9375rem', color: '#1f2937' }}>{record.count}</span>
-                              <span style={{ fontSize: '0.75rem', color: '#9ca3af', marginLeft: '2px' }}>条</span>
+                              <span style={{ fontSize: '0.8125rem', color: '#6b7280', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden', textOverflow: 'ellipsis', wordBreak: 'break-all' } as React.CSSProperties}>{record.summary}</span>
                             </td>
                             {/* 状态 */}
                             <td style={{ padding: '1rem 0.75rem', width: '90px', textAlign: 'center' }}>
@@ -1198,7 +1193,7 @@ const Services: React.FC = () => {
                                 color: record.status === 'success' ? '#1a7f37' : '#cf222e',
                                 backgroundColor: record.status === 'success' ? '#dafbe1' : '#ffebe9',
                               }}>
-                                {record.status === 'success' ? '发送成功' : '发送失败'}
+                                {record.status === 'success' ? '成功' : '失败'}
                               </span>
                             </td>
                             {/* 时间 + 操作 */}
@@ -1225,14 +1220,14 @@ const Services: React.FC = () => {
                           </tr>
                         )) : (
                           <tr>
-                            <td colSpan={5} style={{ padding: '2.5rem', textAlign: 'center', color: '#9ca3af', fontSize: '0.875rem' }}>
+                            <td colSpan={4} style={{ padding: '2.5rem', textAlign: 'center', color: '#9ca3af', fontSize: '0.875rem' }}>
                               {historySearch || historyStatusFilter !== 'all' ? '无匹配结果，请调整搜索条件' : '暂无发送记录'}
                             </td>
                           </tr>
                         )}
                         {totalPg > 1 && (
                           <tr>
-                            <td colSpan={5} style={{ padding: '0.875rem 0', borderTop: '1px solid #e5e7eb' }}>
+                            <td colSpan={4} style={{ padding: '0.875rem 0', borderTop: '1px solid #e5e7eb' }}>
                               <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.125rem' }}>
                                 <button
                                   onClick={() => setHistoryPage(Math.max(1, historyPage - 1))}
