@@ -188,9 +188,9 @@ function MainLayout({ children }: { children: React.ReactNode }) {
       </main>
 
       {/* 页脚 */}
-      <footer className="bg-gray-100 border-t border-gray-200 mt-8">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-          <p className="github-footer__text text-center text-xs text-gray-500" style={{ fontSize: '0.75rem' }}>
+      <footer className="mt-2">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3">
+          <p className="github-footer__text text-center text-gray-400" style={{ fontSize: '0.7rem' }}>
             © 2026 CortexFlow. All rights reserved. | System v{backendVersion} | Updated: {new Date().toLocaleString('en-US', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })}
           </p>
         </div>

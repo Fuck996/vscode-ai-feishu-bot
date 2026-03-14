@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { MoreHorizontal } from 'lucide-react';
+import { CalendarDays, Clock3, MoreHorizontal } from 'lucide-react';
 
 import authService from '../services/auth';
 import toastService from '../services/toastService';
@@ -196,6 +196,19 @@ export default function Integrations() {
   const showMessage = (msg: string) => {
     setMessage(msg);
     setTimeout(() => setMessage(null), 3000);
+  };
+
+  // ===== 格式化最后活动时间 =====
+  const formatActivityDate = (dateStr: string) => {
+    try {
+      const date = new Date(dateStr);
+      return {
+        date: date.toLocaleDateString('zh-CN', { year: 'numeric', month: '2-digit', day: '2-digit' }),
+        time: date.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false }),
+      };
+    } catch {
+      return { date: '未知', time: '' };
+    }
   };
 
   // ===== 切换启用/停用状态 =====
@@ -578,6 +591,24 @@ export default function Integrations() {
                             );
                           })}
                         </div>
+                      </td>
+                      {/* 最后活动 */}
+                      <td style={tdStyle}>
+                        {(() => {
+                          const act = formatActivityDate(integration.updatedAt);
+                          return (
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', color: '#374151', fontSize: '0.8125rem', fontWeight: 500, whiteSpace: 'nowrap' }}>
+                                <CalendarDays size={13} color="#57606a" />
+                                <span>{act.date}</span>
+                              </span>
+                              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', color: '#656d76', fontSize: '0.75rem' }}>
+                                <Clock3 size={13} color="#57606a" />
+                                <span>{act.time}</span>
+                              </span>
+                            </div>
+                          );
+                        })()}
                       </td>
                       {/* 状态 + 操作（合并列） */}
                       <td style={{ ...tdStyle, textAlign: 'right' }}>
