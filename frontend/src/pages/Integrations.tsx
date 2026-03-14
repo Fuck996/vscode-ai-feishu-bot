@@ -343,15 +343,6 @@ export default function Integrations() {
     <div style={{ backgroundColor: '#f6f8fa', minHeight: '100vh', paddingBottom: '2rem' }}>
       <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '2rem' }}>
 
-        {/* 面包屑 */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1.5rem', fontSize: '0.875rem', color: '#6b7280' }}>
-          <span style={{ color: '#3b82f6', cursor: 'pointer' }} onClick={() => navigate('/robots')}>机器人管理</span>
-          <span style={{ color: '#d1d5db' }}>›</span>
-          <span style={{ color: '#3b82f6', cursor: 'pointer' }} onClick={() => navigate('/robots')}>{robot?.name || '...'}</span>
-          <span style={{ color: '#d1d5db' }}>›</span>
-          <span style={{ color: '#1f2937', fontWeight: 500 }}>项目集成</span>
-        </div>
-
         <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '1.5rem' }}>
           <button onClick={openCreateModal} style={{
             padding: '0.5rem 1rem', backgroundColor: '#1f883d', color: 'white',

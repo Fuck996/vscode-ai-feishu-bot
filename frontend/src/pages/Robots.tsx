@@ -474,7 +474,12 @@ export default function Robots() {
                           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
                             <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}>
                               <SceneIcon name="robotMessage" size={16} title={robot.name} />
-                              <span style={{ fontWeight: 600, color: '#1f2328', fontSize: '0.875rem' }}>{robot.name}</span>
+                              <span
+                                style={{ fontWeight: 600, color: '#0969da', fontSize: '0.875rem', cursor: 'pointer', textDecoration: 'underline', textDecorationColor: 'transparent' }}
+                                onMouseEnter={e => { (e.currentTarget as HTMLSpanElement).style.textDecorationColor = '#0969da'; }}
+                                onMouseLeave={e => { (e.currentTarget as HTMLSpanElement).style.textDecorationColor = 'transparent'; }}
+                                onClick={() => navigate(`/robots/${robot.id}/integrations`)}
+                              >{robot.name}</span>
                             </span>
                             <span style={{ color: '#656d76', fontSize: '0.75rem' }}>{robot.messageCount || 0} 条记录</span>
                           </div>

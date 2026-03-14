@@ -3,6 +3,7 @@ import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import authService from '../services/auth';
 import { useToast } from '../hooks/useToast';
+import SceneIcon from '../components/SceneIcon';
 
 /* ─ 类型定义 ─ */
 interface UserRow {
@@ -293,7 +294,8 @@ const Settings: React.FC = () => {
               个人设置
             </div>
             <div style={menuItemStyle('account-settings')} onClick={() => setActiveMenu('account-settings')}>
-              🔑 账户信息
+              <SceneIcon name="key" size={16} title="账户信息" inheritColor />
+              账户信息
             </div>
             {isAdmin && (
               <>
@@ -301,10 +303,12 @@ const Settings: React.FC = () => {
                   高级管理
                 </div>
                 <div style={menuItemStyle('users')} onClick={() => setActiveMenu('users')}>
-                  👥 用户管理
+                  <SceneIcon name="users" size={16} title="用户管理" inheritColor />
+                  用户管理
                 </div>
                 <div style={menuItemStyle('audit')} onClick={() => setActiveMenu('audit')}>
-                  🔍 审计日志
+                  <SceneIcon name="audit" size={16} title="审计日志" inheritColor />
+                  审计日志
                 </div>
               </>
             )}
@@ -316,7 +320,7 @@ const Settings: React.FC = () => {
             {/* 账户信息 */}
             {activeMenu === 'account-settings' && (
               <div>
-                <h1 style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#1f2937', marginBottom: '0.25rem' }}>👤 账户信息</h1>
+                <h1 style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#1f2937', marginBottom: '0.25rem' }}>账户信息</h1>
                 <p style={{ fontSize: '0.875rem', color: '#6b7280', marginBottom: '1.5rem' }}>管理个人账户、安全设置与密码恢复</p>
 
                 {/* 个人信息卡片 */}
@@ -339,10 +343,10 @@ const Settings: React.FC = () => {
                     <div style={{ marginBottom: '1.25rem' }}>
                       <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 500, color: '#1f2937', marginBottom: '0.4rem' }}>账户角色</label>
                       <div style={{ padding: '0.5rem 0.75rem', background: '#f3f4f6', border: '1px solid #e5e7eb', borderRadius: '0.375rem', color: '#6b7280', fontSize: '0.875rem' }}>
-                        {currentUser?.role === 'admin' ? '👑 管理员' : '👤 普通用户'}
+                        {currentUser?.role === 'admin' ? '管理员' : '普通用户'}
                       </div>
                     </div>
-                    <button onClick={handleSaveProfile} style={btnPrimary}>💾 保存信息</button>
+                    <button onClick={handleSaveProfile} style={btnPrimary}>保存信息</button>
                   </div>
                 </div>
 
@@ -387,7 +391,7 @@ const Settings: React.FC = () => {
                       <div style={{ background: '#fef3c7', border: '1px solid #fde68a', borderRadius: '0.375rem', padding: '0.75rem', fontSize: '0.8rem', color: '#92400e', marginBottom: '0.875rem' }}>
                         ⚠️ 密码找回验证码将通过机器人私聊方式发送到您的飞书账户。
                       </div>
-                      <button onClick={handleSaveRecoveryRobot} style={btnPrimary}>💾 保存配置</button>
+                      <button onClick={handleSaveRecoveryRobot} style={btnPrimary}>保存配置</button>
                     </div>
                   </div>
                 </div>
@@ -403,7 +407,7 @@ const Settings: React.FC = () => {
                       onClick={() => { authService.logout(); navigate('/login'); }}
                       style={{ padding: '0.5rem 1.25rem', background: '#ef4444', color: 'white', border: 'none', borderRadius: '0.375rem', cursor: 'pointer', fontSize: '0.875rem', fontWeight: 500 }}
                     >
-                      🚪 退出登录
+                      退出登录
                     </button>
                   </div>
                 </div>
@@ -414,7 +418,7 @@ const Settings: React.FC = () => {
             {/* 用户管理 */}
             {activeMenu === 'users' && isAdmin && (
               <div>
-                <h1 style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#1f2937', marginBottom: '0.25rem' }}>👥 用户管理</h1>
+                <h1 style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#1f2937', marginBottom: '0.25rem' }}>用户管理</h1>
                 <p style={{ fontSize: '0.875rem', color: '#6b7280', marginBottom: '1.5rem' }}>管理系统账户、角色与访问权限</p>
 
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem', marginBottom: '1.5rem' }}>
@@ -435,7 +439,7 @@ const Settings: React.FC = () => {
                   <div style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid #e5e7eb', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <span style={{ fontSize: '1rem', fontWeight: 600, color: '#1f2937' }}>所有用户</span>
                     <button onClick={openCreateUser} style={{ padding: '0.375rem 1rem', background: '#10b981', color: 'white', border: 'none', borderRadius: '0.375rem', cursor: 'pointer', fontSize: '0.875rem', fontWeight: 500 }}>
-                      ➕ 新建用户
+                      新建用户
                     </button>
                   </div>
 
@@ -508,7 +512,7 @@ const Settings: React.FC = () => {
             {/* 审计日志 */}
             {activeMenu === 'audit' && isAdmin && (
               <div>
-                <h1 style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#1f2937', marginBottom: '0.25rem' }}>🔍 审计日志</h1>
+                <h1 style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#1f2937', marginBottom: '0.25rem' }}>审计日志</h1>
                 <p style={{ fontSize: '0.875rem', color: '#6b7280', marginBottom: '1.5rem' }}>系统操作记录，追踪所有关键变更</p>
 
                 <div style={{ background: 'white', borderRadius: '0.5rem', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', overflow: 'hidden' }}>
@@ -570,7 +574,7 @@ const Settings: React.FC = () => {
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }} onClick={() => setUserModal(false)}>
           <div style={{ background: 'white', borderRadius: '0.5rem', boxShadow: '0 20px 25px rgba(0,0,0,0.15)', width: '100%', maxWidth: '480px' }} onClick={e => e.stopPropagation()}>
             <div style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid #e5e7eb', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <h2 style={{ fontSize: '1.125rem', fontWeight: 600, color: '#1f2937', margin: 0 }}>{editUserId ? '✏️ 编辑用户' : '👤 新建用户'}</h2>
+              <h2 style={{ fontSize: '1.125rem', fontWeight: 600, color: '#1f2937', margin: 0 }}>{editUserId ? '编辑用户' : '新建用户'}</h2>
               <button onClick={() => setUserModal(false)} style={{ background: 'none', border: 'none', fontSize: '1.25rem', cursor: 'pointer', color: '#6b7280' }}>✕</button>
             </div>
             <div style={{ padding: '1.5rem' }}>
@@ -607,7 +611,7 @@ const Settings: React.FC = () => {
             </div>
             <div style={{ padding: '1rem 1.5rem', borderTop: '1px solid #e5e7eb', display: 'flex', gap: '0.75rem', justifyContent: 'flex-end' }}>
               <button onClick={() => setUserModal(false)} style={{ padding: '0.5rem 1.25rem', background: '#e5e7eb', color: '#374151', border: 'none', borderRadius: '0.375rem', cursor: 'pointer', fontSize: '0.875rem', fontWeight: 500 }}>取消</button>
-              <button onClick={handleUserSubmit} style={btnPrimary}>{editUserId ? '保存' : '✓ 创建用户'}</button>
+              <button onClick={handleUserSubmit} style={btnPrimary}>{editUserId ? '保存' : '创建用户'}</button>
             </div>
           </div>
         </div>

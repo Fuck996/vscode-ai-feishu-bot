@@ -390,20 +390,6 @@ const Services: React.FC = () => {
               >
                 <div
                   style={{
-                    width: '52px',
-                    height: '52px',
-                    background: 'rgba(255,255,255,0.2)',
-                    borderRadius: '0.75rem',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    fontSize: '1.75rem',
-                  }}
-                >
-                  <SceneIcon name={getServiceIconName(service)} size={40} title={service.name} />
-                </div>
-                <div
-                  style={{
                     display: 'inline-flex',
                     alignItems: 'center',
                     gap: '0.375rem',
