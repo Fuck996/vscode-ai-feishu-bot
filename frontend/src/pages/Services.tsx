@@ -117,6 +117,7 @@ const Services: React.FC = () => {
   const [taskModalOpen, setTaskModalOpen] = useState(false);
   const [taskModalMode, setTaskModalMode] = useState<'add' | 'edit'>('add');
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
+  const [activeReportTab, setActiveReportTab] = useState<'tasks' | 'history'>('tasks');
   const [modalWeekdays, setModalWeekdays] = useState<number[]>([1]);
   const [modalModel, setModalModel] = useState<string>('GPT-4o');
   const [modalStyle, setModalStyle] = useState<string>('总结汇报');
@@ -766,39 +767,38 @@ const Services: React.FC = () => {
           </div>
 
           {/* Tab 切换 */}
-          <div style={{ borderBottom: '1px solid #e5e7eb', marginBottom: '1.5rem', display: 'flex', gap: '2rem' }}>
-            <button
-              style={{
-                padding: '0.625rem 0',
-                background: 'none',
-                border: 'none',
-                fontSize: '0.875rem',
-                fontWeight: 500,
-                color: '#1f2937',
-                cursor: 'pointer',
-                borderBottom: '2px solid #2563eb',
-                marginBottom: '-1px',
-              }}
-            >
-              周报任务列表
-            </button>
-            <button
-              style={{
-                padding: '0.625rem 0',
-                background: 'none',
-                border: 'none',
-                fontSize: '0.875rem',
-                fontWeight: 500,
-                color: '#6b7280',
-                cursor: 'pointer',
-                marginBottom: '-1px',
-              }}
-            >
-              发送历史
-            </button>
+          <div style={{ borderBottom: '1px solid #e5e7eb', marginBottom: '1.5rem', display: 'flex', gap: '0' }}>
+            {(['tasks', 'history'] as const).map(tab => {
+              const label = tab === 'tasks' ? '任务列表' : '发送历史';
+              const isActive = activeReportTab === tab;
+              return (
+                <button
+                  key={tab}
+                  onClick={() => setActiveReportTab(tab)}
+                  style={{
+                    padding: '0.625rem 1.25rem',
+                    background: 'none',
+                    border: 'none',
+                    fontSize: '0.875rem',
+                    fontWeight: isActive ? 600 : 500,
+                    color: isActive ? '#2563eb' : '#6b7280',
+                    cursor: 'pointer',
+                    borderBottom: isActive ? '2px solid #2563eb' : '2px solid transparent',
+                    marginBottom: '-1px',
+                    borderRadius: '0.375rem 0.375rem 0 0',
+                    transition: 'background 0.15s, color 0.15s',
+                  }}
+                  onMouseEnter={e => { if (!isActive) { e.currentTarget.style.backgroundColor = '#eff6ff'; e.currentTarget.style.color = '#2563eb'; } }}
+                  onMouseLeave={e => { if (!isActive) { e.currentTarget.style.backgroundColor = 'transparent'; e.currentTarget.style.color = '#6b7280'; } }}
+                >
+                  {label}
+                </button>
+              );
+            })}
           </div>
 
-          {/* 周报任务列表表格 */}
+          {/* 任务列表表格 */}
+          {activeReportTab === 'tasks' && (
           <div style={{ background: 'white', borderRadius: '0.5rem', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', marginBottom: '2rem' }}>
             <div style={{ padding: '1rem 1.5rem', borderBottom: '1px solid #e5e7eb', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.625rem' }}>
@@ -1123,8 +1123,10 @@ const Services: React.FC = () => {
               </table>
             </div>
           </div>
+          )}
 
           {/* 发送历史表格 */}
+          {activeReportTab === 'history' && (
           <div style={{ background: 'white', borderRadius: '0.5rem', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', overflow: 'hidden', marginBottom: '2rem' }}>
             {/* 表头区 */}
             <div style={{ padding: '1rem 1.5rem', borderBottom: '1px solid #e5e7eb', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem', flexWrap: 'wrap' }}>
@@ -1263,6 +1265,7 @@ const Services: React.FC = () => {
               </table>
             </div>
           </div>
+          )}
 
         </div>
       )}
