@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { CalendarDays, ChevronDown, Clock3, MoreHorizontal, Search } from 'lucide-react';
+import { CalendarDays, Clock3, MoreHorizontal, Search } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import SceneIcon from '../components/SceneIcon';
 
@@ -401,7 +401,7 @@ export default function Robots() {
         )}
 
         {/* 机器人列表卡片 */}
-        <div style={{ background: 'white', borderRadius: '0.5rem', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', overflow: 'hidden' }}>
+        <div style={{ background: 'white', borderRadius: '0.5rem', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
           {/* 卡片标头 */}
           <div style={{ padding: '1rem 1.5rem', borderBottom: '1px solid #e5e7eb', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem' }}>
             {/* 左侧：标题 + 数量 */}
@@ -424,11 +424,9 @@ export default function Robots() {
                 <button
                   type="button"
                   onClick={() => setOpenFilterMenu(!openFilterMenu)}
-                  style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem', padding: '0.3rem 0.6rem', fontSize: '0.8125rem', fontWeight: 500, color: '#24292f', border: '1px solid #d0d7de', borderRadius: '0.375rem', backgroundColor: 'white', cursor: 'pointer' }}
+                  style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', padding: '0.3rem 0.7rem', border: '1px solid #d0d7de', borderRadius: '0.375rem', background: statusFilter !== 'all' ? '#f0f6ff' : 'white', cursor: 'pointer', fontSize: '0.8125rem', color: statusFilter !== 'all' ? '#0969da' : '#1f2328', fontWeight: statusFilter !== 'all' ? 600 : 400 }}
                 >
-                  状态
-                  {statusFilter !== 'all' && <span style={{ backgroundColor: '#0969da', color: 'white', borderRadius: '999px', fontSize: '0.6875rem', padding: '0 5px', marginLeft: '2px' }}>1</span>}
-                  <ChevronDown size={14} />
+                  状态{statusFilter !== 'all' ? ' · 1' : ''} <span style={{ fontSize: '0.65rem', opacity: 0.6 }}>▼</span>
                 </button>
                 {openFilterMenu && (
                   <div style={{ position: 'absolute', top: 'calc(100% + 0.375rem)', right: 0, minWidth: '120px', padding: '0.4rem', backgroundColor: '#ffffff', border: '1px solid #d0d7de', borderRadius: '0.75rem', boxShadow: '0 8px 24px rgba(31,35,40,0.12)', zIndex: 20 }}>
@@ -491,30 +489,31 @@ export default function Robots() {
                               <CalendarDays size={13} color="#57606a" />
                               <span>创建日期：{getCreateDate(robot.createdAt)}</span>
                             </span>
-                            <span style={{ color: '#656d76', fontSize: '0.75rem', paddingLeft: '1.2rem' }}>APP ID: {getAppId(robot.id)}</span>
+                            <span style={{ color: '#656d76', fontSize: '0.75rem', paddingLeft: '1.2rem' }}>BOT ID: {getAppId(robot.id)}</span>
                           </div>
                         </td>
-                        {/* 列3：最后消息时间 */}
-                        <td style={{ padding: '0.875rem 0.75rem', width: '190px' }}>
-                          {lastMsg ? (
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
-                              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', color: '#374151', fontSize: '0.8125rem', fontWeight: 500, whiteSpace: 'nowrap' }}>
-                                <CalendarDays size={13} color="#57606a" />
-                                <span>最后活动：{lastMsg.date}</span>
-                              </span>
-                              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', color: '#656d76', fontSize: '0.75rem' }}>
-                                <Clock3 size={13} color="#57606a" />
-                                <span>{lastMsg.time}</span>
-                              </span>
+                        {/* 列3（合并）：最后活动 + 启停开关 + 操作菜单 */}
+                        <td style={{ padding: '0.875rem 1rem' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                            {/* 左侧：最后活动时间 */}
+                            <div style={{ flex: 1 }}>
+                              {lastMsg ? (
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', color: '#374151', fontSize: '0.8125rem', fontWeight: 500, whiteSpace: 'nowrap' }}>
+                                    <CalendarDays size={13} color="#57606a" />
+                                    <span>最后活动：{lastMsg.date}</span>
+                                  </span>
+                                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', color: '#656d76', fontSize: '0.75rem' }}>
+                                    <Clock3 size={13} color="#57606a" />
+                                    <span>{lastMsg.time}</span>
+                                  </span>
+                                </div>
+                              ) : (
+                                <span style={{ color: '#9ca3af', fontSize: '0.8125rem' }}>未发送</span>
+                              )}
                             </div>
-                          ) : (
-                            <span style={{ color: '#9ca3af', fontSize: '0.8125rem' }}>未发送</span>
-                          )}
-                        </td>
-                        {/* 列4+5：启停开关 + 操作菜单（合并列） */}
-                        <td style={{ padding: '0.875rem 1rem', width: '146px', textAlign: 'right' }}>
-                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '0.75rem' }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                            {/* 中间：启停开关 */}
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', flexShrink: 0 }}>
                               <button
                                 onClick={() => handleToggleRobotStatus(robot)}
                                 style={{ width: '40px', height: '22px', backgroundColor: robot.status === 'active' ? '#10b981' : '#cbd5e1', borderRadius: '11px', position: 'relative', cursor: 'pointer', border: 'none', padding: 0, transition: 'background-color 0.2s', flexShrink: 0 }}
@@ -525,7 +524,8 @@ export default function Robots() {
                                 {robot.status === 'active' ? '启用' : '禁用'}
                               </span>
                             </div>
-                            <div style={{ display: 'inline-flex', position: 'relative' }} onClick={e => e.stopPropagation()}>
+                            {/* 右侧：三点菜单 */}
+                            <div style={{ display: 'inline-flex', position: 'relative', flexShrink: 0 }} onClick={e => e.stopPropagation()}>
                               <button
                                 type="button"
                                 onClick={(event) => openActionMenuAt(event, robot.id)}
