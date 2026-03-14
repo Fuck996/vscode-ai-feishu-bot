@@ -157,20 +157,8 @@ export default function Integrations() {
   // 创建成功后展示 Webhook 配置引导
   const [createdInfo, setCreatedInfo] = useState<Integration | null>(null);
 
-  // 列表行复制反馈
-  const [copiedUrlId, setCopiedUrlId] = useState<string | null>(null);
-  const [copiedTokenId, setCopiedTokenId] = useState<string | null>(null);
-
-  // 查看 MCP 配置弹窗（vscode-chat 类型专用）
-  const [mcpGuideIntegration, setMcpGuideIntegration] = useState<Integration | null>(null);
-
-  const copyText = (text: string, id: string, setter: (v: string | null) => void, label?: string) => {
-    navigator.clipboard.writeText(text).then(() => {
-      setter(id);
-      setTimeout(() => setter(null), 2000);
-      toastService.success(`已复制 ${label || '内容'}`);
-    });
-  };
+  // 查看配置说明弹窗（所有集成类型通用）
+  const [guideIntegration, setGuideIntegration] = useState<Integration | null>(null);
 
   useEffect(() => {
     if (robotId) {
@@ -490,35 +478,13 @@ export default function Integrations() {
                         <div style={{ display: 'flex', gap: '0.3rem', flexWrap: 'wrap' }}>
                           <button onClick={() => openEditModal(integration)} style={btnSecondary}>编辑</button>
                           <button onClick={() => handleDelete(integration)} style={btnDanger}>删除</button>
-                          {integration.projectType !== 'vscode-chat' && integration.projectType !== 'api' && (
-                            <>
-                              <button
-                                onClick={() => copyText(`${WEBHOOK_BASE_URL}/api/webhook/${integration.id}`, integration.id + '_url', setCopiedUrlId, 'Webhook URL')}
-                                style={{ ...btnSecondary, background: copiedUrlId === integration.id + '_url' ? '#d1fae5' : undefined, color: copiedUrlId === integration.id + '_url' ? '#065f46' : undefined }}
-                                title={`复制 Webhook URL：${WEBHOOK_BASE_URL}/api/webhook/${integration.id}`}
-                              >
-                                {copiedUrlId === integration.id + '_url' ? '✓ URL' : '📋 URL'}
-                              </button>
-                              {integration.webhookSecret && (
-                                <button
-                                  onClick={() => copyText(integration.webhookSecret!, integration.id + '_token', setCopiedTokenId, 'Secret Token')}
-                                  style={{ ...btnSecondary, background: copiedTokenId === integration.id + '_token' ? '#d1fae5' : undefined, color: copiedTokenId === integration.id + '_token' ? '#065f46' : undefined }}
-                                  title="复制 Webhook Secret Token"
-                                >
-                                  {copiedTokenId === integration.id + '_token' ? '✓ Token' : '🔑 Token'}
-                                </button>
-                              )}
-                            </>
-                          )}
-                          {integration.projectType === 'vscode-chat' && (
-                            <button
-                              onClick={() => setMcpGuideIntegration(integration)}
-                              style={{ ...btnSecondary, background: '#ede9fe', color: '#4c1d95' }}
-                              title="查看 MCP 配置片段"
-                            >
-                              📋 MCP配置
-                            </button>
-                          )}
+                          <button
+                            onClick={() => setGuideIntegration(integration)}
+                            style={{ ...btnSecondary, background: '#ede9fe', color: '#4c1d95', border: 'none' }}
+                            title="查看配置说明"
+                          >
+                            配置说明
+                          </button>
                         </div>
                       </td>
                     </tr>
@@ -563,25 +529,14 @@ export default function Integrations() {
         />
       )}
 
-      {/* ===== 查看 MCP 配置弹窗（vscode-chat 类型，已有集成）===== */}
-      {mcpGuideIntegration && (
-        <div
-          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)', zIndex: 60, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1.5rem' }}
-          onClick={e => { if (e.target === e.currentTarget) setMcpGuideIntegration(null); }}
-        >
-          <div style={{ background: 'white', borderRadius: '0.75rem', boxShadow: '0 25px 50px rgba(0,0,0,0.2)', width: '100%', maxWidth: '520px' }}>
-            <div style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid #e5e7eb', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <h2 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 700, color: '#3730a3' }}>💬 查看 MCP 配置 — {mcpGuideIntegration.projectName}</h2>
-              <button onClick={() => setMcpGuideIntegration(null)} style={{ background: 'none', border: 'none', fontSize: '1.25rem', cursor: 'pointer', color: '#6b7280' }}>✕</button>
-            </div>
-            <div style={{ padding: '1.5rem' }}>
-              <VscodeChatMcpGuide apiBaseUrl={WEBHOOK_BASE_URL} token={mcpGuideIntegration.webhookSecret || ''} />
-            </div>
-            <div style={{ padding: '1rem 1.5rem', borderTop: '1px solid #f3f4f6', display: 'flex', justifyContent: 'flex-end' }}>
-              <button onClick={() => setMcpGuideIntegration(null)} style={{ ...btnPrimary, background: '#6366f1' }}>关闭</button>
-            </div>
-          </div>
-        </div>
+      {/* ===== 配置说明弹窗（所有类型通用）===== */}
+      {guideIntegration && (
+        <SetupGuideModal
+          integration={guideIntegration}
+          apiBaseUrl={WEBHOOK_BASE_URL}
+          viewMode
+          onClose={() => setGuideIntegration(null)}
+        />
       )}
     </div>
   );
@@ -1113,8 +1068,8 @@ function VscodeChatMcpGuide({ apiBaseUrl, token }: { apiBaseUrl: string; token: 
 }
 
 // ===== 子组件：创建成功后的 Webhook 配置引导弹窗 =====
-function SetupGuideModal({ integration, apiBaseUrl, onClose }: {
-  integration: Integration; apiBaseUrl: string; onClose: () => void;
+function SetupGuideModal({ integration, apiBaseUrl, viewMode, onClose }: {
+  integration: Integration; apiBaseUrl: string; viewMode?: boolean; onClose: () => void;
 }) {
   const webhookUrl = `${apiBaseUrl}/api/webhook/${integration.id}`;
   // 群晖类型不需要在 URL 追加 ?text=@@TEXT@@（@会被URL编码无法被DSM识别）
@@ -1170,10 +1125,10 @@ function SetupGuideModal({ integration, apiBaseUrl, onClose }: {
       <div style={{ background: 'white', borderRadius: '0.75rem', boxShadow: '0 25px 50px rgba(0,0,0,0.2)', width: '100%', maxWidth: '560px', maxHeight: '90vh', overflow: 'auto' }}>
 
         {/* 头部 */}
-        <div style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid #e5e7eb', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#f0fdf4' }}>
+        <div style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid #e5e7eb', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: viewMode ? '#eef2ff' : '#f0fdf4' }}>
           <div>
-            <h2 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 700, color: '#065f46' }}>🎉 集成创建成功！</h2>
-            <p style={{ margin: '0.25rem 0 0', fontSize: '0.8rem', color: '#059669' }}>请将以下信息填入对应平台的 Webhook 设置</p>
+            <h2 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 700, color: viewMode ? '#3730a3' : '#065f46' }}>{viewMode ? '📝 配置说明' : '🎉 集成创建成功！'}</h2>
+            <p style={{ margin: '0.25rem 0 0', fontSize: '0.8rem', color: viewMode ? '#6366f1' : '#059669' }}>{viewMode ? integration.projectName : '请将以下信息填入对应平台的 Webhook 设置'}</p>
           </div>
           <button onClick={onClose} style={{ background: 'none', border: 'none', fontSize: '1.25rem', cursor: 'pointer', color: '#6b7280' }}>✕</button>
         </div>
@@ -1199,7 +1154,7 @@ function SetupGuideModal({ integration, apiBaseUrl, onClose }: {
                 {copiedSecret ? '✓ 已复制' : '📋 复制'}
               </button>
             </div>
-            <p style={{ margin: '0.35rem 0 0', fontSize: '0.75rem', color: '#dc2626' }}>⚠️ Secret 只在创建时显示一次，关闭弹窗后将无法再次查看</p>
+            <p style={{ margin: '0.35rem 0 0', fontSize: '0.75rem', color: '#dc2626' }}>{!viewMode && '⚠️ Secret 只在创建时显示一次，关闭弹窗后将无法再次查看'}</p>
           </div>
 
           {/* 平台配置步骤 */}
@@ -1216,7 +1171,7 @@ function SetupGuideModal({ integration, apiBaseUrl, onClose }: {
         </div>
 
         <div style={{ padding: '1rem 1.5rem', borderTop: '1px solid #f3f4f6', display: 'flex', justifyContent: 'flex-end' }}>
-          <button onClick={onClose} style={{ ...btnPrimary, background: '#10b981' }}>✓ 我已完成配置</button>
+          <button onClick={onClose} style={{ ...btnPrimary, background: viewMode ? '#6366f1' : '#10b981' }}>{viewMode ? '关闭' : '✓ 我已完成配置'}</button>
         </div>
       </div>
     </div>

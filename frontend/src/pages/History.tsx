@@ -262,7 +262,9 @@ const History: React.FC = () => {
                         <td style={{ padding: '1rem 0.75rem', fontSize: '0.875rem', width: '260px' }}>
                           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem', minWidth: 0 }}>
                             <span
-                              style={{ color: '#0969da', fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', cursor: 'pointer' }}
+                              style={{ color: '#1f2328', fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', cursor: 'pointer', textDecoration: 'none' }}
+                              onMouseEnter={e => { e.currentTarget.style.color = '#0969da'; e.currentTarget.style.textDecoration = 'underline'; }}
+                              onMouseLeave={e => { e.currentTarget.style.color = '#1f2328'; e.currentTarget.style.textDecoration = 'none'; }}
                               onClick={() => setSelectedNotification(notification)}
                             >
                               {notification.title}

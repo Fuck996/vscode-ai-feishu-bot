@@ -625,7 +625,9 @@ const Dashboard: React.FC = () => {
                             <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                               <SceneIcon name="robotMessage" size={16} title={robot.name} style={{ flexShrink: 0 }} />
                               <span
-                                style={{ fontWeight: 600, color: '#0969da', fontSize: '0.875rem', overflow: 'hidden', textOverflow: 'ellipsis', cursor: 'pointer' }}
+                                style={{ fontWeight: 600, color: '#1f2328', fontSize: '0.875rem', overflow: 'hidden', textOverflow: 'ellipsis', cursor: 'pointer', textDecoration: 'none' }}
+                                onMouseEnter={e => { e.currentTarget.style.color = '#0969da'; e.currentTarget.style.textDecoration = 'underline'; }}
+                                onMouseLeave={e => { e.currentTarget.style.color = '#1f2328'; e.currentTarget.style.textDecoration = 'none'; }}
                                 onClick={() => navigate(`/robots/${robot.id}/integrations`)}
                               >{robot.name}</span>
                             </span>
@@ -723,7 +725,9 @@ const Dashboard: React.FC = () => {
                         <td style={{ padding: '1rem 1.5rem', fontSize: '0.875rem', width: '260px' }}>
                           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem', minWidth: 0 }}>
                             <span
-                              style={{ color: '#0969da', fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', cursor: 'pointer' }}
+                              style={{ color: '#1f2328', fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', cursor: 'pointer', textDecoration: 'none' }}
+                              onMouseEnter={e => { e.currentTarget.style.color = '#0969da'; e.currentTarget.style.textDecoration = 'underline'; }}
+                              onMouseLeave={e => { e.currentTarget.style.color = '#1f2328'; e.currentTarget.style.textDecoration = 'none'; }}
                               onClick={() => openNotificationDetail(notification)}
                             >
                               {notification.title}
