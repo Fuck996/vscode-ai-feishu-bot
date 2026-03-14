@@ -545,8 +545,8 @@ export default function Robots() {
                           </div>
                         </td>
                         {/* 列3（全合并）：创建日期 + BOT ID + 最后活动 + 启停 + 三点 */}
-                        <td style={{ padding: '0.75rem 1rem' }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                        <td style={{ padding: '0.875rem 1.5rem 0.875rem 0.75rem', textAlign: 'right' }}>
+                          <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.75rem' }}>
                             {/* 创建日期 + BOT ID */}
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem', flexShrink: 0 }}>
                               <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem', color: '#374151', fontSize: '0.8125rem', fontWeight: 500, whiteSpace: 'nowrap' }}>

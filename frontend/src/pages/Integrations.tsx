@@ -605,13 +605,13 @@ export default function Integrations() {
                         </div>
                       </td>
                       {/* 最后活动 + 状态 + 操作（合并列） */}
-                      <td style={tdStyle}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.625rem' }}>
+                      <td style={{ padding: '0.875rem 1.5rem 0.875rem 0.75rem', verticalAlign: 'middle', textAlign: 'right' }}>
+                        <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.625rem' }}>
                           {/* 左：最后活动时间 */}
                           {(() => {
                             const act = formatActivityDate(integration.updatedAt);
                             return (
-                              <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
+                              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
                                 <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem', color: '#374151', fontSize: '0.8125rem', fontWeight: 500, whiteSpace: 'nowrap' }}>
                                   <CalendarDays size={12} color="#57606a" />
                                   <span>{act.date}</span>
