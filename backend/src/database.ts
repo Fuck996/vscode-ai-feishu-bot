@@ -173,7 +173,7 @@ class DatabaseService {
     return crypto.createHash('sha256').update(password).digest('hex');
   }
 
-  private async saveToFile(): Promise<void> {
+  private async saveToFile(skipPrune = false): Promise<void> {
     const data = {
       users: this.users,
       robots: this.robots,
@@ -190,6 +190,40 @@ class DatabaseService {
     }
     
     fs.writeFileSync(this.dbPath, JSON.stringify(data, null, 2));
+
+    // 超过500MB时按时间顺序清理最旧的记录
+    if (!skipPrune) {
+      await this.pruneBySize();
+    }
+  }
+
+  // 数据库容量管理：超过500MB时删除最旧的通知和审计日志
+  private async pruneBySize(): Promise<void> {
+    const MAX_SIZE_BYTES = 500 * 1024 * 1024; // 500MB
+    
+    if (!fs.existsSync(this.dbPath)) return;
+    
+    const stat = fs.statSync(this.dbPath);
+    if (stat.size <= MAX_SIZE_BYTES) return;
+
+    // 按时间升序排列，删除最旧的10%通知
+    this.notifications.sort((a, b) =>
+      new Date(a.createdAt || 0).getTime() - new Date(b.createdAt || 0).getTime()
+    );
+    const notifTrimCount = Math.max(Math.ceil(this.notifications.length * 0.1), 1);
+    this.notifications.splice(0, notifTrimCount);
+
+    // 按时间升序排列，删除最旧的10%审计日志
+    this.auditLogs.sort((a, b) =>
+      new Date(a.createdAt || 0).getTime() - new Date(b.createdAt || 0).getTime()
+    );
+    const logTrimCount = Math.max(Math.ceil(this.auditLogs.length * 0.1), 1);
+    this.auditLogs.splice(0, logTrimCount);
+
+    console.log(`[数据库清理] 数据库超出500MB，已删除 ${notifTrimCount} 条通知、${logTrimCount} 条审计日志`);
+
+    // 跳过再次检查，避免递归
+    await this.saveToFile(true);
   }
 
   // ===== User 相关操作 =====

@@ -148,7 +148,7 @@ const Dashboard: React.FC = () => {
       setLoading(true);
       setError(null);
 
-      const notificationsResponse = await authService.fetchWithAuth('/api/notifications');
+      const notificationsResponse = await authService.fetchWithAuth('/api/notifications?limit=10000');
       let notificationsData: Notification[] = [];
       if (notificationsResponse.ok) {
         const data = await notificationsResponse.json();

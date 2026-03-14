@@ -66,7 +66,7 @@ const History: React.FC = () => {
     try {
       setLoading(true);
       setError(null);
-      const res = await authService.fetchWithAuth('/api/notifications');
+      const res = await authService.fetchWithAuth('/api/notifications?limit=10000');
       if (res.ok) {
         const data = await res.json();
         setNotifications(data.notifications || (Array.isArray(data) ? data : []));

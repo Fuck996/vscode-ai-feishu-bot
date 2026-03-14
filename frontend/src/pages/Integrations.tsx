@@ -218,7 +218,7 @@ export default function Integrations() {
   // ===== 计算每个集成的通知条数 =====
   const fetchIntegrationNotifCounts = async (intList: Integration[]) => {
     try {
-      const res = await authService.fetchWithAuth(`${API_BASE_URL}/api/notifications?limit=200`);
+      const res = await authService.fetchWithAuth(`${API_BASE_URL}/api/notifications?limit=10000`);
       if (res.ok) {
         const d = await res.json();
         if (d.success && Array.isArray(d.data)) {

@@ -85,7 +85,7 @@ router.get(
   '/notifications',
   async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const limit = Math.min(parseInt(req.query.limit as string) || 50, 200);
+      const limit = Math.min(parseInt(req.query.limit as string) || 10000, 10000);
       const offset = parseInt(req.query.offset as string) || 0;
       const status = req.query.status as string | undefined;
 
