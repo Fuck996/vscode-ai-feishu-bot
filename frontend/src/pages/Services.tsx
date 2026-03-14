@@ -111,6 +111,7 @@ const Services: React.FC = () => {
   const [operatingServiceId, setOperatingServiceId] = useState<string | null>(null);
   const [hoveredMenu, setHoveredMenu] = useState<string | null>(null);
   const [taskMenuPos, setTaskMenuPos] = useState<{ top: number; left: number; taskId: string } | null>(null);
+  const [historyMenuPos, setHistoryMenuPos] = useState<{ top: number; left: number; recordId: string } | null>(null);
   const [filterStatus, setFilterStatus] = useState<'all' | 'active' | 'inactive'>('all');
   const [filterRobot, setFilterRobot] = useState<string>('all');
   const [filterModel, setFilterModel] = useState<string>('all');
@@ -379,7 +380,7 @@ const Services: React.FC = () => {
   }
 
   return (
-    <div style={{ backgroundColor: '#f3f4f6', minHeight: '100vh', paddingBottom: '2rem' }} onClick={() => { if (taskMenuPos) setTaskMenuPos(null); }}>
+    <div style={{ backgroundColor: '#f3f4f6', minHeight: '100vh', paddingBottom: '2rem' }} onClick={() => { if (taskMenuPos) setTaskMenuPos(null); if (historyMenuPos) setHistoryMenuPos(null); }}>
       <div style={{ maxWidth: '1400px', margin: '0 auto', padding: '2rem' }}>
         {/* 双栏布局 */}
         <div style={{ display: 'grid', gridTemplateColumns: '220px 1fr', gap: '1.5rem' }}>
@@ -781,15 +782,21 @@ const Services: React.FC = () => {
                     border: 'none',
                     fontSize: '0.875rem',
                     fontWeight: isActive ? 600 : 500,
-                    color: isActive ? '#2563eb' : '#6b7280',
+                    color: isActive ? '#0969da' : '#6b7280',
                     cursor: 'pointer',
-                    borderBottom: isActive ? '2px solid #2563eb' : '2px solid transparent',
+                    borderBottom: isActive ? '3px solid #0969da' : '3px solid transparent',
                     marginBottom: '-1px',
                     borderRadius: '0.375rem 0.375rem 0 0',
                     transition: 'background 0.15s, color 0.15s',
                   }}
-                  onMouseEnter={e => { if (!isActive) { e.currentTarget.style.backgroundColor = '#eff6ff'; e.currentTarget.style.color = '#2563eb'; } }}
-                  onMouseLeave={e => { if (!isActive) { e.currentTarget.style.backgroundColor = 'transparent'; e.currentTarget.style.color = '#6b7280'; } }}
+                  onMouseEnter={e => {
+                    e.currentTarget.style.backgroundColor = '#ddf4ff';
+                    if (!isActive) e.currentTarget.style.color = '#0969da';
+                  }}
+                  onMouseLeave={e => {
+                    e.currentTarget.style.backgroundColor = 'transparent';
+                    if (!isActive) e.currentTarget.style.color = '#6b7280';
+                  }}
                 >
                   {label}
                 </button>
@@ -1210,13 +1217,45 @@ const Services: React.FC = () => {
                                   </span>
                                 </div>
                                 <span style={{ color: '#e5e7eb', flexShrink: 0 }}>|</span>
-                                <button
-                                  style={{ width: '30px', height: '30px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', border: 'none', borderRadius: '0.375rem', backgroundColor: 'transparent', color: '#57606a', cursor: 'pointer' }}
-                                  onMouseEnter={e => { e.currentTarget.style.backgroundColor = '#f3f4f6'; }}
-                                  onMouseLeave={e => { e.currentTarget.style.backgroundColor = 'transparent'; }}
-                                >
-                                  <MoreHorizontal size={15} />
-                                </button>
+                                <div style={{ position: 'relative' }} onClick={e => e.stopPropagation()}>
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      const rect = e.currentTarget.getBoundingClientRect();
+                                      setHistoryMenuPos(historyMenuPos?.recordId === record.id ? null : { top: rect.bottom + 6, left: rect.left, recordId: record.id });
+                                    }}
+                                    style={{ width: '30px', height: '30px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', border: 'none', borderRadius: '0.375rem', backgroundColor: 'transparent', color: '#57606a', cursor: 'pointer' }}
+                                    onMouseEnter={e => { e.currentTarget.style.backgroundColor = '#f3f4f6'; }}
+                                    onMouseLeave={e => { e.currentTarget.style.backgroundColor = 'transparent'; }}
+                                  >
+                                    <MoreHorizontal size={15} />
+                                  </button>
+                                  {historyMenuPos && historyMenuPos.recordId === record.id && (
+                                    <div
+                                      onClick={e => e.stopPropagation()}
+                                      style={{
+                                        position: 'fixed',
+                                        top: `${historyMenuPos.top}px`,
+                                        left: `${historyMenuPos.left - 60}px`,
+                                        background: 'white',
+                                        border: '1px solid #e5e7eb',
+                                        borderRadius: '0.5rem',
+                                        boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+                                        zIndex: 1000,
+                                        minWidth: '100px',
+                                      }}
+                                    >
+                                      <button
+                                        onClick={() => { console.log('查看记录:', record.id); setHistoryMenuPos(null); }}
+                                        style={{ width: '100%', padding: '0.5rem 1rem', border: 'none', background: 'none', textAlign: 'left', fontSize: '0.875rem', color: '#1f2937', cursor: 'pointer' }}
+                                        onMouseEnter={e => { e.currentTarget.style.backgroundColor = '#f3f4f6'; }}
+                                        onMouseLeave={e => { e.currentTarget.style.backgroundColor = 'transparent'; }}
+                                      >
+                                        查看
+                                      </button>
+                                    </div>
+                                  )}
+                                </div>
                               </div>
                             </td>
                           </tr>
