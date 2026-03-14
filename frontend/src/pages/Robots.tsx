@@ -409,8 +409,16 @@ export default function Robots() {
               <span style={{ fontSize: '0.9375rem', fontWeight: 700, color: '#1f2328' }}>机器人管理</span>
               <span style={{ fontSize: '0.8125rem', color: '#656d76' }}>共 {filteredRobots.length} 个</span>
             </div>
-            {/* 右侧：状态筛选 + 新建按钮 */}
+            {/* 右侧：新建按钮 + 状态筛选 */}
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+              <button
+                onClick={() => setIsAddRobotModalOpen(true)}
+                style={{ padding: '0.45rem 0.875rem', backgroundColor: '#10b981', color: 'white', border: 'none', borderRadius: '0.375rem', cursor: 'pointer', fontSize: '0.8125rem', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '0.375rem', whiteSpace: 'nowrap' }}
+                onMouseEnter={e => (e.currentTarget.style.backgroundColor = '#059669')}
+                onMouseLeave={e => (e.currentTarget.style.backgroundColor = '#10b981')}
+              >
+                ＋ 新建机器人
+              </button>
               {/* 状态筛选下拉 */}
               <div style={{ position: 'relative' }} onClick={e => e.stopPropagation()}>
                 <button
@@ -441,14 +449,6 @@ export default function Robots() {
                   </div>
                 )}
               </div>
-              <button
-                onClick={() => setIsAddRobotModalOpen(true)}
-                style={{ padding: '0.45rem 0.875rem', backgroundColor: '#10b981', color: 'white', border: 'none', borderRadius: '0.375rem', cursor: 'pointer', fontSize: '0.8125rem', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '0.375rem', whiteSpace: 'nowrap' }}
-                onMouseEnter={e => (e.currentTarget.style.backgroundColor = '#059669')}
-                onMouseLeave={e => (e.currentTarget.style.backgroundColor = '#10b981')}
-              >
-                ＋ 新建机器人
-              </button>
             </div>
           </div>
 

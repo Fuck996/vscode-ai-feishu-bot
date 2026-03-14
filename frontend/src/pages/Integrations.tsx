@@ -1,8 +1,10 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { MoreHorizontal } from 'lucide-react';
 
 import authService from '../services/auth';
 import toastService from '../services/toastService';
+import SceneIcon from '../components/SceneIcon';
 
 // ===== 类型定义 =====
 
@@ -142,6 +144,8 @@ export default function Integrations() {
   const [filterType, setFilterType] = useState<string[]>([]);
   const [filterStatusOpen, setFilterStatusOpen] = useState(false);
   const [filterTypeOpen, setFilterTypeOpen] = useState(false);
+  // 集成操作三点菜单状态
+  const [integrationMenu, setIntegrationMenu] = useState<{ id: string; top: number; left: number } | null>(null);
 
   // 模态框状态
   const [modalOpen, setModalOpen] = useState(false);
@@ -335,13 +339,13 @@ export default function Integrations() {
     return true;
   });
 
-  // 点击外部关闭筛选下拉
+  // 点击外部关闭筛选下拉 / 三点菜单
   React.useEffect(() => {
-    if (!filterStatusOpen && !filterTypeOpen) return;
-    const handle = () => { setFilterStatusOpen(false); setFilterTypeOpen(false); };
+    if (!filterStatusOpen && !filterTypeOpen && !integrationMenu) return;
+    const handle = () => { setFilterStatusOpen(false); setFilterTypeOpen(false); setIntegrationMenu(null); };
     const timer = setTimeout(() => window.addEventListener('click', handle), 0);
     return () => { clearTimeout(timer); window.removeEventListener('click', handle); };
-  }, [filterStatusOpen, filterTypeOpen]);
+  }, [filterStatusOpen, filterTypeOpen, integrationMenu]);
 
   if (loading) return (
     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh', backgroundColor: '#f6f8fa', flexDirection: 'column', gap: '1.5rem' }}>
@@ -370,7 +374,7 @@ export default function Integrations() {
         {robot && (
           <div style={{ background: 'white', borderRadius: '0.75rem', padding: '1.25rem', marginBottom: '1.25rem', boxShadow: '0 1px 3px rgba(0,0,0,0.08)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-              <div style={{ width: '40px', height: '40px', background: '#3b82f6', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.25rem' }}>🤖</div>
+              <div style={{ width: '40px', height: '40px', background: '#3b82f6', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><SceneIcon name="robotMessage" size={22} style={{ color: 'white' }} /></div>
               <div>
                 <div style={{ fontWeight: 600, fontSize: '1rem', color: '#1f2937' }}>{robot.name}</div>
                 <div style={{ fontSize: '0.75rem', color: '#9ca3af', fontFamily: 'monospace' }}>{robot.webhookUrl.substring(0, 50)}...</div>
@@ -390,108 +394,143 @@ export default function Integrations() {
 
         {/* 集成列表 */}
         <div style={{ background: 'white', borderRadius: '0.75rem', boxShadow: '0 1px 3px rgba(0,0,0,0.08)', overflow: 'hidden' }}>
-          <div style={{ padding: '1rem 1.5rem', borderBottom: '1px solid #f3f4f6', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-              <span style={{ fontSize: '0.9375rem', fontWeight: 700, color: '#1f2328' }}>已配置集成</span>
-              <span style={{ fontSize: '0.8125rem', color: '#656d76' }}>共 {filteredIntegrations.length} 个</span>
+          {filteredIntegrations.length === 0 && integrations.length === 0 ? (
+            <div style={{ overflowX: 'auto' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.875rem' }}>
+                <thead>
+                  <tr style={{ background: '#f9fafb', borderBottom: '1px solid #f3f4f6' }}>
+                    <th colSpan={5} style={{ padding: '0.75rem 1.5rem' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.75rem' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                          <span style={{ fontSize: '0.9375rem', fontWeight: 700, color: '#1f2328' }}>已配置集成</span>
+                          <span style={{ fontSize: '0.8125rem', color: '#656d76' }}>共 0 个</span>
+                        </div>
+                        <button onClick={openCreateModal} style={{ padding: '0.375rem 0.875rem', backgroundColor: '#1f883d', color: 'white', border: 'none', borderRadius: '0.375rem', cursor: 'pointer', fontSize: '0.8125rem', fontWeight: 500, whiteSpace: 'nowrap' }}>添加集成</button>
+                      </div>
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr><td colSpan={5} style={{ padding: '3rem', textAlign: 'center', color: '#9ca3af', fontSize: '0.875rem' }}>
+                    <p>暂无集成配置</p>
+                    <p style={{ marginTop: '0.5rem' }}>点击"添加集成"为此机器人配置第一个项目集成</p>
+                  </td></tr>
+                </tbody>
+              </table>
             </div>
-            <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-              <button onClick={openCreateModal} style={{ padding: '0.375rem 0.875rem', backgroundColor: '#1f883d', color: 'white', border: 'none', borderRadius: '0.375rem', cursor: 'pointer', fontSize: '0.8125rem', fontWeight: 500, whiteSpace: 'nowrap' }}>添加集成</button>
-
-              {/* 状态筛选 pill */}
-              <div style={{ position: 'relative' }} onClick={e => e.stopPropagation()}>
-                <button type="button"
-                  onClick={() => { setFilterStatusOpen(v => !v); setFilterTypeOpen(false); }}
-                  style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', padding: '0.3rem 0.7rem', border: '1px solid #d0d7de', borderRadius: '0.375rem', background: filterStatus.length > 0 ? '#f0f6ff' : 'white', cursor: 'pointer', fontSize: '0.8125rem', color: filterStatus.length > 0 ? '#0969da' : '#1f2328', fontWeight: filterStatus.length > 0 ? 600 : 400 }}
-                >
-                  状态{filterStatus.length > 0 ? ` · ${filterStatus.length}` : ''} <span style={{ fontSize: '0.65rem', opacity: 0.6 }}>▼</span>
-                </button>
-                {filterStatusOpen && (
-                  <div style={{ position: 'absolute', top: 'calc(100% + 4px)', right: 0, minWidth: '140px', background: 'white', border: '1px solid #d0d7de', borderRadius: '0.5rem', boxShadow: '0 8px 24px rgba(0,0,0,0.12)', zIndex: 30, overflow: 'hidden' }}>
-                    <div style={{ padding: '0.5rem 0.75rem', borderBottom: '1px solid #e5e7eb', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <span style={{ fontSize: '0.8125rem', fontWeight: 600, color: '#1f2328' }}>按状态筛选</span>
-                      {filterStatus.length > 0 && <button onClick={() => setFilterStatus([])} style={{ fontSize: '0.75rem', color: '#0969da', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>清除</button>}
-                    </div>
-                    {[{ value: 'active', label: '启用', color: '#10b981' }, { value: 'inactive', label: '停用', color: '#9ca3af' }].map(opt => {
-                      const sel = filterStatus.includes(opt.value);
-                      return (
-                        <button key={opt.value} type="button"
-                          onClick={() => setFilterStatus(prev => sel ? prev.filter(s => s !== opt.value) : [...prev, opt.value])}
-                          style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.5rem 0.75rem', border: 'none', background: sel ? '#f0f6ff' : 'transparent', cursor: 'pointer', textAlign: 'left' }}
-                        >
-                          <div style={{ width: '14px', height: '14px', borderRadius: '0.2rem', border: `1px solid ${sel ? '#0969da' : '#d0d7de'}`, background: sel ? '#0969da' : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                            {sel && <span style={{ color: 'white', fontSize: '0.55rem', fontWeight: 700, lineHeight: 1 }}>✓</span>}
-                          </div>
-                          <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: opt.color, flexShrink: 0 }} />
-                          <span style={{ fontSize: '0.8125rem', color: '#1f2328', fontWeight: sel ? 600 : 400 }}>{opt.label}</span>
-                        </button>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
-
-              {/* 类型筛选 pill */}
-              <div style={{ position: 'relative' }} onClick={e => e.stopPropagation()}>
-                <button type="button"
-                  onClick={() => { setFilterTypeOpen(v => !v); setFilterStatusOpen(false); }}
-                  style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', padding: '0.3rem 0.7rem', border: '1px solid #d0d7de', borderRadius: '0.375rem', background: filterType.length > 0 ? '#f0f6ff' : 'white', cursor: 'pointer', fontSize: '0.8125rem', color: filterType.length > 0 ? '#0969da' : '#1f2328', fontWeight: filterType.length > 0 ? 600 : 400 }}
-                >
-                  类型{filterType.length > 0 ? ` · ${filterType.length}` : ''} <span style={{ fontSize: '0.65rem', opacity: 0.6 }}>▼</span>
-                </button>
-                {filterTypeOpen && (
-                  <div style={{ position: 'absolute', top: 'calc(100% + 4px)', right: 0, minWidth: '150px', background: 'white', border: '1px solid #d0d7de', borderRadius: '0.5rem', boxShadow: '0 8px 24px rgba(0,0,0,0.12)', zIndex: 30, overflow: 'hidden' }}>
-                    <div style={{ padding: '0.5rem 0.75rem', borderBottom: '1px solid #e5e7eb', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <span style={{ fontSize: '0.8125rem', fontWeight: 600, color: '#1f2328' }}>按类型筛选</span>
-                      {filterType.length > 0 && <button onClick={() => setFilterType([])} style={{ fontSize: '0.75rem', color: '#0969da', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>清除</button>}
-                    </div>
-                    <div style={{ maxHeight: '220px', overflowY: 'auto' }}>
-                      {[{ value: 'github', label: 'GitHub' }, { value: 'gitlab', label: 'GitLab' }, { value: 'vercel', label: 'Vercel' }, { value: 'railway', label: 'Railway' }, { value: 'synology', label: 'Synology' }, { value: 'vscode-chat', label: 'VSCode' }, { value: 'api', label: 'API' }, { value: 'custom', label: '自定义' }].map(opt => {
-                        const sel = filterType.includes(opt.value);
-                        return (
-                          <button key={opt.value} type="button"
-                            onClick={() => setFilterType(prev => sel ? prev.filter(t => t !== opt.value) : [...prev, opt.value])}
-                            style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.45rem 0.75rem', border: 'none', background: sel ? '#f0f6ff' : 'transparent', cursor: 'pointer', textAlign: 'left' }}
-                          >
-                            <div style={{ width: '14px', height: '14px', borderRadius: '0.2rem', border: `1px solid ${sel ? '#0969da' : '#d0d7de'}`, background: sel ? '#0969da' : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                              {sel && <span style={{ color: 'white', fontSize: '0.55rem', fontWeight: 700, lineHeight: 1 }}>✓</span>}
-                            </div>
-                            <span style={{ ...typeBadgeStyle, ...TYPE_COLORS[opt.value as keyof typeof TYPE_COLORS], fontSize: '0.7rem', padding: '0.1rem 0.4rem' }}>{opt.label}</span>
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {(filterStatus.length > 0 || filterType.length > 0) && (
-                <button type="button" onClick={() => { setFilterStatus([]); setFilterType([]); }} style={{ fontSize: '0.8125rem', color: '#cf222e', background: 'none', border: 'none', cursor: 'pointer', padding: '0.25rem 0.375rem', borderRadius: '0.25rem' }}>清除筛选</button>
-              )}
-            </div>
-          </div>
-
-          {filteredIntegrations.length === 0 ? (
-            <div style={{ padding: '3rem', textAlign: 'center', color: '#9ca3af', fontSize: '0.875rem' }}>
-              {integrations.length === 0 ? (
-                <>
-                  <p>暂无集成配置</p>
-                  <p style={{ marginTop: '0.5rem' }}>点击"添加集成"为此机器人配置第一个项目集成</p>
-                </>
-              ) : (
-                <p>无匹配结果，请调整筛选条件</p>
-              )}
+          ) : filteredIntegrations.length === 0 ? (
+            <div style={{ overflowX: 'auto' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.875rem' }}>
+                <thead>
+                  <tr style={{ background: '#f9fafb', borderBottom: '1px solid #f3f4f6' }}>
+                    <th colSpan={5} style={{ padding: '0.75rem 1.5rem' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.75rem', flexWrap: 'wrap' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                          <span style={{ fontSize: '0.9375rem', fontWeight: 700, color: '#1f2328' }}>已配置集成</span>
+                          <span style={{ fontSize: '0.8125rem', color: '#656d76' }}>共 {integrations.length} 个</span>
+                        </div>
+                        <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
+                          <button onClick={openCreateModal} style={{ padding: '0.375rem 0.875rem', backgroundColor: '#1f883d', color: 'white', border: 'none', borderRadius: '0.375rem', cursor: 'pointer', fontSize: '0.8125rem', fontWeight: 500, whiteSpace: 'nowrap' }}>添加集成</button>
+                          {(filterStatus.length > 0 || filterType.length > 0) && (
+                            <button type="button" onClick={() => { setFilterStatus([]); setFilterType([]); }} style={{ fontSize: '0.8125rem', color: '#cf222e', background: 'none', border: 'none', cursor: 'pointer', padding: '0.25rem 0.375rem', borderRadius: '0.25rem' }}>清除筛选</button>
+                          )}
+                        </div>
+                      </div>
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr><td colSpan={5} style={{ padding: '3rem', textAlign: 'center', color: '#9ca3af', fontSize: '0.875rem' }}>无匹配结果，请调整筛选条件</td></tr>
+                </tbody>
+              </table>
             </div>
           ) : (
             <div style={{ overflowX: 'auto' }}>
               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.875rem' }}>
                 <thead>
-                  <tr style={{ background: '#f9fafb' }}>
-                    <th style={thStyle(22)}>项目名称</th>
-                    <th style={thStyle(16)}>类型 / 通知时机</th>
-                    <th style={thStyle(25)}>触发事件</th>
-                    <th style={thStyle(8)}>状态</th>
-                    <th style={thStyle(29)}>操作</th>
+                  <tr style={{ background: '#f9fafb', borderBottom: '1px solid #f3f4f6' }}>
+                    <th colSpan={5} style={{ padding: '0.75rem 1.5rem', fontWeight: 'normal' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.75rem', flexWrap: 'wrap' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                          <span style={{ fontSize: '0.9375rem', fontWeight: 700, color: '#1f2328' }}>已配置集成</span>
+                          <span style={{ fontSize: '0.8125rem', color: '#656d76' }}>共 {filteredIntegrations.length} 个</span>
+                        </div>
+                        <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
+                          <button onClick={openCreateModal} style={{ padding: '0.375rem 0.875rem', backgroundColor: '#1f883d', color: 'white', border: 'none', borderRadius: '0.375rem', cursor: 'pointer', fontSize: '0.8125rem', fontWeight: 500, whiteSpace: 'nowrap' }}>添加集成</button>
+
+                          {/* 状态筛选 pill */}
+                          <div style={{ position: 'relative' }} onClick={e => e.stopPropagation()}>
+                            <button type="button"
+                              onClick={() => { setFilterStatusOpen(v => !v); setFilterTypeOpen(false); }}
+                              style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', padding: '0.3rem 0.7rem', border: '1px solid #d0d7de', borderRadius: '0.375rem', background: filterStatus.length > 0 ? '#f0f6ff' : 'white', cursor: 'pointer', fontSize: '0.8125rem', color: filterStatus.length > 0 ? '#0969da' : '#1f2328', fontWeight: filterStatus.length > 0 ? 600 : 400 }}
+                            >
+                              状态{filterStatus.length > 0 ? ` · ${filterStatus.length}` : ''} <span style={{ fontSize: '0.65rem', opacity: 0.6 }}>▼</span>
+                            </button>
+                            {filterStatusOpen && (
+                              <div style={{ position: 'absolute', top: 'calc(100% + 4px)', right: 0, minWidth: '140px', background: 'white', border: '1px solid #d0d7de', borderRadius: '0.5rem', boxShadow: '0 8px 24px rgba(0,0,0,0.12)', zIndex: 30, overflow: 'hidden' }}>
+                                <div style={{ padding: '0.5rem 0.75rem', borderBottom: '1px solid #e5e7eb', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                  <span style={{ fontSize: '0.8125rem', fontWeight: 600, color: '#1f2328' }}>按状态筛选</span>
+                                  {filterStatus.length > 0 && <button onClick={() => setFilterStatus([])} style={{ fontSize: '0.75rem', color: '#0969da', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>清除</button>}
+                                </div>
+                                {[{ value: 'active', label: '启用', color: '#10b981' }, { value: 'inactive', label: '停用', color: '#9ca3af' }].map(opt => {
+                                  const sel = filterStatus.includes(opt.value);
+                                  return (
+                                    <button key={opt.value} type="button"
+                                      onClick={() => setFilterStatus(prev => sel ? prev.filter(s => s !== opt.value) : [...prev, opt.value])}
+                                      style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.5rem 0.75rem', border: 'none', background: sel ? '#f0f6ff' : 'transparent', cursor: 'pointer', textAlign: 'left' }}
+                                    >
+                                      <div style={{ width: '14px', height: '14px', borderRadius: '0.2rem', border: `1px solid ${sel ? '#0969da' : '#d0d7de'}`, background: sel ? '#0969da' : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                                        {sel && <span style={{ color: 'white', fontSize: '0.55rem', fontWeight: 700, lineHeight: 1 }}>✓</span>}
+                                      </div>
+                                      <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: opt.color, flexShrink: 0 }} />
+                                      <span style={{ fontSize: '0.8125rem', color: '#1f2328', fontWeight: sel ? 600 : 400 }}>{opt.label}</span>
+                                    </button>
+                                  );
+                                })}
+                              </div>
+                            )}
+                          </div>
+
+                          {/* 类型筛选 pill */}
+                          <div style={{ position: 'relative' }} onClick={e => e.stopPropagation()}>
+                            <button type="button"
+                              onClick={() => { setFilterTypeOpen(v => !v); setFilterStatusOpen(false); }}
+                              style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', padding: '0.3rem 0.7rem', border: '1px solid #d0d7de', borderRadius: '0.375rem', background: filterType.length > 0 ? '#f0f6ff' : 'white', cursor: 'pointer', fontSize: '0.8125rem', color: filterType.length > 0 ? '#0969da' : '#1f2328', fontWeight: filterType.length > 0 ? 600 : 400 }}
+                            >
+                              类型{filterType.length > 0 ? ` · ${filterType.length}` : ''} <span style={{ fontSize: '0.65rem', opacity: 0.6 }}>▼</span>
+                            </button>
+                            {filterTypeOpen && (
+                              <div style={{ position: 'absolute', top: 'calc(100% + 4px)', right: 0, minWidth: '150px', background: 'white', border: '1px solid #d0d7de', borderRadius: '0.5rem', boxShadow: '0 8px 24px rgba(0,0,0,0.12)', zIndex: 30, overflow: 'hidden' }}>
+                                <div style={{ padding: '0.5rem 0.75rem', borderBottom: '1px solid #e5e7eb', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                  <span style={{ fontSize: '0.8125rem', fontWeight: 600, color: '#1f2328' }}>按类型筛选</span>
+                                  {filterType.length > 0 && <button onClick={() => setFilterType([])} style={{ fontSize: '0.75rem', color: '#0969da', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>清除</button>}
+                                </div>
+                                <div style={{ maxHeight: '220px', overflowY: 'auto' }}>
+                                  {[{ value: 'github', label: 'GitHub' }, { value: 'gitlab', label: 'GitLab' }, { value: 'vercel', label: 'Vercel' }, { value: 'railway', label: 'Railway' }, { value: 'synology', label: 'Synology' }, { value: 'vscode-chat', label: 'VSCode' }, { value: 'api', label: 'API' }, { value: 'custom', label: '自定义' }].map(opt => {
+                                    const sel = filterType.includes(opt.value);
+                                    return (
+                                      <button key={opt.value} type="button"
+                                        onClick={() => setFilterType(prev => sel ? prev.filter(t => t !== opt.value) : [...prev, opt.value])}
+                                        style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.45rem 0.75rem', border: 'none', background: sel ? '#f0f6ff' : 'transparent', cursor: 'pointer', textAlign: 'left' }}
+                                      >
+                                        <div style={{ width: '14px', height: '14px', borderRadius: '0.2rem', border: `1px solid ${sel ? '#0969da' : '#d0d7de'}`, background: sel ? '#0969da' : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                                          {sel && <span style={{ color: 'white', fontSize: '0.55rem', fontWeight: 700, lineHeight: 1 }}>✓</span>}
+                                        </div>
+                                        <span style={{ ...typeBadgeStyle, ...TYPE_COLORS[opt.value as keyof typeof TYPE_COLORS], fontSize: '0.7rem', padding: '0.1rem 0.4rem' }}>{opt.label}</span>
+                                      </button>
+                                    );
+                                  })}
+                                </div>
+                              </div>
+                            )}
+                          </div>
+
+                          {(filterStatus.length > 0 || filterType.length > 0) && (
+                            <button type="button" onClick={() => { setFilterStatus([]); setFilterType([]); }} style={{ fontSize: '0.8125rem', color: '#cf222e', background: 'none', border: 'none', cursor: 'pointer', padding: '0.25rem 0.375rem', borderRadius: '0.25rem' }}>清除筛选</button>
+                          )}
+                        </div>
+                      </div>
+                    </th>
                   </tr>
                 </thead>
                 <tbody>
@@ -499,10 +538,16 @@ export default function Integrations() {
                     <tr key={integration.id} style={{ borderBottom: '1px solid #f3f4f6' }}>
                       {/* 项目名称 */}
                       <td style={tdStyle}>
-                        <div style={{ fontWeight: 500 }}>{integration.projectName}</div>
+                        <span
+                          style={{ fontWeight: 600, color: '#1f2328', fontSize: '0.875rem', cursor: 'pointer', textDecoration: 'none' }}
+                          onMouseEnter={e => { e.currentTarget.style.color = '#0969da'; e.currentTarget.style.textDecoration = 'underline'; }}
+                          onMouseLeave={e => { e.currentTarget.style.color = '#1f2328'; e.currentTarget.style.textDecoration = 'none'; }}
+                          onClick={() => setGuideIntegration(integration)}
+                        >{integration.projectName}</span>
                         {integration.projectSubName && (
                           <div style={{ fontSize: '0.75rem', color: '#9ca3af' }}>{integration.projectSubName}</div>
                         )}
+                        <div style={{ fontSize: '0.75rem', color: '#656d76', marginTop: '0.1rem' }}>— 条记录</div>
                       </td>
                       {/* 类型 + 通知时机 */}
                       <td style={tdStyle}>
@@ -542,16 +587,19 @@ export default function Integrations() {
                           onChange={() => handleToggleStatus(integration)}
                         />
                       </td>
-                      <td style={tdStyle}>
-                        <div style={{ display: 'flex', gap: '0.3rem', flexWrap: 'wrap' }}>
-                          <button onClick={() => openEditModal(integration)} style={btnSecondary}>编辑</button>
-                          <button onClick={() => handleDelete(integration)} style={btnDanger}>删除</button>
+                      <td style={{ ...tdStyle, textAlign: 'right' }}>
+                        <div style={{ display: 'inline-flex' }} onClick={e => e.stopPropagation()}>
                           <button
-                            onClick={() => setGuideIntegration(integration)}
-                            style={{ ...btnSecondary, background: '#ede9fe', color: '#4c1d95', border: 'none' }}
-                            title="查看配置说明"
+                            type="button"
+                            onClick={e => {
+                              e.stopPropagation();
+                              const rect = e.currentTarget.getBoundingClientRect();
+                              setIntegrationMenu(cur => cur?.id === integration.id ? null : { id: integration.id, top: rect.bottom + 6, left: rect.right - 132 });
+                            }}
+                            style={{ width: '32px', height: '32px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', border: '1px solid #d0d7de', borderRadius: '0.5rem', backgroundColor: '#ffffff', color: '#57606a', cursor: 'pointer' }}
+                            aria-label="更多操作"
                           >
-                            配置说明
+                            <MoreHorizontal size={16} />
                           </button>
                         </div>
                       </td>
@@ -596,6 +644,30 @@ export default function Integrations() {
           onClose={() => { setCreatedInfo(null); showMessage('✅ 集成已创建成功'); }}
         />
       )}
+
+      {/* ===== 集成操作三点菜单浮层 ===== */}
+      {integrationMenu && (() => {
+        const intg = integrations.find(i => i.id === integrationMenu.id);
+        if (!intg) return null;
+        return (
+          <div
+            style={{ position: 'fixed', top: integrationMenu.top, left: integrationMenu.left, minWidth: '132px', padding: '0.4rem', backgroundColor: '#ffffff', border: '1px solid #d0d7de', borderRadius: '0.75rem', boxShadow: '0 12px 28px rgba(31,35,40,0.12)', zIndex: 9999 }}
+            onClick={e => e.stopPropagation()}
+          >
+            {[
+              { label: '配置说明', color: '#1f2328', action: () => { setGuideIntegration(intg); setIntegrationMenu(null); } },
+              { label: '编辑', color: '#1f2328', action: () => { openEditModal(intg); setIntegrationMenu(null); } },
+              { label: '删除', color: '#cf222e', action: () => { handleDelete(intg); setIntegrationMenu(null); } },
+            ].map(item => (
+              <button key={item.label} type="button" onClick={item.action}
+                style={{ width: '100%', textAlign: 'left', padding: '0.45rem 0.75rem', border: 'none', borderRadius: '0.5rem', backgroundColor: 'transparent', color: item.color, cursor: 'pointer', fontSize: '0.875rem', fontWeight: 500 }}
+                onMouseEnter={e => (e.currentTarget.style.backgroundColor = '#f6f8fa')}
+                onMouseLeave={e => (e.currentTarget.style.backgroundColor = 'transparent')}
+              >{item.label}</button>
+            ))}
+          </div>
+        );
+      })()}
 
       {/* ===== 配置说明弹窗（所有类型通用）===== */}
       {guideIntegration && (
