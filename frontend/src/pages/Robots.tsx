@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { CalendarDays, Clock3, MoreHorizontal, Search } from 'lucide-react';
+import { CalendarDays, ChevronDown, Clock3, MoreHorizontal, Search } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import SceneIcon from '../components/SceneIcon';
 
@@ -474,12 +474,22 @@ export default function Robots() {
                 <button
                   type="button"
                   onClick={() => setOpenFilterMenu(!openFilterMenu)}
-                  style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', padding: '0.3rem 0.7rem', border: '1px solid #d0d7de', borderRadius: '0.375rem', background: statusFilter !== 'all' ? '#f0f6ff' : 'white', cursor: 'pointer', fontSize: '0.8125rem', color: statusFilter !== 'all' ? '#0969da' : '#1f2328', fontWeight: statusFilter !== 'all' ? 600 : 400 }}
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: '0.375rem', padding: '0.375rem 0.75rem', fontSize: '0.8125rem', fontWeight: 500, color: statusFilter !== 'all' ? '#0969da' : '#57606a', backgroundColor: statusFilter !== 'all' ? '#dbeafe' : '#f6f8fa', border: `1px solid ${statusFilter !== 'all' ? '#0969da' : '#d0d7de'}`, borderRadius: '0.375rem', cursor: 'pointer' }}
                 >
-                  状态{statusFilter !== 'all' ? ' · 1' : ''} <span style={{ fontSize: '0.65rem', opacity: 0.6 }}>▼</span>
+                  状态
+                  {statusFilter !== 'all' && (
+                    <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: '16px', height: '16px', borderRadius: '50%', backgroundColor: '#0969da', color: 'white', fontSize: '0.6rem', fontWeight: 700 }}>1</span>
+                  )}
+                  <ChevronDown size={13} />
                 </button>
                 {openFilterMenu && (
-                  <div style={{ position: 'absolute', top: 'calc(100% + 0.375rem)', right: 0, minWidth: '120px', padding: '0.4rem', backgroundColor: '#ffffff', border: '1px solid #d0d7de', borderRadius: '0.75rem', boxShadow: '0 8px 24px rgba(31,35,40,0.12)', zIndex: 20 }}>
+                  <div style={{ position: 'absolute', top: 'calc(100% + 0.375rem)', right: 0, minWidth: '160px', backgroundColor: '#ffffff', border: '1px solid #d0d7de', borderRadius: '0.75rem', boxShadow: '0 16px 32px rgba(31, 35, 40, 0.15)', zIndex: 30, overflow: 'hidden' }}>
+                    <div style={{ padding: '0.625rem 1rem', borderBottom: '1px solid #e5e7eb', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                      <span style={{ fontSize: '0.8125rem', fontWeight: 600, color: '#1f2328' }}>按状态筛选</span>
+                      {statusFilter !== 'all' && (
+                        <button type="button" onClick={() => setStatusFilter('all')} style={{ fontSize: '0.75rem', color: '#0969da', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>清除</button>
+                      )}
+                    </div>
                     {[
                       { label: '全部', value: 'all' },
                       { label: '启用', value: 'active' },
@@ -489,7 +499,9 @@ export default function Robots() {
                         key={opt.value}
                         type="button"
                         onClick={() => { setStatusFilter(opt.value as 'all' | 'active' | 'inactive'); setOpenFilterMenu(false); }}
-                        style={{ width: '100%', textAlign: 'left', padding: '0.45rem 0.75rem', border: 'none', borderRadius: '0.5rem', backgroundColor: statusFilter === opt.value ? '#f3f4f6' : 'transparent', color: '#1f2328', cursor: 'pointer', fontSize: '0.875rem', fontWeight: statusFilter === opt.value ? 600 : 400 }}
+                        style={{ width: '100%', textAlign: 'left', padding: '0.5rem 1rem', border: 'none', backgroundColor: statusFilter === opt.value ? '#f3f4f6' : 'transparent', color: '#1f2328', cursor: 'pointer', fontSize: '0.875rem', fontWeight: statusFilter === opt.value ? 600 : 400 }}
+                        onMouseEnter={e => { if (statusFilter !== opt.value) e.currentTarget.style.backgroundColor = '#f6f8fa'; }}
+                        onMouseLeave={e => { e.currentTarget.style.backgroundColor = statusFilter === opt.value ? '#f3f4f6' : 'transparent'; }}
                       >
                         {opt.label}
                       </button>

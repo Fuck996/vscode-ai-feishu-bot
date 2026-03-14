@@ -1,6 +1,6 @@
 {
   "name": "feishu-bot-backend",
-  "version": "1.3.42",
+  "version": "1.3.43",
   "description": "Feishu AI notification webhook service with nginx proxy and charset fixes",
   "main": "dist/server.js",
   "scripts": {
