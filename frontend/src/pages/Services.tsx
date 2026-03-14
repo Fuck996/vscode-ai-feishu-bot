@@ -111,6 +111,9 @@ const Services: React.FC = () => {
   const [operatingServiceId, setOperatingServiceId] = useState<string | null>(null);
   const [hoveredMenu, setHoveredMenu] = useState<string | null>(null);
   const [taskMenuPos, setTaskMenuPos] = useState<{ top: number; left: number; taskId: string } | null>(null);
+  const [filterStatus, setFilterStatus] = useState<'all' | 'active' | 'inactive'>('all');
+  const [filterRobot, setFilterRobot] = useState<string>('all');
+  const [filterModel, setFilterModel] = useState<string>('all');
   const logPanelRef = useRef<HTMLDivElement>(null);
 
   // 菜单项样式函数
@@ -725,13 +728,13 @@ const Services: React.FC = () => {
             </div>
             <div style={{ padding: '1.25rem 1.5rem', flex: 1 }}>
               <div style={{ fontSize: '1rem', fontWeight: 600, color: '#1f2937', marginBottom: '0.25rem' }}>
-                📊 AI 周报摘要服务
+                AI 汇报服务
               </div>
               <div style={{ fontSize: '0.75rem', color: '#9ca3af', marginBottom: '0.5rem' }}>
                 定时调度 · OpenAI 摘要 · 飞书推送
               </div>
-              <p style={{ fontSize: '0.8125rem', color: '#6b7280', margin: 0, lineHeight: 1.5 }}>
-                按配置的时间表，自动从各集成拉取上一周的通知记录，调用 AI 模型生成结构化摘要，并通过机器人推送到指定飞书群组。
+              <p style={{ fontSize: '0.8125rem', color: '#6b7280', margin: 0, lineHeight: 1.5, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                定时收集集成数据，AI 生成摘要并推送至飞书
               </p>
             </div>
             <div style={{ padding: '1.25rem 1.5rem', display: 'flex', alignItems: 'center', gap: '2rem', borderRight: '1px solid #f3f4f6', flexShrink: 0 }}>
@@ -743,9 +746,10 @@ const Services: React.FC = () => {
                 <div style={{ fontSize: '0.75rem', color: '#9ca3af', marginBottom: '0.25rem' }}>本周发送</div>
                 <div style={{ fontSize: '1.375rem', fontWeight: 700, color: '#1f2937' }}>5</div>
               </div>
-              <div style={{ textAlign: 'center' }}>
-                <div style={{ fontSize: '0.75rem', color: '#9ca3af', marginBottom: '0.25rem' }}>成功率</div>
-                <div style={{ fontSize: '1.375rem', fontWeight: 700, color: '#1f2937' }}>100%</div>
+              <div style={{ textAlign: 'center', position: 'relative' }}>
+                <div style={{ position: 'absolute', left: '50%', top: '0', transform: 'translateX(-50%)', height: '100%', width: '1px', backgroundColor: '#f3f4f6' }} />
+                <div style={{ fontSize: '0.75rem', color: '#9ca3af', marginBottom: '0.25rem' }}>下次发送</div>
+                <div style={{ fontSize: '1.375rem', fontWeight: 700, color: '#1f2937' }} title="countdown">2天 6小时</div>
               </div>
             </div>
           </div>
@@ -787,12 +791,42 @@ const Services: React.FC = () => {
           <div style={{ background: 'white', borderRadius: '0.5rem', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', marginBottom: '2rem' }}>
             <div style={{ padding: '1rem 1.5rem', borderBottom: '1px solid #e5e7eb', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.625rem' }}>
-                <span style={{ fontSize: '0.9375rem', fontWeight: 700, color: '#1f2328' }}>📋 已配置任务</span>
+                <span style={{ fontSize: '0.9375rem', fontWeight: 700, color: '#1f2328' }}>已配置任务</span>
                 <span style={{ fontSize: '0.8125rem', color: '#656d76' }}>共 3 个</span>
               </div>
-              <button style={{ padding: '0.375rem 0.875rem', backgroundColor: '#1f883d', color: 'white', border: 'none', borderRadius: '0.375rem', cursor: 'pointer', fontSize: '0.8125rem', fontWeight: 500 }}>
-                + 新增
-              </button>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                {/* 筛选按钮组 */}
+                <select 
+                  value={filterStatus} 
+                  onChange={(e) => setFilterStatus(e.target.value as 'all' | 'active' | 'inactive')}
+                  style={{ padding: '0.375rem 0.625rem', fontSize: '0.8125rem', border: '1px solid #d1d5db', borderRadius: '0.375rem', backgroundColor: 'white', cursor: 'pointer', fontWeight: 500 }}
+                >
+                  <option value="all">全部状态</option>
+                  <option value="active">运行中</option>
+                  <option value="inactive">已停止</option>
+                </select>
+                <select 
+                  value={filterRobot} 
+                  onChange={(e) => setFilterRobot(e.target.value)}
+                  style={{ padding: '0.375rem 0.625rem', fontSize: '0.8125rem', border: '1px solid #d1d5db', borderRadius: '0.375rem', backgroundColor: 'white', cursor: 'pointer', fontWeight: 500 }}
+                >
+                  <option value="all">全部机器人</option>
+                  <option value="主汇报机器人">主汇报机器人</option>
+                  <option value="研发群机器人">研发群机器人</option>
+                </select>
+                <select 
+                  value={filterModel} 
+                  onChange={(e) => setFilterModel(e.target.value)}
+                  style={{ padding: '0.375rem 0.625rem', fontSize: '0.8125rem', border: '1px solid #d1d5db', borderRadius: '0.375rem', backgroundColor: 'white', cursor: 'pointer', fontWeight: 500 }}
+                >
+                  <option value="all">全部模型</option>
+                  <option value="GPT-4o">GPT-4o</option>
+                  <option value="GPT-4o mini">GPT-4o mini</option>
+                </select>
+                <button style={{ padding: '0.375rem 0.875rem', backgroundColor: '#1f883d', color: 'white', border: 'none', borderRadius: '0.375rem', cursor: 'pointer', fontSize: '0.8125rem', fontWeight: 500 }}>
+                  + 新增
+                </button>
+              </div>
             </div>
             <div style={{ overflowX: 'auto' }}>
               <table style={{ width: '100%', borderCollapse: 'collapse', tableLayout: 'fixed', minWidth: '950px' }}>
@@ -877,9 +911,9 @@ const Services: React.FC = () => {
                                 <CalendarDays size={12} color="#57606a" />
                                 {task.lastSent.split(' ')[0]}
                               </div>
-                              <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem', color: '#656d76', fontSize: '0.72rem', whiteSpace: 'nowrap' }}>
+                              <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem', color: '#656d76', fontSize: '0.8125rem', whiteSpace: 'nowrap', fontWeight: 500 }}>
                                 <Clock3 size={12} color="#57606a" />
-                                {task.lastSent.split(' ')[1]}
+                                {(task.lastSent.split(' ')[1] || '00:00') + ':00'}
                               </div>
                             </div>
 
