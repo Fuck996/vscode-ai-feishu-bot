@@ -734,7 +734,7 @@ const Dashboard: React.FC = () => {
                             </span>
                             <span style={{ color: '#656d76', fontSize: '0.75rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                               {notification.source
-                                || (notification.robotName ? `系统消息/${notification.robotName}` : '系统消息/测试消息')
+                                || (notification.robotName ? `系统通知/${notification.robotName}` : '系统通知/测试消息')
                               }
                             </span>
                           </div>
