@@ -475,9 +475,9 @@ export default function Robots() {
                             <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}>
                               <SceneIcon name="robotMessage" size={16} title={robot.name} />
                               <span
-                                style={{ fontWeight: 600, color: '#0969da', fontSize: '0.875rem', cursor: 'pointer', textDecoration: 'underline', textDecorationColor: 'transparent' }}
-                                onMouseEnter={e => { (e.currentTarget as HTMLSpanElement).style.textDecorationColor = '#0969da'; }}
-                                onMouseLeave={e => { (e.currentTarget as HTMLSpanElement).style.textDecorationColor = 'transparent'; }}
+                                style={{ fontWeight: 600, color: '#1f2328', fontSize: '0.875rem', cursor: 'pointer', textDecoration: 'none' }}
+                                onMouseEnter={e => { e.currentTarget.style.color = '#0969da'; e.currentTarget.style.textDecoration = 'underline'; }}
+                                onMouseLeave={e => { e.currentTarget.style.color = '#1f2328'; e.currentTarget.style.textDecoration = 'none'; }}
                                 onClick={() => navigate(`/robots/${robot.id}/integrations`)}
                               >{robot.name}</span>
                             </span>

@@ -228,8 +228,9 @@ if ($bytes[0] -eq 0xEF -and $bytes[1] -eq 0xBB -and $bytes[2] -eq 0xBF) {
 #### 3. 本地构建与测试
 - **前端构建**：`npm run build` 生成生产版本
 - **后端重启**：
-  - 停止当前进程
-  - 启动新进程（使用 `npm run dev` 或 `npm start`）
+  - 停止当前进程（`Stop-Process -Name node -Force`）
+  - 在 **VSCode 集成终端**中启动新进程（`npm run dev` 或 `npm start`）
+  - **禁止使用 `Start-Process` 启动外部终端窗口**，所有命令必须在 VSCode 内部终端执行
   - 验证启动成功（通过 API 检查）
 - **基本验证**：测试关键功能是否正常
 

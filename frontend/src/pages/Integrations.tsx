@@ -138,8 +138,10 @@ export default function Integrations() {
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [togglingId, setTogglingId] = useState<string | null>(null);
-  const [filterStatus, setFilterStatus] = useState('');
-  const [filterType, setFilterType] = useState('');
+  const [filterStatus, setFilterStatus] = useState<string[]>([]);
+  const [filterType, setFilterType] = useState<string[]>([]);
+  const [filterStatusOpen, setFilterStatusOpen] = useState(false);
+  const [filterTypeOpen, setFilterTypeOpen] = useState(false);
 
   // 模态框状态
   const [modalOpen, setModalOpen] = useState(false);
@@ -328,10 +330,18 @@ export default function Integrations() {
 
   // ===== 页面渲染 =====
   const filteredIntegrations = integrations.filter(i => {
-    if (filterStatus && i.status !== filterStatus) return false;
-    if (filterType && i.projectType !== filterType) return false;
+    if (filterStatus.length > 0 && !filterStatus.includes(i.status)) return false;
+    if (filterType.length > 0 && !filterType.includes(i.projectType)) return false;
     return true;
   });
+
+  // 点击外部关闭筛选下拉
+  React.useEffect(() => {
+    if (!filterStatusOpen && !filterTypeOpen) return;
+    const handle = () => { setFilterStatusOpen(false); setFilterTypeOpen(false); };
+    const timer = setTimeout(() => window.addEventListener('click', handle), 0);
+    return () => { clearTimeout(timer); window.removeEventListener('click', handle); };
+  }, [filterStatusOpen, filterTypeOpen]);
 
   if (loading) return (
     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh', backgroundColor: '#f6f8fa', flexDirection: 'column', gap: '1.5rem' }}>
@@ -387,22 +397,77 @@ export default function Integrations() {
             </div>
             <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
               <button onClick={openCreateModal} style={{ padding: '0.375rem 0.875rem', backgroundColor: '#1f883d', color: 'white', border: 'none', borderRadius: '0.375rem', cursor: 'pointer', fontSize: '0.8125rem', fontWeight: 500, whiteSpace: 'nowrap' }}>添加集成</button>
-              <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)} style={{ padding: '0.3rem 0.6rem', border: '1px solid #d0d7de', borderRadius: '0.375rem', fontSize: '0.8125rem', background: 'white', color: '#1f2328', cursor: 'pointer' }}>
-                <option value="">状态：全部</option>
-                <option value="active">启用</option>
-                <option value="inactive">停用</option>
-              </select>
-              <select value={filterType} onChange={e => setFilterType(e.target.value)} style={{ padding: '0.3rem 0.6rem', border: '1px solid #d0d7de', borderRadius: '0.375rem', fontSize: '0.8125rem', background: 'white', color: '#1f2328', cursor: 'pointer' }}>
-                <option value="">类型：全部</option>
-                <option value="github">GitHub</option>
-                <option value="gitlab">GitLab</option>
-                <option value="vercel">Vercel</option>
-                <option value="railway">Railway</option>
-                <option value="synology">Synology</option>
-                <option value="vscode-chat">VSCode</option>
-                <option value="api">API</option>
-                <option value="custom">自定义</option>
-              </select>
+
+              {/* 状态筛选 pill */}
+              <div style={{ position: 'relative' }} onClick={e => e.stopPropagation()}>
+                <button type="button"
+                  onClick={() => { setFilterStatusOpen(v => !v); setFilterTypeOpen(false); }}
+                  style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', padding: '0.3rem 0.7rem', border: '1px solid #d0d7de', borderRadius: '0.375rem', background: filterStatus.length > 0 ? '#f0f6ff' : 'white', cursor: 'pointer', fontSize: '0.8125rem', color: filterStatus.length > 0 ? '#0969da' : '#1f2328', fontWeight: filterStatus.length > 0 ? 600 : 400 }}
+                >
+                  状态{filterStatus.length > 0 ? ` · ${filterStatus.length}` : ''} <span style={{ fontSize: '0.65rem', opacity: 0.6 }}>▼</span>
+                </button>
+                {filterStatusOpen && (
+                  <div style={{ position: 'absolute', top: 'calc(100% + 4px)', right: 0, minWidth: '140px', background: 'white', border: '1px solid #d0d7de', borderRadius: '0.5rem', boxShadow: '0 8px 24px rgba(0,0,0,0.12)', zIndex: 30, overflow: 'hidden' }}>
+                    <div style={{ padding: '0.5rem 0.75rem', borderBottom: '1px solid #e5e7eb', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span style={{ fontSize: '0.8125rem', fontWeight: 600, color: '#1f2328' }}>按状态筛选</span>
+                      {filterStatus.length > 0 && <button onClick={() => setFilterStatus([])} style={{ fontSize: '0.75rem', color: '#0969da', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>清除</button>}
+                    </div>
+                    {[{ value: 'active', label: '启用', color: '#10b981' }, { value: 'inactive', label: '停用', color: '#9ca3af' }].map(opt => {
+                      const sel = filterStatus.includes(opt.value);
+                      return (
+                        <button key={opt.value} type="button"
+                          onClick={() => setFilterStatus(prev => sel ? prev.filter(s => s !== opt.value) : [...prev, opt.value])}
+                          style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.5rem 0.75rem', border: 'none', background: sel ? '#f0f6ff' : 'transparent', cursor: 'pointer', textAlign: 'left' }}
+                        >
+                          <div style={{ width: '14px', height: '14px', borderRadius: '0.2rem', border: `1px solid ${sel ? '#0969da' : '#d0d7de'}`, background: sel ? '#0969da' : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                            {sel && <span style={{ color: 'white', fontSize: '0.55rem', fontWeight: 700, lineHeight: 1 }}>✓</span>}
+                          </div>
+                          <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: opt.color, flexShrink: 0 }} />
+                          <span style={{ fontSize: '0.8125rem', color: '#1f2328', fontWeight: sel ? 600 : 400 }}>{opt.label}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+
+              {/* 类型筛选 pill */}
+              <div style={{ position: 'relative' }} onClick={e => e.stopPropagation()}>
+                <button type="button"
+                  onClick={() => { setFilterTypeOpen(v => !v); setFilterStatusOpen(false); }}
+                  style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', padding: '0.3rem 0.7rem', border: '1px solid #d0d7de', borderRadius: '0.375rem', background: filterType.length > 0 ? '#f0f6ff' : 'white', cursor: 'pointer', fontSize: '0.8125rem', color: filterType.length > 0 ? '#0969da' : '#1f2328', fontWeight: filterType.length > 0 ? 600 : 400 }}
+                >
+                  类型{filterType.length > 0 ? ` · ${filterType.length}` : ''} <span style={{ fontSize: '0.65rem', opacity: 0.6 }}>▼</span>
+                </button>
+                {filterTypeOpen && (
+                  <div style={{ position: 'absolute', top: 'calc(100% + 4px)', right: 0, minWidth: '150px', background: 'white', border: '1px solid #d0d7de', borderRadius: '0.5rem', boxShadow: '0 8px 24px rgba(0,0,0,0.12)', zIndex: 30, overflow: 'hidden' }}>
+                    <div style={{ padding: '0.5rem 0.75rem', borderBottom: '1px solid #e5e7eb', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span style={{ fontSize: '0.8125rem', fontWeight: 600, color: '#1f2328' }}>按类型筛选</span>
+                      {filterType.length > 0 && <button onClick={() => setFilterType([])} style={{ fontSize: '0.75rem', color: '#0969da', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>清除</button>}
+                    </div>
+                    <div style={{ maxHeight: '220px', overflowY: 'auto' }}>
+                      {[{ value: 'github', label: 'GitHub' }, { value: 'gitlab', label: 'GitLab' }, { value: 'vercel', label: 'Vercel' }, { value: 'railway', label: 'Railway' }, { value: 'synology', label: 'Synology' }, { value: 'vscode-chat', label: 'VSCode' }, { value: 'api', label: 'API' }, { value: 'custom', label: '自定义' }].map(opt => {
+                        const sel = filterType.includes(opt.value);
+                        return (
+                          <button key={opt.value} type="button"
+                            onClick={() => setFilterType(prev => sel ? prev.filter(t => t !== opt.value) : [...prev, opt.value])}
+                            style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.45rem 0.75rem', border: 'none', background: sel ? '#f0f6ff' : 'transparent', cursor: 'pointer', textAlign: 'left' }}
+                          >
+                            <div style={{ width: '14px', height: '14px', borderRadius: '0.2rem', border: `1px solid ${sel ? '#0969da' : '#d0d7de'}`, background: sel ? '#0969da' : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                              {sel && <span style={{ color: 'white', fontSize: '0.55rem', fontWeight: 700, lineHeight: 1 }}>✓</span>}
+                            </div>
+                            <span style={{ ...typeBadgeStyle, ...TYPE_COLORS[opt.value as keyof typeof TYPE_COLORS], fontSize: '0.7rem', padding: '0.1rem 0.4rem' }}>{opt.label}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {(filterStatus.length > 0 || filterType.length > 0) && (
+                <button type="button" onClick={() => { setFilterStatus([]); setFilterType([]); }} style={{ fontSize: '0.8125rem', color: '#cf222e', background: 'none', border: 'none', cursor: 'pointer', padding: '0.25rem 0.375rem', borderRadius: '0.25rem' }}>清除筛选</button>
+              )}
             </div>
           </div>
 
@@ -422,28 +487,33 @@ export default function Integrations() {
               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.875rem' }}>
                 <thead>
                   <tr style={{ background: '#f9fafb' }}>
-                    <th style={thStyle(14)}>类型</th>
-                    <th style={thStyle(16)}>项目名称</th>
-                    <th style={thStyle(22)}>触发事件</th>
-                    <th style={thStyle(10)}>通知时机</th>
+                    <th style={thStyle(22)}>项目名称</th>
+                    <th style={thStyle(16)}>类型 / 通知时机</th>
+                    <th style={thStyle(25)}>触发事件</th>
                     <th style={thStyle(8)}>状态</th>
-                    <th style={thStyle(30)}>操作 / Webhook</th>
+                    <th style={thStyle(29)}>操作</th>
                   </tr>
                 </thead>
                 <tbody>
                   {filteredIntegrations.map(integration => (
                     <tr key={integration.id} style={{ borderBottom: '1px solid #f3f4f6' }}>
-                      <td style={tdStyle}>
-                        <span style={{ ...typeBadgeStyle, ...TYPE_COLORS[integration.projectType] }}>
-                          {TYPE_LABELS[integration.projectType]}
-                        </span>
-                      </td>
+                      {/* 项目名称 */}
                       <td style={tdStyle}>
                         <div style={{ fontWeight: 500 }}>{integration.projectName}</div>
                         {integration.projectSubName && (
                           <div style={{ fontSize: '0.75rem', color: '#9ca3af' }}>{integration.projectSubName}</div>
                         )}
                       </td>
+                      {/* 类型 + 通知时机 */}
+                      <td style={tdStyle}>
+                        <span style={{ ...typeBadgeStyle, ...TYPE_COLORS[integration.projectType] }}>
+                          {TYPE_LABELS[integration.projectType]}
+                        </span>
+                        <div style={{ marginTop: '0.2rem', fontSize: '0.75rem', color: '#6b7280' }}>
+                          {NOTIFY_ON_OPTIONS.find(o => o.value === integration.notifyOn)?.label || integration.notifyOn}
+                        </div>
+                      </td>
+                      {/* 触发事件 */}
                       <td style={tdStyle}>
                         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.25rem' }}>
                           {integration.triggeredEvents.length === 0 ? (
@@ -464,9 +534,7 @@ export default function Integrations() {
                           })}
                         </div>
                       </td>
-                      <td style={{ ...tdStyle, color: '#6b7280', fontSize: '0.8rem' }}>
-                        {NOTIFY_ON_OPTIONS.find(o => o.value === integration.notifyOn)?.label || integration.notifyOn}
-                      </td>
+                      {/* 状态 */}
                       <td style={tdStyle}>
                         <ToggleSwitch
                           checked={integration.status === 'active'}
@@ -1134,7 +1202,8 @@ function SetupGuideModal({ integration, apiBaseUrl, viewMode, onClose }: {
         </div>
 
         <div style={{ padding: '1.5rem' }}>
-          {/* Webhook URL */}
+          {/* Webhook URL（MCP类型不显示，Token已内嵌在MCP配置中）*/}
+          {integration.projectType !== 'vscode-chat' && (
           <div style={{ marginBottom: '1.25rem' }}>
             <label style={{ ...labelStyle, color: '#dc2626' }}>📡 Webhook 接收地址</label>
             <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
@@ -1144,8 +1213,10 @@ function SetupGuideModal({ integration, apiBaseUrl, viewMode, onClose }: {
               </button>
             </div>
           </div>
+          )}
 
-          {/* Webhook Secret */}
+          {/* Webhook Secret（MCP类型不显示）*/}
+          {integration.projectType !== 'vscode-chat' && (
           <div style={{ marginBottom: '1.25rem' }}>
             <label style={{ ...labelStyle, color: '#dc2626' }}>🔑 Webhook Secret <span style={{ fontWeight: 400, color: '#6b7280', fontSize: '0.78rem' }}>（仅此一次，请妥善保存）</span></label>
             <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
@@ -1156,6 +1227,7 @@ function SetupGuideModal({ integration, apiBaseUrl, viewMode, onClose }: {
             </div>
             <p style={{ margin: '0.35rem 0 0', fontSize: '0.75rem', color: '#dc2626' }}>{!viewMode && '⚠️ Secret 只在创建时显示一次，关闭弹窗后将无法再次查看'}</p>
           </div>
+          )}
 
           {/* 平台配置步骤 */}
           {integration.projectType === 'vscode-chat' ? (
