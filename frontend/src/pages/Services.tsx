@@ -117,6 +117,9 @@ const Services: React.FC = () => {
   const [taskModalOpen, setTaskModalOpen] = useState(false);
   const [taskModalMode, setTaskModalMode] = useState<'add' | 'edit'>('add');
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
+  const [modalWeekdays, setModalWeekdays] = useState<number[]>([1]);
+  const [modalModel, setModalModel] = useState<string>('GPT-4o');
+  const [modalStyle, setModalStyle] = useState<string>('数据导向');
   const logPanelRef = useRef<HTMLDivElement>(null);
 
   // 菜单项样式函数
@@ -696,7 +699,7 @@ const Services: React.FC = () => {
             marginBottom: '2rem',
           }}>
             <div style={{
-              background: 'linear-gradient(135deg, #10b981, #059669)',
+              background: 'linear-gradient(135deg, #8b5cf6, #6d28d9)',
               color: 'white',
               padding: '1.25rem 1.5rem',
               display: 'flex',
@@ -734,7 +737,7 @@ const Services: React.FC = () => {
                 AI 汇报服务
               </div>
               <div style={{ fontSize: '0.75rem', color: '#9ca3af', marginBottom: '0.5rem' }}>
-                Scheduled · AI Summary · Feishu Distribution
+                AI Report · Smart Digest · Auto Delivery
               </div>
               <p style={{ fontSize: '0.8125rem', color: '#6b7280', margin: 0, lineHeight: 1.5, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                 定时收集集成数据，AI 生成摘要并推送至飞书
@@ -797,6 +800,13 @@ const Services: React.FC = () => {
                 <span style={{ fontSize: '0.8125rem', color: '#656d76' }}>共 3 个</span>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                <button 
+                  onClick={() => { setTaskModalMode('add'); setTaskModalOpen(true); }}
+                  style={{ padding: '0.375rem 0.875rem', backgroundColor: '#1f883d', color: 'white', border: 'none', borderRadius: '0.375rem', cursor: 'pointer', fontSize: '0.8125rem', fontWeight: 500 }}>
+                  + 新增
+                </button>
+                {/* 分隔线 */}
+                <span style={{ width: '1px', height: '20px', backgroundColor: '#e5e7eb' }} />
                 {/* 筛选按钮组 */}
                 <button 
                   onClick={() => setFilterStatus(filterStatus === 'all' ? 'active' : 'all')}
@@ -866,11 +876,6 @@ const Services: React.FC = () => {
                     <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: '16px', height: '16px', borderRadius: '50%', backgroundColor: '#0969da', color: 'white', fontSize: '0.6rem', fontWeight: 700 }}>1</span>
                   )}
                   <ChevronDown size={13} />
-                </button>
-                <button 
-                  onClick={() => { setTaskModalMode('add'); setTaskModalOpen(true); }}
-                  style={{ padding: '0.375rem 0.875rem', backgroundColor: '#1f883d', color: 'white', border: 'none', borderRadius: '0.375rem', cursor: 'pointer', fontSize: '0.8125rem', fontWeight: 500 }}>
-                  + 新增
                 </button>
               </div>
             </div>
@@ -1224,46 +1229,270 @@ const Services: React.FC = () => {
             </div>
 
             {/* 弹窗体 */}
-            <div style={{ padding: '1.5rem' }}>
-              <div style={{ marginBottom: '1.5rem' }}>
+            <div style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+
+              {/* ── 第1区：基础信息 ── */}
+              <div>
                 <div style={{ fontSize: '0.8125rem', fontWeight: 600, color: '#374151', marginBottom: '0.875rem', paddingBottom: '0.5rem', borderBottom: '1px solid #f3f4f6' }}>
                   📝 基础信息
                 </div>
-                <div style={{ marginBottom: '1rem' }}>
-                  <label style={{ display: 'block', fontSize: '0.8125rem', fontWeight: 500, color: '#374151', marginBottom: '0.375rem' }}>
-                    任务名称 <span style={{ color: '#ef4444' }}>*</span>
-                  </label>
-                  <input type="text" placeholder="如：飞书 AI 系统周报" style={{ width: '100%', padding: '0.5rem 0.75rem', border: '1px solid #d1d5db', borderRadius: '0.375rem', fontSize: '0.875rem', fontFamily: 'inherit' }} />
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.875rem' }}>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.8125rem', fontWeight: 500, color: '#374151', marginBottom: '0.35rem' }}>
+                      任务名称 <span style={{ color: '#ef4444' }}>*</span>
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="如：飞书 AI 系统周报"
+                      style={{ width: '100%', padding: '0.5rem 0.75rem', border: '1px solid #d1d5db', borderRadius: '0.375rem', fontSize: '0.875rem', fontFamily: 'inherit', boxSizing: 'border-box' }}
+                    />
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.8125rem', fontWeight: 500, color: '#374151', marginBottom: '0.35rem' }}>
+                      任务描述
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="简要描述该汇报任务的用途"
+                      style={{ width: '100%', padding: '0.5rem 0.75rem', border: '1px solid #d1d5db', borderRadius: '0.375rem', fontSize: '0.875rem', fontFamily: 'inherit', boxSizing: 'border-box' }}
+                    />
+                  </div>
                 </div>
               </div>
 
-              <div style={{ marginBottom: '1.5rem' }}>
+              {/* ── 第2区：发送计划 ── */}
+              <div>
                 <div style={{ fontSize: '0.8125rem', fontWeight: 600, color: '#374151', marginBottom: '0.875rem', paddingBottom: '0.5rem', borderBottom: '1px solid #f3f4f6' }}>
                   📅 发送计划
                 </div>
-                <div style={{ marginBottom: '1rem' }}>
-                  <label style={{ display: 'block', fontSize: '0.8125rem', fontWeight: 500, color: '#374151', marginBottom: '0.375rem' }}>
-                    发送时间 <span style={{ color: '#ef4444' }}>*</span>
-                  </label>
-                  <input type="time" value="09:00" style={{ width: '100%', padding: '0.5rem 0.75rem', border: '1px solid #d1d5db', borderRadius: '0.375rem', fontSize: '0.875rem', fontFamily: 'inherit' }} />
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.875rem' }}>
+                  {/* 星期多选 */}
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.8125rem', fontWeight: 500, color: '#374151', marginBottom: '0.5rem' }}>
+                      发送星期 <span style={{ color: '#ef4444' }}>*</span>
+                    </label>
+                    <div style={{ display: 'flex', gap: '0.5rem' }}>
+                      {(['一','二','三','四','五','六','日']).map((day, idx) => {
+                        const dayNum = idx + 1; // 1=周一 … 7=周日
+                        const isSelected = modalWeekdays.includes(dayNum);
+                        return (
+                          <button
+                            key={dayNum}
+                            onClick={() => setModalWeekdays(
+                              isSelected
+                                ? modalWeekdays.filter(d => d !== dayNum)
+                                : [...modalWeekdays, dayNum]
+                            )}
+                            style={{
+                              width: '40px',
+                              height: '40px',
+                              borderRadius: '50%',
+                              border: `1.5px solid ${isSelected ? '#3b82f6' : '#d1d5db'}`,
+                              background: isSelected ? '#3b82f6' : 'white',
+                              color: isSelected ? 'white' : '#374151',
+                              fontSize: '0.75rem',
+                              fontWeight: 600,
+                              cursor: 'pointer',
+                              flexShrink: 0,
+                            }}
+                          >
+                            {day}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                  {/* 发送时间 + 统计范围 */}
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                    <div>
+                      <label style={{ display: 'block', fontSize: '0.8125rem', fontWeight: 500, color: '#374151', marginBottom: '0.35rem' }}>
+                        发送时间 <span style={{ color: '#ef4444' }}>*</span>
+                      </label>
+                      <input
+                        type="time"
+                        defaultValue="09:00"
+                        style={{ width: '100%', padding: '0.5rem 0.75rem', border: '1px solid #d1d5db', borderRadius: '0.375rem', fontSize: '0.875rem', fontFamily: 'inherit', boxSizing: 'border-box' }}
+                      />
+                    </div>
+                    <div>
+                      <label style={{ display: 'block', fontSize: '0.8125rem', fontWeight: 500, color: '#374151', marginBottom: '0.35rem' }}>
+                        统计范围
+                      </label>
+                      <select style={{ width: '100%', padding: '0.5rem 0.75rem', border: '1px solid #d1d5db', borderRadius: '0.375rem', fontSize: '0.875rem', fontFamily: 'inherit', backgroundColor: 'white', boxSizing: 'border-box' }}>
+                        <option>最近 7 天</option>
+                        <option>最近 14 天</option>
+                        <option>最近 30 天</option>
+                        <option>本周</option>
+                        <option>本月</option>
+                      </select>
+                    </div>
+                  </div>
+                  {/* 计划预览行 */}
+                  <div style={{ padding: '0.625rem 0.875rem', backgroundColor: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: '0.5rem', fontSize: '0.8125rem', color: '#1d4ed8', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <CalendarDays size={14} />
+                    <span>
+                      每周{modalWeekdays.map(d => ['一','二','三','四','五','六','日'][d-1]).join('、')} 09:00 发送，覆盖最近 7 天数据
+                    </span>
+                  </div>
                 </div>
               </div>
 
-              <div style={{ marginBottom: '1.5rem' }}>
+              {/* ── 第3区：汇总集成 ── */}
+              <div>
+                <div style={{ fontSize: '0.8125rem', fontWeight: 600, color: '#374151', marginBottom: '0.875rem', paddingBottom: '0.5rem', borderBottom: '1px solid #f3f4f6' }}>
+                  🔗 汇总集成
+                </div>
+                <div style={{ border: '1px solid #d1d5db', borderRadius: '0.5rem', overflow: 'hidden' }}>
+                  {[
+                    { name: 'GitHub 代码仓库', type: 'GitHub', meta: '126 次事件' },
+                    { name: '飞书工作群组', type: '飞书', meta: '89 条消息' },
+                    { name: 'Jira 任务追踪', type: 'Jira', meta: '34 个 Issue' },
+                  ].map((item, idx) => (
+                    <label
+                      key={idx}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        padding: '0.625rem 0.875rem',
+                        gap: '0.75rem',
+                        borderBottom: idx < 2 ? '1px solid #f3f4f6' : 'none',
+                        cursor: 'pointer',
+                        backgroundColor: 'white',
+                      }}
+                    >
+                      <input type="checkbox" defaultChecked style={{ width: '15px', height: '15px', cursor: 'pointer', accentColor: '#3b82f6' }} />
+                      <span style={{ flex: 1, fontSize: '0.875rem', color: '#1f2937', fontWeight: 500 }}>{item.name}</span>
+                      <span style={{ fontSize: '0.6875rem', padding: '0.125rem 0.5rem', backgroundColor: '#f3f4f6', color: '#6b7280', borderRadius: '0.25rem', fontWeight: 500 }}>{item.type}</span>
+                      <span style={{ fontSize: '0.75rem', color: '#9ca3af' }}>{item.meta}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+
+              {/* ── 第4区：AI 摘要配置 ── */}
+              <div>
                 <div style={{ fontSize: '0.8125rem', fontWeight: 600, color: '#374151', marginBottom: '0.875rem', paddingBottom: '0.5rem', borderBottom: '1px solid #f3f4f6' }}>
                   🤖 AI 摘要配置
                 </div>
-                <div style={{ marginBottom: '1rem' }}>
-                  <label style={{ display: 'block', fontSize: '0.8125rem', fontWeight: 500, color: '#374151', marginBottom: '0.375rem' }}>
-                    AI 模型
-                  </label>
-                  <select style={{ width: '100%', padding: '0.5rem 0.75rem', border: '1px solid #d1d5db', borderRadius: '0.375rem', fontSize: '0.875rem', fontFamily: 'inherit', backgroundColor: 'white' }}>
-                    <option>GPT-4o</option>
-                    <option>GPT-4o mini</option>
-                    <option>Claude 3.5 Sonnet</option>
-                  </select>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.875rem' }}>
+                  {/* 模型卡片网格 */}
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.8125rem', fontWeight: 500, color: '#374151', marginBottom: '0.5rem' }}>
+                      AI 模型 <span style={{ color: '#ef4444' }}>*</span>
+                    </label>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
+                      {[
+                        { id: 'GPT-4o', label: 'GPT-4o', desc: '效果最佳，速度均衡' },
+                        { id: 'GPT-4o mini', label: 'GPT-4o mini', desc: '速度快，成本低' },
+                        { id: 'Claude 3.5 Sonnet', label: 'Claude 3.5', desc: '擅长长文档分析' },
+                        { id: 'custom', label: '自定义模型', desc: '填写 API 信息' },
+                      ].map(m => {
+                        const isSelected = modalModel === m.id;
+                        return (
+                          <div
+                            key={m.id}
+                            onClick={() => setModalModel(m.id)}
+                            style={{
+                              border: `1.5px solid ${isSelected ? '#3b82f6' : '#d1d5db'}`,
+                              borderRadius: '0.5rem',
+                              padding: '0.75rem',
+                              cursor: 'pointer',
+                              backgroundColor: isSelected ? '#eff6ff' : 'white',
+                              transition: 'all 0.15s',
+                            }}
+                          >
+                            <div style={{ fontWeight: 600, fontSize: '0.875rem', color: isSelected ? '#1d4ed8' : '#1f2937' }}>{m.label}</div>
+                            <div style={{ fontSize: '0.75rem', color: '#6b7280', marginTop: '0.125rem' }}>{m.desc}</div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                  {/* API Key */}
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.8125rem', fontWeight: 500, color: '#374151', marginBottom: '0.35rem' }}>
+                      API Key
+                    </label>
+                    <input
+                      type="password"
+                      placeholder="sk-..."
+                      style={{ width: '100%', padding: '0.5rem 0.75rem', border: '1px solid #d1d5db', borderRadius: '0.375rem', fontSize: '0.875rem', fontFamily: 'inherit', boxSizing: 'border-box' }}
+                    />
+                  </div>
+                  {/* 汇报风格 pills */}
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.8125rem', fontWeight: 500, color: '#374151', marginBottom: '0.5rem' }}>
+                      汇报风格
+                    </label>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
+                      {['数据导向', '管理摘要', '技术详情', '简报模式'].map(style => {
+                        const isSelected = modalStyle === style;
+                        return (
+                          <button
+                            key={style}
+                            onClick={() => setModalStyle(style)}
+                            style={{
+                              padding: '0.375rem 0.875rem',
+                              border: `1.5px solid ${isSelected ? '#3b82f6' : '#d1d5db'}`,
+                              borderRadius: '1rem',
+                              fontSize: '0.8125rem',
+                              fontWeight: 500,
+                              cursor: 'pointer',
+                              backgroundColor: isSelected ? '#eff6ff' : 'white',
+                              color: isSelected ? '#1d4ed8' : '#374151',
+                              transition: 'all 0.15s',
+                            }}
+                          >
+                            {style}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                  {/* 自定义提示词 */}
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.8125rem', fontWeight: 500, color: '#374151', marginBottom: '0.35rem' }}>
+                      自定义提示词
+                    </label>
+                    <textarea
+                      placeholder="可选：补充 AI 生成时的额外指令，如强调某类数据或语气要求…"
+                      rows={3}
+                      style={{ width: '100%', padding: '0.5rem 0.75rem', border: '1px solid #d1d5db', borderRadius: '0.375rem', fontSize: '0.875rem', fontFamily: 'inherit', resize: 'vertical', boxSizing: 'border-box' }}
+                    />
+                  </div>
                 </div>
               </div>
+
+              {/* ── 第5区：推送目标 ── */}
+              <div>
+                <div style={{ fontSize: '0.8125rem', fontWeight: 600, color: '#374151', marginBottom: '0.875rem', paddingBottom: '0.5rem', borderBottom: '1px solid #f3f4f6' }}>
+                  📤 推送目标
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.8125rem', fontWeight: 500, color: '#374151', marginBottom: '0.35rem' }}>
+                      汇报机器人 <span style={{ color: '#ef4444' }}>*</span>
+                    </label>
+                    <select style={{ width: '100%', padding: '0.5rem 0.75rem', border: '1px solid #d1d5db', borderRadius: '0.375rem', fontSize: '0.875rem', fontFamily: 'inherit', backgroundColor: 'white', boxSizing: 'border-box' }}>
+                      <option>请选择机器人</option>
+                      <option>主汇报机器人</option>
+                      <option>测试机器人</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.8125rem', fontWeight: 500, color: '#374151', marginBottom: '0.35rem' }}>
+                      消息卡片颜色
+                    </label>
+                    <select style={{ width: '100%', padding: '0.5rem 0.75rem', border: '1px solid #d1d5db', borderRadius: '0.375rem', fontSize: '0.875rem', fontFamily: 'inherit', backgroundColor: 'white', boxSizing: 'border-box' }}>
+                      <option>🔵 蓝色（默认）</option>
+                      <option>🟢 绿色</option>
+                      <option>🟣 紫色</option>
+                      <option>🟠 橙色</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+
             </div>
 
             {/* 弹窗底 */}
@@ -1274,7 +1503,7 @@ const Services: React.FC = () => {
               justifyContent: 'flex-end',
               gap: '0.625rem',
             }}>
-              <button 
+              <button
                 onClick={() => setTaskModalOpen(false)}
                 style={{
                   padding: '0.5rem 1rem',
@@ -1289,7 +1518,21 @@ const Services: React.FC = () => {
               >
                 取消
               </button>
-              <button 
+              <button
+                style={{
+                  padding: '0.5rem 1rem',
+                  border: '1.5px solid #1f883d',
+                  background: 'white',
+                  color: '#1f883d',
+                  borderRadius: '0.375rem',
+                  cursor: 'pointer',
+                  fontSize: '0.875rem',
+                  fontWeight: 500,
+                }}
+              >
+                🧪 立即试运行
+              </button>
+              <button
                 onClick={() => setTaskModalOpen(false)}
                 style={{
                   padding: '0.5rem 1rem',
@@ -1302,7 +1545,7 @@ const Services: React.FC = () => {
                   fontWeight: 500,
                 }}
               >
-                {taskModalMode === 'add' ? '创建' : '保存'}
+                {taskModalMode === 'add' ? '创建任务' : '保存任务'}
               </button>
             </div>
           </div>
