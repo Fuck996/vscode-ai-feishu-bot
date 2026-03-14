@@ -98,6 +98,7 @@ function getLogBadges(log: Log): Array<{ key: string; text: string; color: strin
 }
 
 const Services: React.FC = () => {
+  const [activeMenu, setActiveMenu] = useState<'overview' | 'ai-report'>('overview');
   const [services, setServices] = useState<Service[]>([]);
   const [logs, setLogs] = useState<Log[]>([]);
   const [loading, setLoading] = useState(true);
@@ -107,7 +108,24 @@ const Services: React.FC = () => {
   const [countdowns, setCountdowns] = useState<Record<string, TimeCountdown>>({});
   const [autoRefresh, setAutoRefresh] = useState(true);
   const [operatingServiceId, setOperatingServiceId] = useState<string | null>(null);
+  const [hoveredMenu, setHoveredMenu] = useState<string | null>(null);
   const logPanelRef = useRef<HTMLDivElement>(null);
+
+  // 菜单项样式函数
+  const menuItemStyle = (key: string): React.CSSProperties => ({
+    padding: '0.875rem 1.25rem',
+    cursor: 'pointer',
+    borderLeft: activeMenu === key ? '3px solid #1e40af' : '3px solid transparent',
+    fontSize: '0.875rem',
+    color: activeMenu === key ? '#0969da' : '#57606a',
+    backgroundColor: hoveredMenu === key ? '#ddf4ff' : 'transparent',
+    fontWeight: activeMenu === key ? 600 : 400,
+    borderBottom: '1px solid #f3f4f6',
+    display: 'flex',
+    alignItems: 'center',
+    gap: '0.5rem',
+    transition: 'background-color 0.15s ease, color 0.15s ease',
+  });
 
   useEffect(() => {
     fetchServices();
@@ -343,13 +361,56 @@ const Services: React.FC = () => {
   }
 
   return (
-    <div style={{ backgroundColor: '#f6f8fa', minHeight: '100vh', paddingBottom: '2rem' }}>
+    <div style={{ backgroundColor: '#f3f4f6', minHeight: '100vh', paddingBottom: '2rem' }}>
       <div style={{ maxWidth: '1400px', margin: '0 auto', padding: '2rem' }}>
-        {error && (
-          <div style={{ backgroundColor: '#fee2e2', color: '#dc2626', padding: '1rem', borderRadius: '0.5rem', marginBottom: '2rem' }}>
-            {error}
-          </div>
-        )}
+        {/* 页面标题 */}
+        <div style={{ fontSize: '1.875rem', fontWeight: 700, color: '#1f2937', marginBottom: '2rem' }}>
+          服务管理
+        </div>
+
+        {/* 双栏布局 */}
+        <div style={{ display: 'grid', gridTemplateColumns: '220px 1fr', gap: '1.5rem' }}>
+          {/* 左侧菜单面板 */}
+          <aside style={{
+            background: 'white',
+            borderRadius: '0.5rem',
+            boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+            overflow: 'hidden',
+            height: 'fit-content',
+          }}>
+            {/* 菜单项：服务总览 */}
+            <div
+              style={menuItemStyle('overview')}
+              onClick={() => setActiveMenu('overview')}
+              onMouseEnter={() => setHoveredMenu('overview')}
+              onMouseLeave={() => setHoveredMenu(null)}
+            >
+              <SceneIcon name="service" size={16} title="服务总览" inheritColor />
+              服务总览
+            </div>
+
+            {/* 菜单项：AI汇报 */}
+            <div
+              style={menuItemStyle('ai-report')}
+              onClick={() => setActiveMenu('ai-report')}
+              onMouseEnter={() => setHoveredMenu('ai-report')}
+              onMouseLeave={() => setHoveredMenu(null)}
+            >
+              <SceneIcon name="history" size={16} title="AI汇报" inheritColor />
+              AI汇报
+            </div>
+          </aside>
+
+          {/* 右侧内容区 */}
+          <main>
+            {/* 服务总览内容 */}
+            {activeMenu === 'overview' && (
+              <div>
+                {error && (
+                  <div style={{ backgroundColor: '#fee2e2', color: '#dc2626', padding: '1rem', borderRadius: '0.5rem', marginBottom: '2rem' }}>
+                    {error}
+                  </div>
+                )}
 
         {/* 服务卡片列表 - 横向宽条形式 */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginBottom: '2rem' }}>
@@ -610,6 +671,258 @@ const Services: React.FC = () => {
               ))
             )}
           </div>
+        </div>
+      </div>
+            )}
+
+      {/* AI汇报内容 */}
+      {activeMenu === 'ai-report' && (
+        <div>
+          {/* 页面标题 */}
+          <div style={{ marginBottom: '2rem' }}>
+            <div style={{ fontSize: '1.25rem', fontWeight: 700, color: '#1f2937', marginBottom: '0.25rem' }}>
+              AI 周报摘要服务
+            </div>
+            <div style={{ fontSize: '0.875rem', color: '#6b7280' }}>
+              定时收集各集成的历史通知，由 AI 生成摘要后推送到飞书群组
+            </div>
+          </div>
+
+          {/* 服务状态卡片 */}
+          <div style={{
+            background: 'white',
+            borderRadius: '0.75rem',
+            boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+            overflow: 'hidden',
+            display: 'flex',
+            marginBottom: '2rem',
+          }}>
+            <div style={{
+              background: 'linear-gradient(135deg, #10b981, #059669)',
+              color: 'white',
+              padding: '1.25rem 1.5rem',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              minWidth: '160px',
+              gap: '0.75rem',
+              flexShrink: 0,
+            }}>
+              <div style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.375rem',
+                background: 'rgba(255,255,255,0.2)',
+                padding: '0.25rem 0.75rem',
+                borderRadius: '1rem',
+                fontSize: '0.75rem',
+                fontWeight: 600,
+                whiteSpace: 'nowrap',
+              }}>
+                <span style={{
+                  width: '6px',
+                  height: '6px',
+                  borderRadius: '50%',
+                  background: 'rgba(255,255,255,0.9)',
+                  animation: 'pulse 2s infinite',
+                  flexShrink: 0,
+                }} />
+                运行中
+              </div>
+            </div>
+            <div style={{ padding: '1.25rem 1.5rem', flex: 1 }}>
+              <div style={{ fontSize: '1rem', fontWeight: 600, color: '#1f2937', marginBottom: '0.25rem' }}>
+                📊 AI 周报摘要服务
+              </div>
+              <div style={{ fontSize: '0.75rem', color: '#9ca3af', marginBottom: '0.5rem' }}>
+                定时调度 · OpenAI 摘要 · 飞书推送
+              </div>
+              <p style={{ fontSize: '0.8125rem', color: '#6b7280', margin: 0, lineHeight: 1.5 }}>
+                按配置的时间表，自动从各集成拉取上一周的通知记录，调用 AI 模型生成结构化摘要，并通过机器人推送到指定飞书群组。
+              </p>
+            </div>
+            <div style={{ padding: '1.25rem 1.5rem', display: 'flex', alignItems: 'center', gap: '2rem', borderRight: '1px solid #f3f4f6', flexShrink: 0 }}>
+              <div style={{ textAlign: 'center' }}>
+                <div style={{ fontSize: '0.75rem', color: '#9ca3af', marginBottom: '0.25rem' }}>周报任务</div>
+                <div style={{ fontSize: '1.375rem', fontWeight: 700, color: '#1f2937' }}>3</div>
+              </div>
+              <div style={{ textAlign: 'center' }}>
+                <div style={{ fontSize: '0.75rem', color: '#9ca3af', marginBottom: '0.25rem' }}>本周发送</div>
+                <div style={{ fontSize: '1.375rem', fontWeight: 700, color: '#1f2937' }}>5</div>
+              </div>
+              <div style={{ textAlign: 'center' }}>
+                <div style={{ fontSize: '0.75rem', color: '#9ca3af', marginBottom: '0.25rem' }}>成功率</div>
+                <div style={{ fontSize: '1.375rem', fontWeight: 700, color: '#1f2937' }}>100%</div>
+              </div>
+            </div>
+          </div>
+
+          {/* Tab 切换 */}
+          <div style={{ borderBottom: '1px solid #e5e7eb', marginBottom: '1.5rem', display: 'flex', gap: '2rem' }}>
+            <button
+              style={{
+                padding: '0.625rem 0',
+                background: 'none',
+                border: 'none',
+                fontSize: '0.875rem',
+                fontWeight: 500,
+                color: '#1f2937',
+                cursor: 'pointer',
+                borderBottom: '2px solid #2563eb',
+                marginBottom: '-1px',
+              }}
+            >
+              周报任务列表
+            </button>
+            <button
+              style={{
+                padding: '0.625rem 0',
+                background: 'none',
+                border: 'none',
+                fontSize: '0.875rem',
+                fontWeight: 500,
+                color: '#6b7280',
+                cursor: 'pointer',
+                marginBottom: '-1px',
+              }}
+            >
+              发送历史
+            </button>
+            <button
+              style={{
+                padding: '0.625rem 0',
+                background: 'none',
+                border: 'none',
+                fontSize: '0.875rem',
+                fontWeight: 500,
+                color: '#6b7280',
+                cursor: 'pointer',
+                marginBottom: '-1px',
+              }}
+            >
+              运行日志
+            </button>
+          </div>
+
+          {/* 周报任务列表表格 */}
+          <div style={{ background: 'white', borderRadius: '0.5rem', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', marginBottom: '2rem' }}>
+            <div style={{ padding: '1rem 1.5rem', borderBottom: '1px solid #e5e7eb', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.625rem' }}>
+                <span style={{ fontSize: '0.9375rem', fontWeight: 700, color: '#1f2328' }}>📋 已配置任务</span>
+                <span style={{ fontSize: '0.8125rem', color: '#656d76' }}>共 3 个</span>
+              </div>
+              <button style={{ padding: '0.375rem 0.875rem', backgroundColor: '#1f883d', color: 'white', border: 'none', borderRadius: '0.375rem', cursor: 'pointer', fontSize: '0.8125rem', fontWeight: 500 }}>
+                + 新增
+              </button>
+            </div>
+            <div style={{ overflowX: 'auto' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', tableLayout: 'fixed', minWidth: '900px' }}>
+                <tbody>
+                  {[
+                    { id: '1', name: '飞书 AI 系统周报', desc: '覆盖全部集成的综合周报', schedule: '每周一 09:00', integrations: ['GitHub', 'VS Code Chat', '+2'], model: 'GPT-4o', robot: '主汇报机器人', lastSent: '2026-03-10 09:02', lastStatus: '✅ 成功推送', status: 'active' },
+                    { id: '2', name: 'GitHub CI/CD 周报', desc: '专注构建与部署事件摘要', schedule: '每周五 18:00', integrations: ['GitHub'], model: 'GPT-4o mini', robot: '研发群机器人', lastSent: '2026-03-07 18:01', lastStatus: '✅ 成功推送', status: 'active' },
+                    { id: '3', name: 'MCP 工作汇报周报', desc: 'AI Copilot 工作成果汇总', schedule: '每周三 10:00', integrations: ['VS Code Chat'], model: 'GPT-4o', robot: '主汇报机器人', lastSent: '—', lastStatus: '尚未运行', status: 'inactive' },
+                  ].map((task) => (
+                    <tr key={task.id} style={{ borderBottom: '1px solid #f3f4f6' }}>
+                      <td style={{ padding: '0.875rem 1.5rem', width: '200px' }}>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                          <span style={{ fontWeight: 600, fontSize: '0.875rem', color: '#1f2328' }}>{task.name}</span>
+                          <span style={{ fontSize: '0.75rem', color: '#656d76' }}>{task.desc}</span>
+                        </div>
+                      </td>
+                      <td style={{ padding: '0.875rem 0.75rem', width: '140px', textAlign: 'center', color: '#3b5bdb', fontSize: '0.75rem', fontWeight: 600 }}>📅 {task.schedule}</td>
+                      <td style={{ padding: '0.875rem 0.75rem', width: '160px' }}>
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.3rem' }}>
+                          {task.integrations.map((tag, idx) => (
+                            <span key={idx} style={{ display: 'inline-block', padding: '0.2rem 0.6rem', borderRadius: '0.375rem', fontSize: '0.75rem', fontWeight: 600, background: '#dbeafe', color: '#1e40af' }}>
+                              {tag}
+                            </span>
+                          ))}
+                        </div>
+                      </td>
+                      <td style={{ padding: '0.875rem 0.75rem', width: '100px', textAlign: 'center' }}>
+                        <span style={{ fontSize: '0.8125rem', color: '#6b7280' }}>{task.model}</span>
+                      </td>
+                      <td style={{ padding: '0.875rem 0.75rem', width: '120px', textAlign: 'center' }}>
+                        <span style={{ fontSize: '0.8125rem', color: '#1f2937' }}>🤖 {task.robot}</span>
+                      </td>
+                      <td style={{ padding: '0.875rem 0.75rem', width: '150px', textAlign: 'center' }}>
+                        <div style={{ fontSize: '0.8125rem', color: '#374151' }}>{task.lastSent}</div>
+                        <div style={{ fontSize: '0.75rem', color: '#9ca3af' }}>{task.lastStatus}</div>
+                      </td>
+                      <td style={{ padding: '0.875rem 0.75rem', width: '100px', textAlign: 'center' }}>
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem', padding: '0.2rem 0.625rem', borderRadius: '1rem', fontSize: '0.75rem', fontWeight: 600, background: task.status === 'active' ? '#d1fae5' : '#f3f4f6', color: task.status === 'active' ? '#065f46' : '#6b7280' }}>
+                          ● {task.status === 'active' ? '启用' : '禁用'}
+                        </span>
+                      </td>
+                      <td style={{ padding: '0.875rem 1.5rem', width: '150px', textAlign: 'right' }}>
+                        <button style={{ padding: '0.375rem 0.75rem', border: '1px solid #d1d5db', background: 'white', color: '#0969da', borderRadius: '0.375rem', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 500, marginRight: '0.25rem' }}>编辑</button>
+                        <button style={{ padding: '0.375rem 0.75rem', border: '1px solid #d1d5db', background: 'white', color: '#ef4444', borderRadius: '0.375rem', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 500 }}>删除</button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          {/* 发送历史表格 */}
+          <div style={{ background: 'white', borderRadius: '0.5rem', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', marginBottom: '2rem' }}>
+            <div style={{ padding: '1rem 1.5rem', borderBottom: '1px solid #e5e7eb' }}>
+              <span style={{ fontSize: '0.9375rem', fontWeight: 700, color: '#1f2328' }}>📨 推送历史记录</span>
+            </div>
+            <div style={{ overflowX: 'auto' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', tableLayout: 'fixed', minWidth: '800px' }}>
+                <tbody>
+                  {[
+                    { time: '2026-03-10 09:02', task: '飞书 AI 系统周报', count: '47', summary: '「上周共收到 47 条通知，其中 GitHub CI/CD 构建成功率 96%...」', status: '✅ 成功' },
+                    { time: '2026-03-07 18:01', task: 'GitHub CI/CD 周报', count: '23', summary: '「本周 CI 流水线共触发 23 次，其中 deploy-prod 成功 21 次...」', status: '✅ 成功' },
+                    { time: '2026-03-03 09:03', task: '飞书 AI 系统周报', count: '35', summary: '「上周系统运行稳定，共处理 35 条消息，无异常告警事件...」', status: '✅ 成功' },
+                  ].map((record, idx) => (
+                    <tr key={idx} style={{ borderBottom: '1px solid #f3f4f6' }}>
+                      <td style={{ padding: '0.875rem 1.5rem', width: '160px' }}>
+                        <span style={{ fontSize: '0.8125rem', color: '#374151', whiteSpace: 'nowrap' }}>{record.time}</span>
+                      </td>
+                      <td style={{ padding: '0.875rem 0.75rem', width: '200px' }}>
+                        <span style={{ fontWeight: 600, fontSize: '0.875rem', color: '#1f2328' }}>{record.task}</span>
+                      </td>
+                      <td style={{ padding: '0.875rem 0.75rem', width: '80px', textAlign: 'center' }}>
+                        <span style={{ fontWeight: 700, color: '#1f2937' }}>{record.count}</span> <span style={{ fontSize: '0.75rem', color: '#9ca3af' }}>条</span>
+                      </td>
+                      <td style={{ padding: '0.875rem 0.75rem', flex: 1, minWidth: '250px' }}>
+                        <span style={{ fontSize: '0.8125rem', color: '#6b7280' }}>{record.summary}</span>
+                      </td>
+                      <td style={{ padding: '0.875rem 1.5rem', width: '100px', textAlign: 'right' }}>
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem', padding: '0.2rem 0.625rem', borderRadius: '1rem', fontSize: '0.75rem', fontWeight: 600, background: '#d1fae5', color: '#065f46' }}>✅ 成功</span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          {/* 运行日志 */}
+          <div style={{ background: 'white', borderRadius: '0.5rem', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
+            <div style={{ padding: '1.5rem', borderBottom: '1px solid #e5e7eb', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span style={{ fontSize: '1rem', fontWeight: 600, color: '#1f2937' }}>📋 实时日志</span>
+              <button style={{ padding: '0.375rem 0.75rem', border: '1px solid #d1d5db', background: 'white', color: '#6b7280', borderRadius: '0.375rem', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 500 }}>⏸ 暂停刷新</button>
+            </div>
+            <div style={{ background: '#1f2937', color: '#10b981', fontFamily: "'Monaco', 'Menlo', monospace", fontSize: '0.75rem', padding: '1rem', borderRadius: '0.375rem', margin: '1rem', height: '300px', overflowY: 'auto', lineHeight: 1.6 }}>
+              <div><span style={{ color: '#9ca3af' }}>[2026-03-14 08:47:12]</span> <span style={{ color: '#60a5fa' }}>[INFO]</span> <span style={{ color: '#fbbf24' }}>[AI周报]</span> 定时任务调度器已启动，下次运行: 2026-03-16 09:00</div>
+              <div><span style={{ color: '#9ca3af' }}>[2026-03-14 08:47:12]</span> <span style={{ color: '#60a5fa' }}>[INFO]</span> <span style={{ color: '#fbbf24' }}>[AI周报]</span> 已加载 3 个周报任务，其中 2 个处于启用状态</div>
+              <div><span style={{ color: '#9ca3af' }}>[2026-03-10 09:00:01]</span> <span style={{ color: '#60a5fa' }}>[INFO]</span> <span style={{ color: '#fbbf24' }}>[AI周报]</span> <span style={{ color: '#34d399' }}>[任务:飞书AI系统周报]</span> 触发执行，查询范围: 2026-03-03 ~ 2026-03-10</div>
+              <div><span style={{ color: '#9ca3af' }}>[2026-03-10 09:00:02]</span> <span style={{ color: '#60a5fa' }}>[INFO]</span> <span style={{ color: '#fbbf24' }}>[AI周报]</span> <span style={{ color: '#34d399' }}>[任务:飞书AI系统周报]</span> 从数据库获取到 47 条通知记录</div>
+              <div><span style={{ color: '#9ca3af' }}>[2026-03-10 09:00:03]</span> <span style={{ color: '#60a5fa' }}>[INFO]</span> <span style={{ color: '#fbbf24' }}>[AI周报]</span> <span style={{ color: '#34d399' }}>[任务:飞书AI系统周报]</span> 调用 OpenAI GPT-4o，提示词长度 3,842 tokens</div>
+              <div><span style={{ color: '#9ca3af' }}>[2026-03-10 09:00:07]</span> <span style={{ color: '#60a5fa' }}>[INFO]</span> <span style={{ color: '#fbbf24' }}>[AI周报]</span> <span style={{ color: '#34d399' }}>[任务:飞书AI系统周报]</span> AI 摘要生成完成，输出 1,204 tokens</div>
+              <div><span style={{ color: '#9ca3af' }}>[2026-03-10 09:00:08]</span> <span style={{ color: '#60a5fa' }}>[INFO]</span> <span style={{ color: '#fbbf24' }}>[AI周报]</span> <span style={{ color: '#34d399' }}>[任务:飞书AI系统周报]</span> 已推送飞书卡片，消息ID: msg_abc123</div>
+              <div><span style={{ color: '#9ca3af' }}>[2026-03-10 09:00:08]</span> <span style={{ color: '#60a5fa' }}>[INFO]</span> <span style={{ color: '#fbbf24' }}>[AI周报]</span> <span style={{ color: '#34d399' }}>[任务:飞书AI系统周报]</span> ✅ 执行完成，耗时 7.2s</div>
+            </div>
+          </div>
+        </div>
+      )}
+          </main>
         </div>
       </div>
 
