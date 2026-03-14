@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback, useRef } from 'react';
-import { CalendarDays, Clock3, MoreHorizontal } from 'lucide-react';
+import { CalendarDays, Clock3, MoreHorizontal, ChevronDown } from 'lucide-react';
 import SceneIcon, { SceneIconName } from '../components/SceneIcon';
 import authService from '../services/auth';
 
@@ -746,10 +746,9 @@ const Services: React.FC = () => {
                 <div style={{ fontSize: '0.75rem', color: '#9ca3af', marginBottom: '0.25rem' }}>本周发送</div>
                 <div style={{ fontSize: '1.375rem', fontWeight: 700, color: '#1f2937' }}>5</div>
               </div>
-              <div style={{ textAlign: 'center', position: 'relative' }}>
-                <div style={{ position: 'absolute', left: '50%', top: '0', transform: 'translateX(-50%)', height: '100%', width: '1px', backgroundColor: '#f3f4f6' }} />
-                <div style={{ fontSize: '0.75rem', color: '#9ca3af', marginBottom: '0.25rem' }}>下次发送</div>
-                <div style={{ fontSize: '1.375rem', fontWeight: 700, color: '#1f2937' }} title="countdown">2天 6小时</div>
+              <div style={{ textAlign: 'center', minWidth: '80px', padding: '0.5rem', background: '#f0f9ff', borderRadius: '0.375rem', borderLeft: '3px solid #3b82f6' }}>
+                <div style={{ fontSize: '0.7rem', color: '#1e40af', fontWeight: 600, marginBottom: '0.125rem' }}>下次发送</div>
+                <div style={{ fontSize: '0.8rem', color: '#0284c7', fontWeight: 500 }}>2天 6小时</div>
               </div>
             </div>
           </div>
@@ -796,33 +795,75 @@ const Services: React.FC = () => {
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                 {/* 筛选按钮组 */}
-                <select 
-                  value={filterStatus} 
-                  onChange={(e) => setFilterStatus(e.target.value as 'all' | 'active' | 'inactive')}
-                  style={{ padding: '0.375rem 0.625rem', fontSize: '0.8125rem', border: '1px solid #d1d5db', borderRadius: '0.375rem', backgroundColor: 'white', cursor: 'pointer', fontWeight: 500 }}
+                <button 
+                  onClick={() => setFilterStatus(filterStatus === 'all' ? 'active' : 'all')}
+                  style={{ 
+                    display: 'inline-flex', 
+                    alignItems: 'center', 
+                    gap: '0.375rem', 
+                    padding: '0.375rem 0.75rem', 
+                    fontSize: '0.8125rem', 
+                    fontWeight: 500, 
+                    color: filterStatus !== 'all' ? '#0969da' : '#57606a', 
+                    backgroundColor: filterStatus !== 'all' ? '#dbeafe' : '#f6f8fa', 
+                    border: `1px solid ${filterStatus !== 'all' ? '#0969da' : '#d0d7de'}`,
+                    borderRadius: '0.375rem', 
+                    cursor: 'pointer',
+                    transition: 'all 0.15s'
+                  }}
                 >
-                  <option value="all">全部状态</option>
-                  <option value="active">运行中</option>
-                  <option value="inactive">已停止</option>
-                </select>
-                <select 
-                  value={filterRobot} 
-                  onChange={(e) => setFilterRobot(e.target.value)}
-                  style={{ padding: '0.375rem 0.625rem', fontSize: '0.8125rem', border: '1px solid #d1d5db', borderRadius: '0.375rem', backgroundColor: 'white', cursor: 'pointer', fontWeight: 500 }}
+                  状态
+                  {filterStatus !== 'all' && (
+                    <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: '16px', height: '16px', borderRadius: '50%', backgroundColor: '#0969da', color: 'white', fontSize: '0.6rem', fontWeight: 700 }}>1</span>
+                  )}
+                  <ChevronDown size={13} />
+                </button>
+                <button 
+                  onClick={() => setFilterRobot(filterRobot === 'all' ? '主汇报机器人' : 'all')}
+                  style={{ 
+                    display: 'inline-flex', 
+                    alignItems: 'center', 
+                    gap: '0.375rem', 
+                    padding: '0.375rem 0.75rem', 
+                    fontSize: '0.8125rem', 
+                    fontWeight: 500, 
+                    color: filterRobot !== 'all' ? '#0969da' : '#57606a', 
+                    backgroundColor: filterRobot !== 'all' ? '#dbeafe' : '#f6f8fa', 
+                    border: `1px solid ${filterRobot !== 'all' ? '#0969da' : '#d0d7de'}`,
+                    borderRadius: '0.375rem', 
+                    cursor: 'pointer',
+                    transition: 'all 0.15s'
+                  }}
                 >
-                  <option value="all">全部机器人</option>
-                  <option value="主汇报机器人">主汇报机器人</option>
-                  <option value="研发群机器人">研发群机器人</option>
-                </select>
-                <select 
-                  value={filterModel} 
-                  onChange={(e) => setFilterModel(e.target.value)}
-                  style={{ padding: '0.375rem 0.625rem', fontSize: '0.8125rem', border: '1px solid #d1d5db', borderRadius: '0.375rem', backgroundColor: 'white', cursor: 'pointer', fontWeight: 500 }}
+                  机器人
+                  {filterRobot !== 'all' && (
+                    <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: '16px', height: '16px', borderRadius: '50%', backgroundColor: '#0969da', color: 'white', fontSize: '0.6rem', fontWeight: 700 }}>1</span>
+                  )}
+                  <ChevronDown size={13} />
+                </button>
+                <button 
+                  onClick={() => setFilterModel(filterModel === 'all' ? 'GPT-4o' : 'all')}
+                  style={{ 
+                    display: 'inline-flex', 
+                    alignItems: 'center', 
+                    gap: '0.375rem', 
+                    padding: '0.375rem 0.75rem', 
+                    fontSize: '0.8125rem', 
+                    fontWeight: 500, 
+                    color: filterModel !== 'all' ? '#0969da' : '#57606a', 
+                    backgroundColor: filterModel !== 'all' ? '#dbeafe' : '#f6f8fa', 
+                    border: `1px solid ${filterModel !== 'all' ? '#0969da' : '#d0d7de'}`,
+                    borderRadius: '0.375rem', 
+                    cursor: 'pointer',
+                    transition: 'all 0.15s'
+                  }}
                 >
-                  <option value="all">全部模型</option>
-                  <option value="GPT-4o">GPT-4o</option>
-                  <option value="GPT-4o mini">GPT-4o mini</option>
-                </select>
+                  模型
+                  {filterModel !== 'all' && (
+                    <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: '16px', height: '16px', borderRadius: '50%', backgroundColor: '#0969da', color: 'white', fontSize: '0.6rem', fontWeight: 700 }}>1</span>
+                  )}
+                  <ChevronDown size={13} />
+                </button>
                 <button style={{ padding: '0.375rem 0.875rem', backgroundColor: '#1f883d', color: 'white', border: 'none', borderRadius: '0.375rem', cursor: 'pointer', fontSize: '0.8125rem', fontWeight: 500 }}>
                   + 新增
                 </button>
@@ -993,7 +1034,7 @@ const Services: React.FC = () => {
                               >
                                 <button
                                   onClick={() => {
-                                    console.log('测试任务:', task.id);
+                                    console.log('手动发送任务:', task.id);
                                     setTaskMenuPos(null);
                                   }}
                                   style={{
@@ -1009,7 +1050,7 @@ const Services: React.FC = () => {
                                   onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#f3f4f6'; }}
                                   onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; }}
                                 >
-                                  测试
+                                  手动发送
                                 </button>
                                 <button
                                   onClick={() => {
