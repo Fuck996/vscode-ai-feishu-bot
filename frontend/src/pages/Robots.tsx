@@ -6,6 +6,29 @@ import SceneIcon from '../components/SceneIcon';
 import { useToast } from '../hooks/useToast';
 import authService from '../services/auth';
 
+// 集成类型短标签（用于机器人行内展示）
+const INTEGRATION_TYPE_EMOJI: Record<string, string> = {
+  vercel:       '▲',
+  railway:      '🚂',
+  github:       '🐙',
+  gitlab:       '🦊',
+  'vscode-chat':'💬',
+  api:          '🔌',
+  custom:       '🛠️',
+  synology:     '📶',
+};
+
+const INTEGRATION_TYPE_LABEL: Record<string, string> = {
+  vercel:       'Vercel',
+  railway:      'Railway',
+  github:       'GitHub',
+  gitlab:       'GitLab',
+  'vscode-chat':'VSCode',
+  api:          'API',
+  custom:       'Custom',
+  synology:     'NAS',
+};
+
 interface Robot {
   id: string;
   name: string;
@@ -46,6 +69,8 @@ export default function Robots() {
   const [openActionMenu, setOpenActionMenu] = useState<ActionMenuState | null>(null);
   const [openFilterMenu, setOpenFilterMenu] = useState(false);
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive'>('all');
+  // 每个机器人已使用的集成类型  robotId -> string[]
+  const [robotIntegrationTypes, setRobotIntegrationTypes] = useState<Record<string, string[]>>({});
 
   const API_BASE_URL = '';  // 使用相对路径，走 Vite 代理转发到后端
 
@@ -59,6 +84,28 @@ export default function Robots() {
     window.addEventListener('click', handler);
     return () => window.removeEventListener('click', handler);
   }, [openActionMenu]);
+
+  const fetchAllIntegrationTypes = async (robotIds: string[]) => {
+    const results: Record<string, string[]> = {};
+    await Promise.all(
+      robotIds.map(async (id) => {
+        try {
+          const res = await authService.fetchWithAuth(`${API_BASE_URL}/api/robots/${id}/integrations`);
+          if (res.ok) {
+            const d = await res.json();
+            if (d.success && Array.isArray(d.data)) {
+              // 去重，只保留各 projectType
+              const types = [...new Set<string>(d.data.map((i: { projectType: string }) => i.projectType))];
+              results[id] = types;
+            }
+          }
+        } catch {
+          // 静默失败，不影响主列表
+        }
+      })
+    );
+    setRobotIntegrationTypes(results);
+  };
 
   const fetchRobots = async () => {
     try {
@@ -83,7 +130,10 @@ export default function Robots() {
       const data: RobotsResponse = await response.json();
 
       if (data.success) {
-        setRobots(data.data || []);
+        const list = data.data || [];
+        setRobots(list);
+        // 异步加载每个机器人的集成类型（不阻塞主渲染）
+        fetchAllIntegrationTypes(list.map(r => r.id));
       } else {
         setError(data.error || '获取机器人列表失败');
       }
@@ -482,57 +532,71 @@ export default function Robots() {
                             <span style={{ color: '#656d76', fontSize: '0.75rem' }}>{robot.messageCount || 0} 条记录</span>
                           </div>
                         </td>
-                        {/* 列2：创建时间 + App ID */}
-                        <td style={{ padding: '0.875rem 0.75rem', width: '200px' }}>
-                          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
-                            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', color: '#374151', fontSize: '0.8125rem', fontWeight: 500 }}>
-                              <CalendarDays size={13} color="#57606a" />
-                              <span>创建日期：{getCreateDate(robot.createdAt)}</span>
-                            </span>
-                            <span style={{ color: '#656d76', fontSize: '0.75rem', paddingLeft: '1.2rem' }}>BOT ID: {getAppId(robot.id)}</span>
+                        {/* 列2：已使用的集成类型（横向排列） */}
+                        <td style={{ padding: '0.875rem 0.75rem', width: '180px' }}>
+                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.3rem' }}>
+                            {(robotIntegrationTypes[robot.id] ?? []).length === 0 ? (
+                              <span style={{ color: '#9ca3af', fontSize: '0.75rem' }}>暂无集成</span>
+                            ) : (robotIntegrationTypes[robot.id]).map(type => (
+                              <span key={type} style={{ display: 'inline-flex', alignItems: 'center', gap: '0.2rem', background: '#f6f8fa', border: '1px solid #e5e7eb', borderRadius: '0.375rem', padding: '0.1rem 0.45rem', fontSize: '0.72rem', color: '#374151', whiteSpace: 'nowrap' }}>
+                                {INTEGRATION_TYPE_EMOJI[type] || '🔗'} {INTEGRATION_TYPE_LABEL[type] || type}
+                              </span>
+                            ))}
                           </div>
                         </td>
-                        {/* 列3（合并）：最后活动 + 启停开关 + 操作菜单 */}
-                        <td style={{ padding: '0.875rem 1rem' }}>
+                        {/* 列3（全合并）：创建日期 + BOT ID + 最后活动 + 启停 + 三点 */}
+                        <td style={{ padding: '0.75rem 1rem' }}>
                           <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                            {/* 左侧：最后活动时间 */}
-                            <div style={{ flex: 1 }}>
+                            {/* 创建日期 + BOT ID */}
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem', flexShrink: 0 }}>
+                              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem', color: '#374151', fontSize: '0.8125rem', fontWeight: 500, whiteSpace: 'nowrap' }}>
+                                <CalendarDays size={12} color="#57606a" />
+                                <span>创建：{getCreateDate(robot.createdAt)}</span>
+                              </span>
+                              <span style={{ color: '#656d76', fontSize: '0.72rem', paddingLeft: '1rem' }}>BOT ID: {getAppId(robot.id)}</span>
+                            </div>
+                            {/* 分隔符 */}
+                            <span style={{ color: '#e5e7eb', fontSize: '1rem', flexShrink: 0 }}>|</span>
+                            {/* 最后活动时间 */}
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem', flexShrink: 0 }}>
                               {lastMsg ? (
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
-                                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', color: '#374151', fontSize: '0.8125rem', fontWeight: 500, whiteSpace: 'nowrap' }}>
-                                    <CalendarDays size={13} color="#57606a" />
-                                    <span>最后活动：{lastMsg.date}</span>
+                                <>
+                                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem', color: '#374151', fontSize: '0.8125rem', fontWeight: 500, whiteSpace: 'nowrap' }}>
+                                    <CalendarDays size={12} color="#57606a" />
+                                    <span>活动：{lastMsg.date}</span>
                                   </span>
-                                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', color: '#656d76', fontSize: '0.75rem' }}>
-                                    <Clock3 size={13} color="#57606a" />
+                                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem', color: '#656d76', fontSize: '0.72rem' }}>
+                                    <Clock3 size={12} color="#57606a" />
                                     <span>{lastMsg.time}</span>
                                   </span>
-                                </div>
+                                </>
                               ) : (
-                                <span style={{ color: '#9ca3af', fontSize: '0.8125rem' }}>未发送</span>
+                                <span style={{ color: '#9ca3af', fontSize: '0.8125rem', whiteSpace: 'nowrap' }}>未发送</span>
                               )}
                             </div>
-                            {/* 中间：启停开关 */}
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', flexShrink: 0 }}>
+                            {/* 分隔符 */}
+                            <span style={{ color: '#e5e7eb', fontSize: '1rem', flexShrink: 0 }}>|</span>
+                            {/* 启停开关 */}
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', flexShrink: 0 }}>
                               <button
                                 onClick={() => handleToggleRobotStatus(robot)}
-                                style={{ width: '40px', height: '22px', backgroundColor: robot.status === 'active' ? '#10b981' : '#cbd5e1', borderRadius: '11px', position: 'relative', cursor: 'pointer', border: 'none', padding: 0, transition: 'background-color 0.2s', flexShrink: 0 }}
+                                style={{ width: '36px', height: '20px', backgroundColor: robot.status === 'active' ? '#10b981' : '#cbd5e1', borderRadius: '10px', position: 'relative', cursor: 'pointer', border: 'none', padding: 0, transition: 'background-color 0.2s', flexShrink: 0 }}
                               >
-                                <div style={{ width: '18px', height: '18px', backgroundColor: 'white', borderRadius: '9px', position: 'absolute', top: '2px', left: robot.status === 'active' ? '20px' : '2px', transition: 'left 0.2s' }} />
+                                <div style={{ width: '16px', height: '16px', backgroundColor: 'white', borderRadius: '8px', position: 'absolute', top: '2px', left: robot.status === 'active' ? '18px' : '2px', transition: 'left 0.2s' }} />
                               </button>
-                              <span style={{ fontSize: '0.75rem', fontWeight: 600, color: robot.status === 'active' ? '#10b981' : '#9ca3af', whiteSpace: 'nowrap' }}>
+                              <span style={{ fontSize: '0.72rem', fontWeight: 600, color: robot.status === 'active' ? '#10b981' : '#9ca3af', whiteSpace: 'nowrap' }}>
                                 {robot.status === 'active' ? '启用' : '禁用'}
                               </span>
                             </div>
-                            {/* 右侧：三点菜单 */}
+                            {/* 三点菜单 */}
                             <div style={{ display: 'inline-flex', position: 'relative', flexShrink: 0 }} onClick={e => e.stopPropagation()}>
                               <button
                                 type="button"
                                 onClick={(event) => openActionMenuAt(event, robot.id)}
-                                style={{ width: '32px', height: '32px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', border: '1px solid #d0d7de', borderRadius: '0.5rem', backgroundColor: '#ffffff', color: '#57606a', cursor: 'pointer' }}
+                                style={{ width: '30px', height: '30px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', border: '1px solid #d0d7de', borderRadius: '0.5rem', backgroundColor: '#ffffff', color: '#57606a', cursor: 'pointer' }}
                                 aria-label="更多操作"
                               >
-                                <MoreHorizontal size={16} />
+                                <MoreHorizontal size={15} />
                               </button>
                             </div>
                           </div>

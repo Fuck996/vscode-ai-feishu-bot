@@ -129,6 +129,18 @@ function getJsonHeaders() {
   return { 'Content-Type': 'application/json' };
 }
 
+// 将数字转为罗马数字（1-3999）
+function toRoman(n: number): string {
+  if (n <= 0) return '0';
+  const vals = [1000,900,500,400,100,90,50,40,10,9,5,4,1];
+  const syms = ['M','CM','D','CD','C','XC','L','XL','X','IX','V','IV','I'];
+  let result = '';
+  for (let i = 0; i < vals.length; i++) {
+    while (n >= vals[i]) { result += syms[i]; n -= vals[i]; }
+  }
+  return result;
+}
+
 // ===== 主组件 =====
 export default function Integrations() {
   const { robotId } = useParams<{ robotId: string }>();
@@ -411,8 +423,8 @@ export default function Integrations() {
             <div style={{ overflowX: 'auto' }}>
               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.875rem' }}>
                 <thead>
-                  <tr style={{ background: '#f9fafb', borderBottom: '1px solid #f3f4f6' }}>
-                    <th colSpan={5} style={{ padding: '0.75rem 1.5rem' }}>
+                  <tr style={{ background: 'white', borderBottom: '1px solid #f3f4f6' }}>
+                    <th colSpan={4} style={{ padding: '0.75rem 1.5rem' }}>
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.75rem' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                           <span style={{ fontSize: '0.9375rem', fontWeight: 700, color: '#1f2328' }}>已配置集成</span>
@@ -424,7 +436,7 @@ export default function Integrations() {
                   </tr>
                 </thead>
                 <tbody>
-                  <tr><td colSpan={5} style={{ padding: '3rem', textAlign: 'center', color: '#9ca3af', fontSize: '0.875rem' }}>
+                  <tr><td colSpan={4} style={{ padding: '3rem', textAlign: 'center', color: '#9ca3af', fontSize: '0.875rem' }}>
                     <p>暂无集成配置</p>
                     <p style={{ marginTop: '0.5rem' }}>点击"添加集成"为此机器人配置第一个项目集成</p>
                   </td></tr>
@@ -435,12 +447,12 @@ export default function Integrations() {
             <div style={{ overflowX: 'auto' }}>
               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.875rem' }}>
                 <thead>
-                  <tr style={{ background: '#f9fafb', borderBottom: '1px solid #f3f4f6' }}>
-                    <th colSpan={5} style={{ padding: '0.75rem 1.5rem' }}>
+                  <tr style={{ background: 'white', borderBottom: '1px solid #f3f4f6' }}>
+                    <th colSpan={4} style={{ padding: '0.75rem 1.5rem' }}>
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.75rem', flexWrap: 'wrap' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                           <span style={{ fontSize: '0.9375rem', fontWeight: 700, color: '#1f2328' }}>已配置集成</span>
-                          <span style={{ fontSize: '0.8125rem', color: '#656d76' }}>共 {integrations.length} 个</span>
+                          <span style={{ fontSize: '0.8125rem', color: '#656d76' }}>共 {toRoman(integrations.length)} 个</span>
                         </div>
                         <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
                           <button onClick={openCreateModal} style={{ padding: '0.375rem 0.875rem', backgroundColor: '#1f883d', color: 'white', border: 'none', borderRadius: '0.375rem', cursor: 'pointer', fontSize: '0.8125rem', fontWeight: 500, whiteSpace: 'nowrap' }}>添加集成</button>
@@ -453,7 +465,7 @@ export default function Integrations() {
                   </tr>
                 </thead>
                 <tbody>
-                  <tr><td colSpan={5} style={{ padding: '3rem', textAlign: 'center', color: '#9ca3af', fontSize: '0.875rem' }}>无匹配结果，请调整筛选条件</td></tr>
+                  <tr><td colSpan={4} style={{ padding: '3rem', textAlign: 'center', color: '#9ca3af', fontSize: '0.875rem' }}>无匹配结果，请调整筛选条件</td></tr>
                 </tbody>
               </table>
             </div>
@@ -461,12 +473,12 @@ export default function Integrations() {
             <div style={{ overflowX: 'auto' }}>
               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.875rem' }}>
                 <thead>
-                  <tr style={{ background: '#f9fafb', borderBottom: '1px solid #f3f4f6' }}>
-                    <th colSpan={5} style={{ padding: '0.75rem 1.5rem', fontWeight: 'normal' }}>
+                  <tr style={{ background: 'white', borderBottom: '1px solid #f3f4f6' }}>
+                    <th colSpan={4} style={{ padding: '0.75rem 1.5rem', fontWeight: 'normal' }}>
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.75rem', flexWrap: 'wrap' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                           <span style={{ fontSize: '0.9375rem', fontWeight: 700, color: '#1f2328' }}>已配置集成</span>
-                          <span style={{ fontSize: '0.8125rem', color: '#656d76' }}>共 {filteredIntegrations.length} 个</span>
+                          <span style={{ fontSize: '0.8125rem', color: '#656d76' }}>共 {toRoman(filteredIntegrations.length)} 个</span>
                         </div>
                         <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
                           <button onClick={openCreateModal} style={{ padding: '0.375rem 0.875rem', backgroundColor: '#1f883d', color: 'white', border: 'none', borderRadius: '0.375rem', cursor: 'pointer', fontSize: '0.8125rem', fontWeight: 500, whiteSpace: 'nowrap' }}>添加集成</button>
@@ -592,32 +604,32 @@ export default function Integrations() {
                           })}
                         </div>
                       </td>
-                      {/* 最后活动 */}
+                      {/* 最后活动 + 状态 + 操作（合并列） */}
                       <td style={tdStyle}>
-                        {(() => {
-                          const act = formatActivityDate(integration.updatedAt);
-                          return (
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
-                              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', color: '#374151', fontSize: '0.8125rem', fontWeight: 500, whiteSpace: 'nowrap' }}>
-                                <CalendarDays size={13} color="#57606a" />
-                                <span>{act.date}</span>
-                              </span>
-                              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', color: '#656d76', fontSize: '0.75rem' }}>
-                                <Clock3 size={13} color="#57606a" />
-                                <span>{act.time}</span>
-                              </span>
-                            </div>
-                          );
-                        })()}
-                      </td>
-                      {/* 状态 + 操作（合并列） */}
-                      <td style={{ ...tdStyle, textAlign: 'right' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '0.75rem' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.625rem' }}>
+                          {/* 左：最后活动时间 */}
+                          {(() => {
+                            const act = formatActivityDate(integration.updatedAt);
+                            return (
+                              <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
+                                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem', color: '#374151', fontSize: '0.8125rem', fontWeight: 500, whiteSpace: 'nowrap' }}>
+                                  <CalendarDays size={12} color="#57606a" />
+                                  <span>{act.date}</span>
+                                </span>
+                                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem', color: '#656d76', fontSize: '0.75rem' }}>
+                                  <Clock3 size={12} color="#57606a" />
+                                  <span>{act.time}</span>
+                                </span>
+                              </div>
+                            );
+                          })()}
+                          {/* 中：toggle */}
                           <ToggleSwitch
                             checked={integration.status === 'active'}
                             disabled={togglingId === integration.id}
                             onChange={() => handleToggleStatus(integration)}
                           />
+                          {/* 右：三点菜单 */}
                           <div onClick={e => e.stopPropagation()}>
                             <button
                               type="button"
