@@ -363,11 +363,6 @@ const Services: React.FC = () => {
   return (
     <div style={{ backgroundColor: '#f3f4f6', minHeight: '100vh', paddingBottom: '2rem' }}>
       <div style={{ maxWidth: '1400px', margin: '0 auto', padding: '2rem' }}>
-        {/* 页面标题 */}
-        <div style={{ fontSize: '1.875rem', fontWeight: 700, color: '#1f2937', marginBottom: '2rem' }}>
-          服务管理
-        </div>
-
         {/* 双栏布局 */}
         <div style={{ display: 'grid', gridTemplateColumns: '220px 1fr', gap: '1.5rem' }}>
           {/* 左侧菜单面板 */}
@@ -378,6 +373,11 @@ const Services: React.FC = () => {
             overflow: 'hidden',
             height: 'fit-content',
           }}>
+            {/* 菜单分组标签 */}
+            <div style={{ padding: '0.75rem 1.25rem', fontSize: '0.75rem', fontWeight: 700, color: '#9ca3af', textTransform: 'uppercase', borderBottom: '1px solid #f3f4f6', background: '#f9fafb' }}>
+              服务管理
+            </div>
+
             {/* 菜单项：服务总览 */}
             <div
               style={menuItemStyle('overview')}
@@ -389,15 +389,15 @@ const Services: React.FC = () => {
               服务总览
             </div>
 
-            {/* 菜单项：AI汇报 */}
+            {/* 菜单项：AI汇报管理 */}
             <div
               style={menuItemStyle('ai-report')}
               onClick={() => setActiveMenu('ai-report')}
               onMouseEnter={() => setHoveredMenu('ai-report')}
               onMouseLeave={() => setHoveredMenu(null)}
             >
-              <SceneIcon name="history" size={16} title="AI汇报" inheritColor />
-              AI汇报
+              <SceneIcon name="history" size={16} title="AI汇报管理" inheritColor />
+              AI汇报管理
             </div>
           </aside>
 
@@ -678,16 +678,6 @@ const Services: React.FC = () => {
       {/* AI汇报内容 */}
       {activeMenu === 'ai-report' && (
         <div>
-          {/* 页面标题 */}
-          <div style={{ marginBottom: '2rem' }}>
-            <div style={{ fontSize: '1.25rem', fontWeight: 700, color: '#1f2937', marginBottom: '0.25rem' }}>
-              AI 周报摘要服务
-            </div>
-            <div style={{ fontSize: '0.875rem', color: '#6b7280' }}>
-              定时收集各集成的历史通知，由 AI 生成摘要后推送到飞书群组
-            </div>
-          </div>
-
           {/* 服务状态卡片 */}
           <div style={{
             background: 'white',
@@ -789,20 +779,6 @@ const Services: React.FC = () => {
             >
               发送历史
             </button>
-            <button
-              style={{
-                padding: '0.625rem 0',
-                background: 'none',
-                border: 'none',
-                fontSize: '0.875rem',
-                fontWeight: 500,
-                color: '#6b7280',
-                cursor: 'pointer',
-                marginBottom: '-1px',
-              }}
-            >
-              运行日志
-            </button>
           </div>
 
           {/* 周报任务列表表格 */}
@@ -870,7 +846,7 @@ const Services: React.FC = () => {
           {/* 发送历史表格 */}
           <div style={{ background: 'white', borderRadius: '0.5rem', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', marginBottom: '2rem' }}>
             <div style={{ padding: '1rem 1.5rem', borderBottom: '1px solid #e5e7eb' }}>
-              <span style={{ fontSize: '0.9375rem', fontWeight: 700, color: '#1f2328' }}>📨 推送历史记录</span>
+              <span style={{ fontSize: '0.9375rem', fontWeight: 700, color: '#1f2328' }}>📨 发送历史</span>
             </div>
             <div style={{ overflowX: 'auto' }}>
               <table style={{ width: '100%', borderCollapse: 'collapse', tableLayout: 'fixed', minWidth: '800px' }}>
@@ -903,23 +879,6 @@ const Services: React.FC = () => {
             </div>
           </div>
 
-          {/* 运行日志 */}
-          <div style={{ background: 'white', borderRadius: '0.5rem', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
-            <div style={{ padding: '1.5rem', borderBottom: '1px solid #e5e7eb', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span style={{ fontSize: '1rem', fontWeight: 600, color: '#1f2937' }}>📋 实时日志</span>
-              <button style={{ padding: '0.375rem 0.75rem', border: '1px solid #d1d5db', background: 'white', color: '#6b7280', borderRadius: '0.375rem', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 500 }}>⏸ 暂停刷新</button>
-            </div>
-            <div style={{ background: '#1f2937', color: '#10b981', fontFamily: "'Monaco', 'Menlo', monospace", fontSize: '0.75rem', padding: '1rem', borderRadius: '0.375rem', margin: '1rem', height: '300px', overflowY: 'auto', lineHeight: 1.6 }}>
-              <div><span style={{ color: '#9ca3af' }}>[2026-03-14 08:47:12]</span> <span style={{ color: '#60a5fa' }}>[INFO]</span> <span style={{ color: '#fbbf24' }}>[AI周报]</span> 定时任务调度器已启动，下次运行: 2026-03-16 09:00</div>
-              <div><span style={{ color: '#9ca3af' }}>[2026-03-14 08:47:12]</span> <span style={{ color: '#60a5fa' }}>[INFO]</span> <span style={{ color: '#fbbf24' }}>[AI周报]</span> 已加载 3 个周报任务，其中 2 个处于启用状态</div>
-              <div><span style={{ color: '#9ca3af' }}>[2026-03-10 09:00:01]</span> <span style={{ color: '#60a5fa' }}>[INFO]</span> <span style={{ color: '#fbbf24' }}>[AI周报]</span> <span style={{ color: '#34d399' }}>[任务:飞书AI系统周报]</span> 触发执行，查询范围: 2026-03-03 ~ 2026-03-10</div>
-              <div><span style={{ color: '#9ca3af' }}>[2026-03-10 09:00:02]</span> <span style={{ color: '#60a5fa' }}>[INFO]</span> <span style={{ color: '#fbbf24' }}>[AI周报]</span> <span style={{ color: '#34d399' }}>[任务:飞书AI系统周报]</span> 从数据库获取到 47 条通知记录</div>
-              <div><span style={{ color: '#9ca3af' }}>[2026-03-10 09:00:03]</span> <span style={{ color: '#60a5fa' }}>[INFO]</span> <span style={{ color: '#fbbf24' }}>[AI周报]</span> <span style={{ color: '#34d399' }}>[任务:飞书AI系统周报]</span> 调用 OpenAI GPT-4o，提示词长度 3,842 tokens</div>
-              <div><span style={{ color: '#9ca3af' }}>[2026-03-10 09:00:07]</span> <span style={{ color: '#60a5fa' }}>[INFO]</span> <span style={{ color: '#fbbf24' }}>[AI周报]</span> <span style={{ color: '#34d399' }}>[任务:飞书AI系统周报]</span> AI 摘要生成完成，输出 1,204 tokens</div>
-              <div><span style={{ color: '#9ca3af' }}>[2026-03-10 09:00:08]</span> <span style={{ color: '#60a5fa' }}>[INFO]</span> <span style={{ color: '#fbbf24' }}>[AI周报]</span> <span style={{ color: '#34d399' }}>[任务:飞书AI系统周报]</span> 已推送飞书卡片，消息ID: msg_abc123</div>
-              <div><span style={{ color: '#9ca3af' }}>[2026-03-10 09:00:08]</span> <span style={{ color: '#60a5fa' }}>[INFO]</span> <span style={{ color: '#fbbf24' }}>[AI周报]</span> <span style={{ color: '#34d399' }}>[任务:飞书AI系统周报]</span> ✅ 执行完成，耗时 7.2s</div>
-            </div>
-          </div>
         </div>
       )}
           </main>
