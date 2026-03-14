@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback, useRef } from 'react';
-import { CalendarDays, Clock3, MoreHorizontal, ChevronDown } from 'lucide-react';
+import { CalendarDays, Clock3, MoreHorizontal, ChevronDown, ChevronLeft, ChevronRight, Search } from 'lucide-react';
 import SceneIcon, { SceneIconName } from '../components/SceneIcon';
 import authService from '../services/auth';
 
@@ -121,6 +121,11 @@ const Services: React.FC = () => {
   const [modalModel, setModalModel] = useState<string>('GPT-4o');
   const [modalStyle, setModalStyle] = useState<string>('总结汇报');
   const [modalRobot, setModalRobot] = useState<string>('');
+  // 发送历史分页 & 搜索状态
+  const [historySearch, setHistorySearch] = useState<string>('');
+  const [historyStatusFilter, setHistoryStatusFilter] = useState<string>('all');
+  const [historyPage, setHistoryPage] = useState<number>(1);
+  const historyPageSize = 8;
   const logPanelRef = useRef<HTMLDivElement>(null);
 
   // 菜单项样式函数
@@ -1120,36 +1125,145 @@ const Services: React.FC = () => {
           </div>
 
           {/* 发送历史表格 */}
-          <div style={{ background: 'white', borderRadius: '0.5rem', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', marginBottom: '2rem' }}>
-            <div style={{ padding: '1rem 1.5rem', borderBottom: '1px solid #e5e7eb' }}>
-              <span style={{ fontSize: '0.9375rem', fontWeight: 700, color: '#1f2328' }}>📨 发送历史</span>
+          <div style={{ background: 'white', borderRadius: '0.5rem', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', overflow: 'hidden', marginBottom: '2rem' }}>
+            {/* 表头区 */}
+            <div style={{ padding: '1rem 1.5rem', borderBottom: '1px solid #e5e7eb', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem', flexWrap: 'wrap' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                <span style={{ fontSize: '0.9375rem', fontWeight: 700, color: '#1f2328' }}>发送历史</span>
+                <span style={{ fontSize: '0.8125rem', color: '#656d76' }}>共 3 条</span>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.625rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.35rem 0.75rem', border: '1px solid #d0d7de', borderRadius: '2rem', backgroundColor: 'white', width: '200px' }}>
+                  <Search size={13} color="#57606a" />
+                  <input
+                    type="text"
+                    placeholder="搜索任务名称"
+                    value={historySearch}
+                    onChange={e => { setHistorySearch(e.target.value); setHistoryPage(1); }}
+                    style={{ border: 'none', outline: 'none', fontSize: '0.8125rem', width: '100%', color: '#24292f', backgroundColor: 'transparent' }}
+                  />
+                </div>
+                <select
+                  value={historyStatusFilter}
+                  onChange={e => { setHistoryStatusFilter(e.target.value); setHistoryPage(1); }}
+                  style={{ padding: '0.35rem 0.625rem', border: '1px solid #d0d7de', borderRadius: '0.375rem', fontSize: '0.8125rem', color: '#24292f', backgroundColor: 'white', cursor: 'pointer', outline: 'none' }}
+                >
+                  <option value="all">全部状态</option>
+                  <option value="success">发送成功</option>
+                  <option value="failed">发送失败</option>
+                </select>
+              </div>
             </div>
-            <div style={{ overflowX: 'auto' }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse', tableLayout: 'fixed', minWidth: '800px' }}>
+            {/* 表体 */}
+            <div style={{ overflowX: 'auto', padding: '0 1.5rem' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', tableLayout: 'fixed' }}>
                 <tbody>
-                  {[
-                    { time: '2026-03-10 09:02', task: '飞书 AI 系统周报', count: '47', summary: '「上周共收到 47 条通知，其中 GitHub CI/CD 构建成功率 96%...」', status: '✅ 成功' },
-                    { time: '2026-03-07 18:01', task: 'GitHub CI/CD 周报', count: '23', summary: '「本周 CI 流水线共触发 23 次，其中 deploy-prod 成功 21 次...」', status: '✅ 成功' },
-                    { time: '2026-03-03 09:03', task: '飞书 AI 系统周报', count: '35', summary: '「上周系统运行稳定，共处理 35 条消息，无异常告警事件...」', status: '✅ 成功' },
-                  ].map((record, idx) => (
-                    <tr key={idx} style={{ borderBottom: '1px solid #f3f4f6' }}>
-                      <td style={{ padding: '0.875rem 1.5rem', width: '160px' }}>
-                        <span style={{ fontSize: '0.8125rem', color: '#374151', whiteSpace: 'nowrap' }}>{record.time}</span>
-                      </td>
-                      <td style={{ padding: '0.875rem 0.75rem', width: '200px' }}>
-                        <span style={{ fontWeight: 600, fontSize: '0.875rem', color: '#1f2328' }}>{record.task}</span>
-                      </td>
-                      <td style={{ padding: '0.875rem 0.75rem', width: '80px', textAlign: 'center' }}>
-                        <span style={{ fontWeight: 700, color: '#1f2937' }}>{record.count}</span> <span style={{ fontSize: '0.75rem', color: '#9ca3af' }}>条</span>
-                      </td>
-                      <td style={{ padding: '0.875rem 0.75rem', flex: 1, minWidth: '250px' }}>
-                        <span style={{ fontSize: '0.8125rem', color: '#6b7280' }}>{record.summary}</span>
-                      </td>
-                      <td style={{ padding: '0.875rem 1.5rem', width: '100px', textAlign: 'right' }}>
-                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem', padding: '0.2rem 0.625rem', borderRadius: '1rem', fontSize: '0.75rem', fontWeight: 600, background: '#d1fae5', color: '#065f46' }}>✅ 成功</span>
-                      </td>
-                    </tr>
-                  ))}
+                  {(() => {
+                    const allRecords = [
+                      { id: '1', date: '2026-03-10', clock: '09:02', task: '飞书 AI 系统周报', period: '2026-03-03 ~ 2026-03-09', count: 47, summary: '「上周共收到 47 条通知，其中 GitHub CI/CD 构建成功率 96%，飞书群消息活跃度上升 12%」', status: 'success' as const },
+                      { id: '2', date: '2026-03-07', clock: '18:01', task: 'GitHub CI/CD 周报', period: '2026-02-28 ~ 2026-03-06', count: 23, summary: '「本周 CI 流水线共触发 23 次，其中 deploy-prod 成功 21 次，失败 2 次，需关注」', status: 'success' as const },
+                      { id: '3', date: '2026-03-03', clock: '09:03', task: '飞书 AI 系统周报', period: '2026-02-24 ~ 2026-03-02', count: 35, summary: '「上周系统运行稳定，共处理 35 条消息，无异常告警事件，MCP 推送成功率 100%」', status: 'success' as const },
+                    ];
+                    const filtered = allRecords.filter(r =>
+                      (historyStatusFilter === 'all' || r.status === historyStatusFilter) &&
+                      (historySearch === '' || r.task.includes(historySearch))
+                    );
+                    const totalPg = Math.ceil(filtered.length / historyPageSize);
+                    const sliced = filtered.slice((historyPage - 1) * historyPageSize, historyPage * historyPageSize);
+                    return (
+                      <>
+                        {sliced.length > 0 ? sliced.map(record => (
+                          <tr key={record.id} style={{ borderBottom: '1px solid #f3f4f6' }}>
+                            {/* 任务名称 + 汇报期间 */}
+                            <td style={{ padding: '1rem 0.75rem', width: '220px' }}>
+                              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                                <span style={{ fontWeight: 600, fontSize: '0.875rem', color: '#1f2328', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{record.task}</span>
+                                <span style={{ fontSize: '0.75rem', color: '#656d76', whiteSpace: 'nowrap' }}>{record.period}</span>
+                              </div>
+                            </td>
+                            {/* 摘要 */}
+                            <td style={{ padding: '1rem 0.75rem' }}>
+                              <span style={{ fontSize: '0.8125rem', color: '#6b7280', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' } as React.CSSProperties}>{record.summary}</span>
+                            </td>
+                            {/* 条数 */}
+                            <td style={{ padding: '1rem 0.75rem', width: '70px', textAlign: 'center' }}>
+                              <span style={{ fontWeight: 700, fontSize: '0.9375rem', color: '#1f2937' }}>{record.count}</span>
+                              <span style={{ fontSize: '0.75rem', color: '#9ca3af', marginLeft: '2px' }}>条</span>
+                            </td>
+                            {/* 状态 */}
+                            <td style={{ padding: '1rem 0.75rem', width: '90px', textAlign: 'center' }}>
+                              <span style={{
+                                display: 'inline-flex', alignItems: 'center', padding: '0.25rem 0.7rem',
+                                borderRadius: '999px', fontSize: '0.75rem', fontWeight: 600, lineHeight: 1,
+                                color: record.status === 'success' ? '#1a7f37' : '#cf222e',
+                                backgroundColor: record.status === 'success' ? '#dafbe1' : '#ffebe9',
+                              }}>
+                                {record.status === 'success' ? '发送成功' : '发送失败'}
+                              </span>
+                            </td>
+                            {/* 时间 + 操作 */}
+                            <td style={{ padding: '1rem 1.5rem 1rem 0.75rem', width: '200px', textAlign: 'right' }}>
+                              <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.75rem' }}>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem', textAlign: 'left' }}>
+                                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', color: '#374151', fontSize: '0.8125rem', fontWeight: 500 }}>
+                                    <CalendarDays size={13} color="#57606a" />{record.date}
+                                  </span>
+                                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', color: '#656d76', fontSize: '0.75rem' }}>
+                                    <Clock3 size={13} color="#57606a" />{record.clock}
+                                  </span>
+                                </div>
+                                <span style={{ color: '#e5e7eb', flexShrink: 0 }}>|</span>
+                                <button
+                                  style={{ width: '30px', height: '30px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', border: 'none', borderRadius: '0.375rem', backgroundColor: 'transparent', color: '#57606a', cursor: 'pointer' }}
+                                  onMouseEnter={e => { e.currentTarget.style.backgroundColor = '#f3f4f6'; }}
+                                  onMouseLeave={e => { e.currentTarget.style.backgroundColor = 'transparent'; }}
+                                >
+                                  <MoreHorizontal size={15} />
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        )) : (
+                          <tr>
+                            <td colSpan={5} style={{ padding: '2.5rem', textAlign: 'center', color: '#9ca3af', fontSize: '0.875rem' }}>
+                              {historySearch || historyStatusFilter !== 'all' ? '无匹配结果，请调整搜索条件' : '暂无发送记录'}
+                            </td>
+                          </tr>
+                        )}
+                        {totalPg > 1 && (
+                          <tr>
+                            <td colSpan={5} style={{ padding: '0.875rem 0', borderTop: '1px solid #e5e7eb' }}>
+                              <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.125rem' }}>
+                                <button
+                                  onClick={() => setHistoryPage(Math.max(1, historyPage - 1))}
+                                  disabled={historyPage === 1}
+                                  style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem', padding: '0.375rem 0.625rem', border: 'none', backgroundColor: 'transparent', color: historyPage === 1 ? '#8c959f' : '#0969da', cursor: historyPage === 1 ? 'not-allowed' : 'pointer', borderRadius: '0.375rem', fontSize: '0.8125rem', fontWeight: 500, opacity: historyPage === 1 ? 0.7 : 1 }}
+                                >
+                                  <ChevronLeft size={15} />上一页
+                                </button>
+                                {Array.from({ length: totalPg }, (_, i) => i + 1).map(pg => (
+                                  <button
+                                    key={pg}
+                                    onClick={() => setHistoryPage(pg)}
+                                    style={{ width: '32px', height: '32px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', border: historyPage === pg ? 'none' : '1px solid transparent', backgroundColor: historyPage === pg ? '#0969da' : 'transparent', color: historyPage === pg ? 'white' : '#1f2328', cursor: 'pointer', borderRadius: '0.375rem', fontSize: '0.875rem', fontWeight: historyPage === pg ? 600 : 400 }}
+                                  >
+                                    {pg}
+                                  </button>
+                                ))}
+                                <button
+                                  onClick={() => setHistoryPage(Math.min(totalPg, historyPage + 1))}
+                                  disabled={historyPage === totalPg}
+                                  style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem', padding: '0.375rem 0.625rem', border: 'none', backgroundColor: 'transparent', color: historyPage === totalPg ? '#8c959f' : '#0969da', cursor: historyPage === totalPg ? 'not-allowed' : 'pointer', borderRadius: '0.375rem', fontSize: '0.8125rem', fontWeight: 500, opacity: historyPage === totalPg ? 0.7 : 1 }}
+                                >
+                                  下一页<ChevronRight size={15} />
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        )}
+                      </>
+                    );
+                  })()}
                 </tbody>
               </table>
             </div>
