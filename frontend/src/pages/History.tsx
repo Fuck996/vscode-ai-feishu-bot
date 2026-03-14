@@ -291,11 +291,12 @@ const History: React.FC = () => {
                                 <Clock3 size={14} color="#57606a" /><span>{time}</span>
                               </span>
                             </div>
+                            <span style={{ color: '#e5e7eb', fontSize: '1rem', flexShrink: 0 }}>|</span>
                             <div style={{ display: 'inline-flex' }} onClick={e => e.stopPropagation()}>
                               <button
                                 type="button"
                                 onClick={(event) => openActionMenuAt(event, notification.id)}
-                                style={{ width: '32px', height: '32px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', border: '1px solid #d0d7de', borderRadius: '0.5rem', backgroundColor: '#ffffff', color: '#57606a', cursor: 'pointer' }}
+                                style={{ width: '32px', height: '32px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', border: 'none', borderRadius: '0.5rem', backgroundColor: '#ffffff', color: '#57606a', cursor: 'pointer' }}
                                 aria-label="更多操作"
                               >
                                 <MoreHorizontal size={16} />

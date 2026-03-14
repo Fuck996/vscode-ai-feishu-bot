@@ -660,6 +660,7 @@ const Dashboard: React.FC = () => {
                                 <span style={{ color: '#9ca3af', fontSize: '0.8125rem' }}>未发送</span>
                               )}
                             </div>
+                            <span style={{ color: '#e5e7eb', fontSize: '1rem', flexShrink: 0 }}>|</span>
                             <div onClick={e => e.stopPropagation()}>
                               <button
                                 type="button"
@@ -668,7 +669,7 @@ const Dashboard: React.FC = () => {
                                   const rect = e.currentTarget.getBoundingClientRect();
                                   setRobotMenuPos(robotMenuPos?.id === robot.id ? null : { id: robot.id, top: rect.bottom + 6, left: rect.right - 140 });
                                 }}
-                                style={{ width: '32px', height: '32px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', border: '1px solid #d0d7de', borderRadius: '0.5rem', backgroundColor: '#ffffff', color: '#57606a', cursor: 'pointer' }}
+                                style={{ width: '32px', height: '32px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', border: 'none', borderRadius: '0.5rem', backgroundColor: '#ffffff', color: '#57606a', cursor: 'pointer' }}
                                 aria-label="更多操作"
                               >
                                 <MoreHorizontal size={16} />
@@ -733,9 +734,7 @@ const Dashboard: React.FC = () => {
                               {notification.title}
                             </span>
                             <span style={{ color: '#656d76', fontSize: '0.75rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                              {notification.source
-                                || (notification.robotName ? `系统通知/${notification.robotName}` : '系统通知/测试消息')
-                              }
+                              {notification.source || '—'}
                             </span>
                           </div>
                         </td>
@@ -756,6 +755,7 @@ const Dashboard: React.FC = () => {
                                 <Clock3 size={14} color="#57606a" /><span>{time}</span>
                               </span>
                             </div>
+                            <span style={{ color: '#e5e7eb', fontSize: '1rem', flexShrink: 0 }}>|</span>
                             <div onClick={e => e.stopPropagation()}>
                               <button
                                 type="button"
@@ -764,7 +764,7 @@ const Dashboard: React.FC = () => {
                                   const rect = e.currentTarget.getBoundingClientRect();
                                   setNotifMenuPos(notifMenuPos?.id === notification.id ? null : { id: notification.id, top: rect.bottom + 6, left: rect.right - 120 });
                                 }}
-                                style={{ width: '32px', height: '32px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', border: '1px solid #d0d7de', borderRadius: '0.5rem', backgroundColor: '#ffffff', color: '#57606a', cursor: 'pointer' }}
+                                style={{ width: '32px', height: '32px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', border: 'none', borderRadius: '0.5rem', backgroundColor: '#ffffff', color: '#57606a', cursor: 'pointer' }}
                                 aria-label="更多操作"
                               >
                                 <MoreHorizontal size={16} />

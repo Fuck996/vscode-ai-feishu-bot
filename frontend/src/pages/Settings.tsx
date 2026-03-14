@@ -1,5 +1,5 @@
 ﻿import React, { useState, useEffect } from 'react';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { ChevronLeft, ChevronRight, MoreHorizontal, CalendarDays, Clock3, ChevronDown } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import authService from '../services/auth';
 import { useToast } from '../hooks/useToast';
@@ -61,6 +61,11 @@ const Settings: React.FC = () => {
   const [newUserRole, setNewUserRole] = useState<'admin' | 'user'>('user');
   const [userPage, setUserPage] = useState(1);
   const usersPerPage = 10;
+  const [filterStatus, setFilterStatus] = useState<string[]>([]);
+  const [filterRole, setFilterRole] = useState<string[]>([]);
+  const [filterStatusOpen, setFilterStatusOpen] = useState(false);
+  const [filterRoleOpen, setFilterRoleOpen] = useState(false);
+  const [userMenuPos, setUserMenuPos] = useState<{ top: number; left: number; user: UserRow } | null>(null);
 
   // 审计日志
   const [auditLogs, setAuditLogs] = useState<AuditLogRow[]>([]);
@@ -80,6 +85,18 @@ const Settings: React.FC = () => {
     if (activeMenu === 'users' && isAdmin) loadUsers();
     if (activeMenu === 'audit' && isAdmin) loadAuditLogs();
   }, [activeMenu]);
+
+  useEffect(() => { setUserPage(1); }, [filterStatus, filterRole]);
+
+  useEffect(() => {
+    const handler = () => {
+      setFilterStatusOpen(false);
+      setFilterRoleOpen(false);
+      setUserMenuPos(null);
+    };
+    document.addEventListener('click', handler);
+    return () => document.removeEventListener('click', handler);
+  }, []);
 
   const loadMyProfile = async () => {
     const res = await authService.fetchWithAuth('/api/users/me');
@@ -260,8 +277,13 @@ const Settings: React.FC = () => {
   const filteredLogs = filterAuditType ? auditLogs.filter(l => l.resourceType === filterAuditType) : auditLogs;
   const auditTotalPages = Math.max(1, Math.ceil(filteredLogs.length / logsPerPage));
   const paginatedLogs = filteredLogs.slice((auditPage - 1) * logsPerPage, auditPage * logsPerPage);
-  const paginatedUsers = users.slice((userPage - 1) * usersPerPage, userPage * usersPerPage);
-  const userTotalPages = Math.max(1, Math.ceil(users.length / usersPerPage));
+  const filteredUsers = users.filter(u => {
+    if (filterStatus.length > 0 && !filterStatus.includes(u.status)) return false;
+    if (filterRole.length > 0 && !filterRole.includes(u.role)) return false;
+    return true;
+  });
+  const userTotalPages = Math.max(1, Math.ceil(filteredUsers.length / usersPerPage));
+  const paginatedUsers = filteredUsers.slice((userPage - 1) * usersPerPage, userPage * usersPerPage);
 
   // 样式
   const menuItemStyle = (key: string): React.CSSProperties => ({
@@ -269,13 +291,14 @@ const Settings: React.FC = () => {
     cursor: 'pointer',
     borderLeft: activeMenu === key ? '3px solid #1e40af' : '3px solid transparent',
     fontSize: '0.875rem',
-    color: activeMenu === key ? '#1e40af' : '#6b7280',
-    backgroundColor: activeMenu === key ? '#dbeafe' : 'transparent',
-    fontWeight: activeMenu === key ? 500 : 400,
+    color: activeMenu === key ? '#0969da' : '#57606a',
+    backgroundColor: 'transparent',
+    fontWeight: activeMenu === key ? 600 : 400,
     borderBottom: '1px solid #f3f4f6',
     display: 'flex',
     alignItems: 'center',
     gap: '0.5rem',
+    transition: 'background-color 0.15s ease, color 0.15s ease',
   });
 
   const inputStyle: React.CSSProperties = {
@@ -301,7 +324,12 @@ const Settings: React.FC = () => {
             <div style={{ padding: '0.75rem 1.25rem', fontSize: '0.75rem', fontWeight: 700, color: '#9ca3af', textTransform: 'uppercase', borderBottom: '1px solid #f3f4f6', background: '#f9fafb' }}>
               个人设置
             </div>
-            <div style={menuItemStyle('account-settings')} onClick={() => setActiveMenu('account-settings')}>
+            <div
+              style={menuItemStyle('account-settings')}
+              onClick={() => setActiveMenu('account-settings')}
+              onMouseEnter={e => { e.currentTarget.style.backgroundColor = '#ddf4ff'; e.currentTarget.style.color = '#0969da'; }}
+              onMouseLeave={e => { e.currentTarget.style.backgroundColor = 'transparent'; e.currentTarget.style.color = activeMenu === 'account-settings' ? '#0969da' : '#57606a'; }}
+            >
               <SceneIcon name="key" size={16} title="账户信息" inheritColor />
               账户信息
             </div>
@@ -310,11 +338,21 @@ const Settings: React.FC = () => {
                 <div style={{ padding: '0.75rem 1.25rem', fontSize: '0.75rem', fontWeight: 700, color: '#9ca3af', textTransform: 'uppercase', borderBottom: '1px solid #f3f4f6', background: '#f9fafb' }}>
                   高级管理
                 </div>
-                <div style={menuItemStyle('users')} onClick={() => setActiveMenu('users')}>
+                <div
+                  style={menuItemStyle('users')}
+                  onClick={() => setActiveMenu('users')}
+                  onMouseEnter={e => { e.currentTarget.style.backgroundColor = '#ddf4ff'; e.currentTarget.style.color = '#0969da'; }}
+                  onMouseLeave={e => { e.currentTarget.style.backgroundColor = 'transparent'; e.currentTarget.style.color = activeMenu === 'users' ? '#0969da' : '#57606a'; }}
+                >
                   <SceneIcon name="users" size={16} title="用户管理" inheritColor />
                   用户管理
                 </div>
-                <div style={menuItemStyle('audit')} onClick={() => setActiveMenu('audit')}>
+                <div
+                  style={menuItemStyle('audit')}
+                  onClick={() => setActiveMenu('audit')}
+                  onMouseEnter={e => { e.currentTarget.style.backgroundColor = '#ddf4ff'; e.currentTarget.style.color = '#0969da'; }}
+                  onMouseLeave={e => { e.currentTarget.style.backgroundColor = 'transparent'; e.currentTarget.style.color = activeMenu === 'audit' ? '#0969da' : '#57606a'; }}
+                >
                   <SceneIcon name="audit" size={16} title="审计日志" inheritColor />
                   审计日志
                 </div>
@@ -328,8 +366,6 @@ const Settings: React.FC = () => {
             {/* 账户信息 */}
             {activeMenu === 'account-settings' && (
               <div>
-                <h1 style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#1f2937', marginBottom: '0.25rem' }}>账户信息</h1>
-                <p style={{ fontSize: '0.875rem', color: '#6b7280', marginBottom: '1.5rem' }}>管理个人账户、安全设置与密码恢复</p>
 
                 {/* 个人信息卡片 */}
                 <div style={{ background: 'white', borderRadius: '0.5rem', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', marginBottom: '1.5rem' }}>
@@ -426,8 +462,6 @@ const Settings: React.FC = () => {
             {/* 用户管理 */}
             {activeMenu === 'users' && isAdmin && (
               <div>
-                <h1 style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#1f2937', marginBottom: '0.25rem' }}>用户管理</h1>
-                <p style={{ fontSize: '0.875rem', color: '#6b7280', marginBottom: '1.5rem' }}>管理系统账户、角色与访问权限</p>
 
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem', marginBottom: '1.5rem' }}>
                   {[
@@ -444,73 +478,177 @@ const Settings: React.FC = () => {
                 </div>
 
                 <div style={{ background: 'white', borderRadius: '0.5rem', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', overflow: 'hidden' }}>
-                  <div style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid #e5e7eb', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <span style={{ fontSize: '1rem', fontWeight: 600, color: '#1f2937' }}>所有用户</span>
-                    <button onClick={openCreateUser} style={{ padding: '0.375rem 1rem', background: '#10b981', color: 'white', border: 'none', borderRadius: '0.375rem', cursor: 'pointer', fontSize: '0.875rem', fontWeight: 500 }}>
-                      新建用户
-                    </button>
+                  {/* 表头栏 */}
+                  <div style={{ padding: '1rem 1.5rem', borderBottom: '1px solid #e5e7eb', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '0.75rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                      <span style={{ fontSize: '0.9375rem', fontWeight: 700, color: '#1f2328' }}>所有用户</span>
+                      <span style={{ fontSize: '0.8125rem', color: '#656d76' }}>共 {filteredUsers.length} 个</span>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                      {/* 新建用户 */}
+                      <button onClick={openCreateUser} style={{ padding: '0.375rem 0.875rem', backgroundColor: '#1f883d', color: 'white', border: 'none', borderRadius: '0.375rem', cursor: 'pointer', fontSize: '0.8125rem', fontWeight: 500 }}>
+                        新建用户
+                      </button>
+                      {/* 状态筛选 */}
+                      <div style={{ position: 'relative' }} onClick={e => e.stopPropagation()}>
+                        <button
+                          type="button"
+                          onClick={() => { setFilterStatusOpen(v => !v); setFilterRoleOpen(false); }}
+                          style={{ display: 'inline-flex', alignItems: 'center', gap: '0.375rem', padding: '0.375rem 0.75rem', fontSize: '0.8125rem', fontWeight: filterStatus.length > 0 ? 600 : 500, color: filterStatus.length > 0 ? '#0969da' : '#57606a', backgroundColor: filterStatus.length > 0 ? '#dbeafe' : '#f6f8fa', border: `1px solid ${filterStatus.length > 0 ? '#0969da' : '#d0d7de'}`, borderRadius: '0.375rem', cursor: 'pointer' }}
+                        >
+                          状态
+                          {filterStatus.length > 0 && (
+                            <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: '16px', height: '16px', borderRadius: '50%', backgroundColor: '#0969da', color: 'white', fontSize: '0.6rem', fontWeight: 700 }}>{filterStatus.length}</span>
+                          )}
+                          <ChevronDown size={13} />
+                        </button>
+                        {filterStatusOpen && (
+                          <div style={{ position: 'absolute', top: 'calc(100% + 0.375rem)', right: 0, minWidth: '160px', backgroundColor: '#ffffff', border: '1px solid #d0d7de', borderRadius: '0.75rem', boxShadow: '0 16px 32px rgba(31, 35, 40, 0.15)', zIndex: 30, overflow: 'hidden', padding: '0.4rem' }}>
+                            {[{ value: 'active', label: '启用' }, { value: 'inactive', label: '停用' }].map(opt => (
+                              <button key={opt.value} type="button" onClick={() => setFilterStatus(prev => prev.includes(opt.value) ? prev.filter(x => x !== opt.value) : [...prev, opt.value])} style={{ width: '100%', textAlign: 'left', padding: '0.45rem 0.75rem', border: 'none', borderRadius: '0.5rem', backgroundColor: filterStatus.includes(opt.value) ? '#dbeafe' : 'transparent', color: filterStatus.includes(opt.value) ? '#0969da' : '#1f2328', cursor: 'pointer', fontSize: '0.875rem', fontWeight: filterStatus.includes(opt.value) ? 600 : 500, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                <span style={{ width: '14px', height: '14px', borderRadius: '0.25rem', border: `1px solid ${filterStatus.includes(opt.value) ? '#0969da' : '#d0d7de'}`, backgroundColor: filterStatus.includes(opt.value) ? '#0969da' : 'white', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                                  {filterStatus.includes(opt.value) && <span style={{ color: 'white', fontSize: '0.6rem', lineHeight: 1 }}>✓</span>}
+                                </span>
+                                {opt.label}
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                      {/* 角色筛选 */}
+                      <div style={{ position: 'relative' }} onClick={e => e.stopPropagation()}>
+                        <button
+                          type="button"
+                          onClick={() => { setFilterRoleOpen(v => !v); setFilterStatusOpen(false); }}
+                          style={{ display: 'inline-flex', alignItems: 'center', gap: '0.375rem', padding: '0.375rem 0.75rem', fontSize: '0.8125rem', fontWeight: filterRole.length > 0 ? 600 : 500, color: filterRole.length > 0 ? '#0969da' : '#57606a', backgroundColor: filterRole.length > 0 ? '#dbeafe' : '#f6f8fa', border: `1px solid ${filterRole.length > 0 ? '#0969da' : '#d0d7de'}`, borderRadius: '0.375rem', cursor: 'pointer' }}
+                        >
+                          角色
+                          {filterRole.length > 0 && (
+                            <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: '16px', height: '16px', borderRadius: '50%', backgroundColor: '#0969da', color: 'white', fontSize: '0.6rem', fontWeight: 700 }}>{filterRole.length}</span>
+                          )}
+                          <ChevronDown size={13} />
+                        </button>
+                        {filterRoleOpen && (
+                          <div style={{ position: 'absolute', top: 'calc(100% + 0.375rem)', right: 0, minWidth: '160px', backgroundColor: '#ffffff', border: '1px solid #d0d7de', borderRadius: '0.75rem', boxShadow: '0 16px 32px rgba(31, 35, 40, 0.15)', zIndex: 30, overflow: 'hidden', padding: '0.4rem' }}>
+                            {[{ value: 'admin', label: '管理员' }, { value: 'user', label: '普通用户' }].map(opt => (
+                              <button key={opt.value} type="button" onClick={() => setFilterRole(prev => prev.includes(opt.value) ? prev.filter(x => x !== opt.value) : [...prev, opt.value])} style={{ width: '100%', textAlign: 'left', padding: '0.45rem 0.75rem', border: 'none', borderRadius: '0.5rem', backgroundColor: filterRole.includes(opt.value) ? '#dbeafe' : 'transparent', color: filterRole.includes(opt.value) ? '#0969da' : '#1f2328', cursor: 'pointer', fontSize: '0.875rem', fontWeight: filterRole.includes(opt.value) ? 600 : 500, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                <span style={{ width: '14px', height: '14px', borderRadius: '0.25rem', border: `1px solid ${filterRole.includes(opt.value) ? '#0969da' : '#d0d7de'}`, backgroundColor: filterRole.includes(opt.value) ? '#0969da' : 'white', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                                  {filterRole.includes(opt.value) && <span style={{ color: 'white', fontSize: '0.6rem', lineHeight: 1 }}>✓</span>}
+                                </span>
+                                {opt.label}
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    </div>
                   </div>
 
                   {userLoading ? (
                     <div style={{ padding: '2rem', textAlign: 'center', color: '#6b7280' }}>加载中...</div>
                   ) : (
-                    <div>
-                      <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                        <thead style={{ background: '#f9fafb' }}>
-                          <tr>
-                            {['用户名', '角色', '通知数', '状态', '最后登录', '操作'].map(h => (
-                              <th key={h} style={{ padding: '0.75rem 1rem', textAlign: 'left', fontSize: '0.8rem', fontWeight: 600, color: '#6b7280', borderBottom: '1px solid #e5e7eb' }}>{h}</th>
-                            ))}
-                          </tr>
-                        </thead>
+                    <div style={{ overflowX: 'auto' }}>
+                      <table style={{ width: '100%', borderCollapse: 'collapse', tableLayout: 'fixed', minWidth: '700px' }}>
+                        <colgroup>
+                          <col style={{ width: '280px' }} />
+                          <col />
+                          <col style={{ width: '240px' }} />
+                        </colgroup>
                         <tbody>
-                          {paginatedUsers.map(u => (
+                          {paginatedUsers.length === 0 ? (
+                            <tr>
+                              <td colSpan={3} style={{ padding: '3rem', textAlign: 'center', color: '#9ca3af', fontSize: '0.875rem' }}>
+                                {filteredUsers.length === 0 && users.length > 0 ? '无匹配结果，请调整筛选条件' : '暂无用户数据'}
+                              </td>
+                            </tr>
+                          ) : paginatedUsers.map(u => (
                             <tr key={u.id} style={{ borderBottom: '1px solid #f3f4f6' }}>
-                              <td style={{ padding: '0.875rem 1rem' }}>
-                                <div style={{ fontWeight: 500, fontSize: '0.875rem', color: '#1f2937' }}>{u.username}</div>
-                                {u.nickname && <div style={{ fontSize: '0.75rem', color: '#9ca3af' }}>{u.nickname}</div>}
+                              {/* 用户列：角色徽章 + 用户名 */}
+                              <td style={{ padding: '0.875rem 1rem', paddingLeft: '1.5rem', verticalAlign: 'middle' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.625rem' }}>
+                                  <span style={{ display: 'inline-flex', justifyContent: 'center', minWidth: '4.5rem', padding: '0.2rem 0.6rem', borderRadius: '0.375rem', fontSize: '0.78rem', fontWeight: 600, whiteSpace: 'nowrap', background: u.role === 'admin' ? '#fef3c7' : '#f3f4f6', color: u.role === 'admin' ? '#92400e' : '#374151', flexShrink: 0 }}>
+                                    {u.role === 'admin' ? '管理员' : '普通用户'}
+                                  </span>
+                                  <div>
+                                    <div style={{ fontSize: '0.875rem', fontWeight: 600, color: '#1f2328' }}>{u.username}</div>
+                                    {u.nickname && <div style={{ fontSize: '0.75rem', color: '#656d76' }}>{u.nickname}</div>}
+                                  </div>
+                                </div>
                               </td>
-                              <td style={{ padding: '0.875rem 1rem' }}>
-                                <span style={{ padding: '0.2rem 0.625rem', borderRadius: '9999px', fontSize: '0.75rem', fontWeight: 600, background: u.role === 'admin' ? '#fef3c7' : '#dbeafe', color: u.role === 'admin' ? '#92400e' : '#1e40af' }}>
-                                  {u.role === 'admin' ? '管理员' : '普通用户'}
-                                </span>
-                              </td>
-                              <td style={{ padding: '0.875rem 1rem', fontSize: '0.875rem', fontWeight: 600, color: u.notificationCount > 0 ? '#3b82f6' : '#9ca3af' }}>
-                                {u.notificationCount}
-                              </td>
-                              <td style={{ padding: '0.875rem 1rem' }}>
-                                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem', fontSize: '0.75rem', fontWeight: 600, color: u.status === 'active' ? '#10b981' : '#9ca3af' }}>
-                                  <span style={{ width: 6, height: 6, borderRadius: '50%', background: u.status === 'active' ? '#10b981' : '#9ca3af', display: 'inline-block' }} />
+                              {/* 状态列 */}
+                              <td style={{ padding: '0.875rem 0.75rem', verticalAlign: 'middle', textAlign: 'center' }}>
+                                <span style={{ display: 'inline-block', padding: '0.25rem 0.7rem', borderRadius: '999px', fontSize: '0.75rem', fontWeight: 600, background: u.status === 'active' ? '#dcfce7' : '#f6f8fa', color: u.status === 'active' ? '#1a7f37' : '#57606a' }}>
                                   {u.status === 'active' ? '启用' : '停用'}
                                 </span>
                               </td>
-                              <td style={{ padding: '0.875rem 1rem', fontSize: '0.875rem', color: '#6b7280' }}>
-                                {u.lastLoginAt ? new Date(u.lastLoginAt).toLocaleString('zh-CN', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : '从未登录'}
-                              </td>
-                              <td style={{ padding: '0.875rem 1rem' }}>
-                                <div style={{ display: 'flex', gap: '0.375rem' }}>
-                                  <button onClick={() => openEditUser(u)} style={{ padding: '0.25rem 0.75rem', background: '#e5e7eb', color: '#374151', border: 'none', borderRadius: '0.25rem', cursor: 'pointer', fontSize: '0.75rem' }}>编辑</button>
-                                  {u.id !== currentUser?.id && (
-                                    <>
-                                      <button onClick={() => handleToggleUserStatus(u)} style={{ padding: '0.25rem 0.75rem', background: u.status === 'active' ? '#fef3c7' : '#d1fae5', color: u.status === 'active' ? '#92400e' : '#065f46', border: 'none', borderRadius: '0.25rem', cursor: 'pointer', fontSize: '0.75rem' }}>
-                                        {u.status === 'active' ? '停用' : '启用'}
-                                      </button>
-                                      <button onClick={() => handleDeleteUser(u)} style={{ padding: '0.25rem 0.75rem', background: '#fef2f2', color: '#ef4444', border: 'none', borderRadius: '0.25rem', cursor: 'pointer', fontSize: '0.75rem' }}>删除</button>
-                                    </>
+                              {/* 最后登录 + 操作 */}
+                              <td style={{ padding: '0.875rem 1rem', paddingRight: '1.5rem', verticalAlign: 'middle', textAlign: 'right' }}>
+                                <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.75rem' }}>
+                                  {u.lastLoginAt ? (
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem', textAlign: 'left' }}>
+                                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem', color: '#374151', fontSize: '0.8125rem', fontWeight: 500, whiteSpace: 'nowrap' }}>
+                                        <CalendarDays size={12} color="#57606a" />
+                                        <span>{new Date(u.lastLoginAt).toLocaleDateString('zh-CN', { year: 'numeric', month: '2-digit', day: '2-digit' })}</span>
+                                      </span>
+                                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem', color: '#656d76', fontSize: '0.72rem' }}>
+                                        <Clock3 size={12} color="#57606a" />
+                                        <span>{new Date(u.lastLoginAt).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false })}</span>
+                                      </span>
+                                    </div>
+                                  ) : (
+                                    <span style={{ fontSize: '0.8125rem', color: '#9ca3af' }}>从未登录</span>
                                   )}
+                                  <span style={{ color: '#e5e7eb', fontSize: '1rem', flexShrink: 0 }}>|</span>
+                                  <button
+                                    type="button"
+                                    onClick={e => {
+                                      e.stopPropagation();
+                                      const rect = e.currentTarget.getBoundingClientRect();
+                                      setUserMenuPos(prev => prev?.user.id === u.id ? null : { top: rect.bottom + 6, left: rect.right - 132, user: u });
+                                    }}
+                                    style={{ width: '32px', height: '32px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', border: 'none', borderRadius: '0.5rem', backgroundColor: '#ffffff', color: '#57606a', cursor: 'pointer', flexShrink: 0 }}
+                                  >
+                                    <MoreHorizontal size={16} />
+                                  </button>
                                 </div>
                               </td>
                             </tr>
                           ))}
                         </tbody>
                       </table>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1rem 1.5rem', borderTop: '1px solid #e5e7eb' }}>
-                        <span style={{ fontSize: '0.875rem', color: '#6b7280' }}>第 {userPage} / {userTotalPages} 页</span>
-                        <div style={{ display: 'flex', gap: '0.5rem' }}>
-                          <button onClick={() => setUserPage(Math.max(1, userPage - 1))} disabled={userPage === 1} style={{ padding: '0.375rem', background: userPage === 1 ? '#e5e7eb' : '#3b82f6', color: userPage === 1 ? '#9ca3af' : 'white', border: 'none', borderRadius: '0.375rem', cursor: userPage === 1 ? 'not-allowed' : 'pointer' }}><ChevronLeft size={16} /></button>
-                          <button onClick={() => setUserPage(Math.min(userTotalPages, userPage + 1))} disabled={userPage === userTotalPages} style={{ padding: '0.375rem', background: userPage === userTotalPages ? '#e5e7eb' : '#3b82f6', color: userPage === userTotalPages ? '#9ca3af' : 'white', border: 'none', borderRadius: '0.375rem', cursor: userPage === userTotalPages ? 'not-allowed' : 'pointer' }}><ChevronRight size={16} /></button>
+                      {userTotalPages > 1 && (
+                        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.125rem', margin: '1rem 0', paddingTop: '1rem', borderTop: '1px solid #e5e7eb' }}>
+                          <button
+                            onClick={() => setUserPage(p => Math.max(1, p - 1))}
+                            disabled={userPage === 1}
+                            style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem', padding: '0.375rem 0.625rem', border: 'none', borderRadius: '0.375rem', backgroundColor: 'transparent', color: userPage === 1 ? '#8c959f' : '#0969da', cursor: userPage === 1 ? 'not-allowed' : 'pointer', fontSize: '0.8125rem', fontWeight: 500, opacity: userPage === 1 ? 0.7 : 1 }}
+                            onMouseEnter={e => { if (userPage !== 1) e.currentTarget.style.backgroundColor = '#f3f4f6'; }}
+                            onMouseLeave={e => { e.currentTarget.style.backgroundColor = 'transparent'; }}
+                          >
+                            <ChevronLeft size={15} />上一页
+                          </button>
+                          {Array.from({ length: userTotalPages }, (_, i) => i + 1).map(page => (
+                            <button
+                              key={page}
+                              onClick={() => setUserPage(page)}
+                              style={{ width: '32px', height: '32px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', border: userPage === page ? 'none' : '1px solid transparent', backgroundColor: userPage === page ? '#0969da' : 'transparent', color: userPage === page ? 'white' : '#1f2328', cursor: 'pointer', borderRadius: '0.375rem', fontSize: '0.875rem', fontWeight: userPage === page ? 600 : 400 }}
+                              onMouseEnter={e => { if (userPage !== page) e.currentTarget.style.border = '1px solid #d0d7de'; }}
+                              onMouseLeave={e => { if (userPage !== page) e.currentTarget.style.border = '1px solid transparent'; }}
+                            >
+                              {page}
+                            </button>
+                          ))}
+                          <button
+                            onClick={() => setUserPage(p => Math.min(userTotalPages, p + 1))}
+                            disabled={userPage === userTotalPages}
+                            style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem', padding: '0.375rem 0.625rem', border: 'none', borderRadius: '0.375rem', backgroundColor: 'transparent', color: userPage === userTotalPages ? '#8c959f' : '#0969da', cursor: userPage === userTotalPages ? 'not-allowed' : 'pointer', fontSize: '0.8125rem', fontWeight: 500, opacity: userPage === userTotalPages ? 0.7 : 1 }}
+                            onMouseEnter={e => { if (userPage !== userTotalPages) e.currentTarget.style.backgroundColor = '#f3f4f6'; }}
+                            onMouseLeave={e => { e.currentTarget.style.backgroundColor = 'transparent'; }}
+                          >
+                            下一页<ChevronRight size={15} />
+                          </button>
                         </div>
-                      </div>
+                      )}
                     </div>
                   )}
                 </div>
@@ -520,8 +658,6 @@ const Settings: React.FC = () => {
             {/* 审计日志 */}
             {activeMenu === 'audit' && isAdmin && (
               <div>
-                <h1 style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#1f2937', marginBottom: '0.25rem' }}>审计日志</h1>
-                <p style={{ fontSize: '0.875rem', color: '#6b7280', marginBottom: '1.5rem' }}>系统操作记录，追踪所有关键变更</p>
 
                 <div style={{ background: 'white', borderRadius: '0.5rem', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', overflow: 'hidden' }}>
                   <div style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid #e5e7eb', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -580,10 +716,29 @@ const Settings: React.FC = () => {
         </div>
       </div>
 
+      {/* 用户行三点菜单 */}
+      {userMenuPos && (() => {
+        const menu = userMenuPos;
+        return (
+          <div
+            style={{ position: 'fixed', top: menu.top, left: menu.left, minWidth: '132px', padding: '0.4rem', backgroundColor: '#ffffff', border: '1px solid #d0d7de', borderRadius: '0.75rem', boxShadow: '0 12px 28px rgba(31, 35, 40, 0.12)', zIndex: 9999 }}
+            onClick={e => e.stopPropagation()}
+          >
+            <button type="button" onClick={() => { openEditUser(menu.user); setUserMenuPos(null); }} style={{ width: '100%', textAlign: 'left', padding: '0.45rem 0.75rem', border: 'none', borderRadius: '0.5rem', backgroundColor: 'transparent', color: '#1f2328', cursor: 'pointer', fontSize: '0.875rem', fontWeight: 500 }} onMouseEnter={e => e.currentTarget.style.backgroundColor = '#f6f8fa'} onMouseLeave={e => e.currentTarget.style.backgroundColor = 'transparent'}>编辑</button>
+            {menu.user.id !== currentUser?.id && (
+              <>
+                <button type="button" onClick={() => { handleToggleUserStatus(menu.user); setUserMenuPos(null); }} style={{ width: '100%', textAlign: 'left', padding: '0.45rem 0.75rem', border: 'none', borderRadius: '0.5rem', backgroundColor: 'transparent', color: '#1f2328', cursor: 'pointer', fontSize: '0.875rem', fontWeight: 500 }} onMouseEnter={e => e.currentTarget.style.backgroundColor = '#f6f8fa'} onMouseLeave={e => e.currentTarget.style.backgroundColor = 'transparent'}>{menu.user.status === 'active' ? '停用' : '启用'}</button>
+                <button type="button" onClick={() => { handleDeleteUser(menu.user); setUserMenuPos(null); }} style={{ width: '100%', textAlign: 'left', padding: '0.45rem 0.75rem', border: 'none', borderRadius: '0.5rem', backgroundColor: 'transparent', color: '#cf222e', cursor: 'pointer', fontSize: '0.875rem', fontWeight: 500 }} onMouseEnter={e => e.currentTarget.style.backgroundColor = '#f6f8fa'} onMouseLeave={e => e.currentTarget.style.backgroundColor = 'transparent'}>删除</button>
+              </>
+            )}
+          </div>
+        );
+      })()}
+
       {/* 用户操作模态框 */}
       {userModal && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }} onClick={() => setUserModal(false)}>
-          <div style={{ background: 'white', borderRadius: '0.5rem', boxShadow: '0 20px 25px rgba(0,0,0,0.15)', width: '100%', maxWidth: '480px' }} onClick={e => e.stopPropagation()}>
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
+          <div style={{ background: 'white', borderRadius: '0.5rem', boxShadow: '0 20px 25px rgba(0,0,0,0.15)', width: '100%', maxWidth: '480px' }}>
             <div style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid #e5e7eb', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <h2 style={{ fontSize: '1.125rem', fontWeight: 600, color: '#1f2937', margin: 0 }}>{editUserId ? '编辑用户' : '新建用户'}</h2>
               <button onClick={() => setUserModal(false)} style={{ background: 'none', border: 'none', fontSize: '1.25rem', cursor: 'pointer', color: '#6b7280' }}>✕</button>

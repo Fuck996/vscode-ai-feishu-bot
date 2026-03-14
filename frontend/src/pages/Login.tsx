@@ -59,9 +59,9 @@ export default function Login() {
       <div className="auth-card">
         <div className="auth-header">
           <div className="auth-header-visual">
-            <SceneIcon name="brand" size={72} title="飞书通知系统" />
+            <SceneIcon name="brand" size={72} title="CortexFlow" />
           </div>
-          <h1>飞书通知系统</h1>
+          <h1>CortexFlow</h1>
         </div>
 
         <form onSubmit={handleSubmit} className="auth-form">
@@ -103,9 +103,9 @@ export default function Login() {
                 aria-label={showPassword ? '隐藏密码' : '显示密码'}
               >
                 {showPassword ? (
-                  <EyeOff className="w-4 h-4" />
+                  <EyeOff className="w-4 h-4" strokeWidth={1.5} />
                 ) : (
-                  <Eye className="w-4 h-4" />
+                  <Eye className="w-4 h-4" strokeWidth={1.5} />
                 )}
               </button>
             </div>

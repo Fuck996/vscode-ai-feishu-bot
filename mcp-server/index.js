@@ -194,7 +194,10 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
 // 格式化汇报内容
 function formatSummary(summary) {
   if (typeof summary !== 'string') return summary;
-  
+
+  // AI 工具调用框架可能将 \n 作为字面量两字符传入，统一转换为真正的换行符
+  summary = summary.replace(/\\n/g, '\n');
+
   // 如果已经是列表形式（包含 ✅ 🔧 等符号），直接返回
   if (/^[\s\n]*(✅|🔧|📝|⚠️|🐛)/.test(summary)) {
     return summary;

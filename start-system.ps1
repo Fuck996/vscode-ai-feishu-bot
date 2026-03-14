@@ -50,11 +50,29 @@ function Start-Services {
     
     Write-Host ""
     Write-Host "[3/4] 启动后端服务 (http://localhost:3000)..." -ForegroundColor Green
-    Start-Process pwsh -ArgumentList "-NoExit", "-Command", "cd backend; npm run dev" -WindowStyle Normal
+    $backendPath = Join-Path $PSScriptRoot 'backend'
+    $frontendPath = Join-Path $PSScriptRoot 'frontend'
+
+    $backendJob = Start-Job -Name Backend -ScriptBlock {
+        param($path)
+        Push-Location $path
+        npm run dev
+        Pop-Location
+    } -ArgumentList $backendPath
+
     Start-Sleep -Seconds 3
 
     Write-Host "[4/4] 启动前端服务 (http://localhost:5173)..." -ForegroundColor Green
-    Start-Process pwsh -ArgumentList "-NoExit", "-Command", "cd frontend; npm run dev" -WindowStyle Normal
+    $frontendJob = Start-Job -Name Frontend -ScriptBlock {
+        param($path)
+        Push-Location $path
+        npm run dev
+        Pop-Location
+    } -ArgumentList $frontendPath
+
+    Write-Host "" 
+    Write-Host "后台服务已以 PowerShell 作业运行：Backend、Frontend。" -ForegroundColor Cyan
+    Write-Host "使用 `Get-Job` 查看作业状态，使用 `Receive-Job -Name Backend -Keep` 查看日志输出。" -ForegroundColor Cyan
 }
 
 function Show-Info {
@@ -72,7 +90,7 @@ function Show-Info {
     
     Write-Host ""
     Write-Host "系统启动完成!" -ForegroundColor Green
-    Write-Host "如需关闭系统，请关闭两个 PowerShell 窗口" -ForegroundColor Yellow
+    Write-Host "停止服务（示例）： Stop-Job -Name Backend,Frontend; Get-Job | Remove-Job" -ForegroundColor Yellow
     Write-Host ""
 }
 

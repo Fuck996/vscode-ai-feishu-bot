@@ -143,6 +143,9 @@ function normalizeProtocolVersion(version: unknown): string {
 function formatSummary(summary: string): string {
   if (typeof summary !== 'string') return String(summary);
 
+  // AI 工具调用框架可能将 \n 作为字面量两字符传入，统一转换为真正换行符
+  summary = summary.replace(/\\n/g, '\n');
+
   // 已是列表形式，直接返回
   if (/^[\s\n]*(✅|🔧|📝|⚠️|🐛)/.test(summary)) return summary;
 

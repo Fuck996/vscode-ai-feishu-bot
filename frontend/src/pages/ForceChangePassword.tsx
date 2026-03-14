@@ -109,9 +109,9 @@ export default function ForceChangePassword() {
                 aria-label={showNewPassword ? '隐藏密码' : '显示密码'}
               >
                 {showNewPassword ? (
-                  <EyeOff className="w-4 h-4" />
+                  <EyeOff className="w-4 h-4" strokeWidth={1.5} />
                 ) : (
-                  <Eye className="w-4 h-4" />
+                  <Eye className="w-4 h-4" strokeWidth={1.5} />
                 )}
               </button>
             </div>
@@ -140,9 +140,9 @@ export default function ForceChangePassword() {
                 aria-label={showConfirmPassword ? '隐藏密码' : '显示密码'}
               >
                 {showConfirmPassword ? (
-                  <EyeOff className="w-4 h-4" />
+                  <EyeOff className="w-4 h-4" strokeWidth={1.5} />
                 ) : (
-                  <Eye className="w-4 h-4" />
+                  <Eye className="w-4 h-4" strokeWidth={1.5} />
                 )}
               </button>
             </div>

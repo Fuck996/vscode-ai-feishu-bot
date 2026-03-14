@@ -152,6 +152,7 @@ router.post('/webhooks/test', async (req: Request, res: Response, next: NextFunc
       status: 'info',
       details: testPayload.details ? JSON.stringify(testPayload.details) : undefined,
       source: '系统通知/测试消息',
+      robotName: '系统机器人',
     });
 
     logger.info({ testId: id }, 'Test webhook sent');

@@ -566,7 +566,7 @@ export default function Integrations() {
                   {filteredIntegrations.map(integration => (
                     <tr key={integration.id} style={{ borderBottom: '1px solid #f3f4f6' }}>
                       {/* 项目名称 */}
-                      <td style={tdStyle}>
+                      <td style={{ ...tdStyle, paddingLeft: '1.5rem' }}>
                         <span
                           style={{ fontWeight: 600, color: '#1f2328', fontSize: '0.875rem', cursor: 'pointer', textDecoration: 'none' }}
                           onMouseEnter={e => { e.currentTarget.style.color = '#0969da'; e.currentTarget.style.textDecoration = 'underline'; }}
@@ -627,7 +627,8 @@ export default function Integrations() {
                               </div>
                             );
                           })()}
-                          {/* 中：toggle */}
+                          {/* 中：分割线 + toggle */}
+                          <span style={{ color: '#e5e7eb', fontSize: '1rem', flexShrink: 0 }}>|</span>
                           <ToggleSwitch
                             checked={integration.status === 'active'}
                             disabled={togglingId === integration.id}
@@ -642,7 +643,7 @@ export default function Integrations() {
                                 const rect = e.currentTarget.getBoundingClientRect();
                                 setIntegrationMenu(cur => cur?.id === integration.id ? null : { id: integration.id, top: rect.bottom + 6, left: rect.right - 132 });
                               }}
-                              style={{ width: '32px', height: '32px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', border: '1px solid #d0d7de', borderRadius: '0.5rem', backgroundColor: '#ffffff', color: '#57606a', cursor: 'pointer' }}
+                              style={{ width: '32px', height: '32px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', border: 'none', borderRadius: '0.5rem', backgroundColor: '#ffffff', color: '#57606a', cursor: 'pointer' }}
                               aria-label="更多操作"
                             >
                               <MoreHorizontal size={16} />
@@ -1208,9 +1209,9 @@ function VscodeChatMcpGuide({ apiBaseUrl, token }: { apiBaseUrl: string; token: 
   };
 
   return (
-    <div style={{ background: '#eef2ff', border: '1px solid #c7d2fe', borderRadius: '0.5rem', padding: '1rem' }}>
-      <div style={{ fontWeight: 600, fontSize: '0.85rem', color: '#3730a3', marginBottom: '0.5rem' }}>🤖 MCP 远端配置</div>
-      <p style={{ fontSize: '0.78rem', color: '#4338ca', marginBottom: '0.75rem', lineHeight: 1.6 }}>
+    <div style={{ background: '#dbeafe', border: '1px solid #bfdbfe', borderRadius: '0.5rem', padding: '1rem' }}>
+      <div style={{ fontWeight: 600, fontSize: '0.85rem', color: '#1e40af', marginBottom: '0.5rem' }}>MCP 远端配置</div>
+      <p style={{ fontSize: '0.78rem', color: '#1d4ed8', marginBottom: '0.75rem', lineHeight: 1.6 }}>
         将 Token 存入系统环境变量，<code>.vscode/mcp.json</code> 用 <code>${'{env:FEISHU_MCP_TOKEN}'}</code> 引用。<br />
         <strong>一次设置，永久无弹框</strong>，Token 不写入任何文件，安全可靠。
       </p>
@@ -1229,9 +1230,9 @@ function VscodeChatMcpGuide({ apiBaseUrl, token }: { apiBaseUrl: string; token: 
           </pre>
           <button
             onClick={() => copy(psCmd, setCopiedPs, 'PowerShell 命令')}
-            style={{ fontSize: '0.68rem', padding: '0.2rem 0.5rem', background: copiedPs ? '#d1fae5' : '#4f46e5', color: copiedPs ? '#065f46' : 'white', border: 'none', borderRadius: '0.25rem', cursor: 'pointer', whiteSpace: 'nowrap' }}
+            style={{ padding: '0.4rem 0.9rem', background: copiedPs ? '#10b981' : '#3b82f6', color: 'white', border: 'none', borderRadius: '0.375rem', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 500, whiteSpace: 'nowrap', flexShrink: 0 }}
           >
-            {copiedPs ? '✅' : '📋'}
+            {copiedPs ? '✓ 已复制' : '复制'}
           </button>
         </div>
 
@@ -1243,16 +1244,16 @@ function VscodeChatMcpGuide({ apiBaseUrl, token }: { apiBaseUrl: string; token: 
           </pre>
           <button
             onClick={() => copy(bashCmd, setCopiedBash, 'bash 命令')}
-            style={{ fontSize: '0.68rem', padding: '0.2rem 0.5rem', background: copiedBash ? '#d1fae5' : '#4f46e5', color: copiedBash ? '#065f46' : 'white', border: 'none', borderRadius: '0.25rem', cursor: 'pointer', whiteSpace: 'nowrap' }}
+            style={{ padding: '0.4rem 0.9rem', background: copiedBash ? '#10b981' : '#3b82f6', color: 'white', border: 'none', borderRadius: '0.375rem', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 500, whiteSpace: 'nowrap', flexShrink: 0 }}
           >
-            {copiedBash ? '✅' : '📋'}
+            {copiedBash ? '✓ 已复制' : '复制'}
           </button>
         </div>
 
         {/* 显示/隐藏 token */}
         <button
           onClick={() => setShowToken(v => !v)}
-          style={{ fontSize: '0.7rem', padding: '0.15rem 0.5rem', background: 'transparent', border: '1px solid #c7d2fe', borderRadius: '0.25rem', cursor: 'pointer', color: '#4338ca' }}
+          style={{ fontSize: '0.7rem', padding: '0.15rem 0.5rem', background: 'transparent', border: '1px solid #bfdbfe', borderRadius: '0.25rem', cursor: 'pointer', color: '#1d4ed8' }}
         >
           {showToken ? '🙈 隐藏 Token' : '👁 显示 Token'}
         </button>
@@ -1266,9 +1267,9 @@ function VscodeChatMcpGuide({ apiBaseUrl, token }: { apiBaseUrl: string; token: 
           </div>
           <button
             onClick={() => copy(mcpJson, setCopiedJson, 'mcp.json 配置')}
-            style={{ fontSize: '0.72rem', padding: '0.2rem 0.6rem', background: copiedJson ? '#d1fae5' : '#4f46e5', color: copiedJson ? '#065f46' : 'white', border: 'none', borderRadius: '0.25rem', cursor: 'pointer' }}
+            style={{ padding: '0.4rem 0.9rem', background: copiedJson ? '#10b981' : '#3b82f6', color: 'white', border: 'none', borderRadius: '0.375rem', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 500, whiteSpace: 'nowrap', flexShrink: 0 }}
           >
-            {copiedJson ? '✅ 已复制' : '📋 复制'}
+            {copiedJson ? '✓ 已复制' : '复制'}
           </button>
         </div>
         <pre style={{ margin: 0, fontFamily: 'monospace', fontSize: '0.72rem', background: '#1e293b', color: '#e2e8f0', padding: '0.75rem', borderRadius: '0.375rem', overflow: 'auto', whiteSpace: 'pre-wrap', wordBreak: 'break-all' }}>
@@ -1276,7 +1277,7 @@ function VscodeChatMcpGuide({ apiBaseUrl, token }: { apiBaseUrl: string; token: 
         </pre>
       </div>
 
-      <div style={{ fontSize: '0.72rem', color: '#6366f1', background: '#e0e7ff', borderRadius: '0.25rem', padding: '0.4rem 0.6rem' }}>
+      <div style={{ fontSize: '0.72rem', color: '#1e40af', background: '#dbeafe', borderRadius: '0.25rem', padding: '0.4rem 0.6rem' }}>
         💡 设置环境变量后需<strong>重启 VS Code</strong>，之后 Chat 会话将自动无声连接 MCP 服务器
       </div>
     </div>
@@ -1343,7 +1344,7 @@ function SetupGuideModal({ integration, apiBaseUrl, viewMode, onClose }: {
         {/* 头部 */}
         <div style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid #e5e7eb', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: viewMode ? '#eef2ff' : '#f0fdf4' }}>
           <div>
-            <h2 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 700, color: viewMode ? '#3730a3' : '#065f46' }}>{viewMode ? '📝 配置说明' : '🎉 集成创建成功！'}</h2>
+            <h2 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 700, color: '#1f2937' }}>{viewMode ? '配置说明' : '集成创建成功！'}</h2>
             <p style={{ margin: '0.25rem 0 0', fontSize: '0.8rem', color: viewMode ? '#6366f1' : '#059669' }}>{viewMode ? integration.projectName : '请将以下信息填入对应平台的 Webhook 设置'}</p>
           </div>
           <button onClick={onClose} style={{ background: 'none', border: 'none', fontSize: '1.25rem', cursor: 'pointer', color: '#6b7280' }}>✕</button>
@@ -1353,11 +1354,11 @@ function SetupGuideModal({ integration, apiBaseUrl, viewMode, onClose }: {
           {/* Webhook URL（MCP类型不显示，Token已内嵌在MCP配置中）*/}
           {integration.projectType !== 'vscode-chat' && (
           <div style={{ marginBottom: '1.25rem' }}>
-            <label style={{ ...labelStyle, color: '#dc2626' }}>📡 Webhook 接收地址</label>
+            <label style={{ ...labelStyle, color: '#dc2626' }}>Webhook 接收地址</label>
             <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
               <input readOnly value={displayWebhookUrl} style={{ ...inputStyle, background: '#f9fafb', color: '#374151', fontFamily: 'monospace', fontSize: '0.8rem', flex: 1 }} />
               <button onClick={() => copy(displayWebhookUrl, setCopiedUrl, 'Webhook URL')} style={{ ...btnPrimary, whiteSpace: 'nowrap', background: copiedUrl ? '#10b981' : '#3b82f6' }}>
-                {copiedUrl ? '✓ 已复制' : '📋 复制'}
+                {copiedUrl ? '✓ 已复制' : '复制'}
               </button>
             </div>
           </div>
@@ -1366,11 +1367,11 @@ function SetupGuideModal({ integration, apiBaseUrl, viewMode, onClose }: {
           {/* Webhook Secret（MCP类型不显示）*/}
           {integration.projectType !== 'vscode-chat' && (
           <div style={{ marginBottom: '1.25rem' }}>
-            <label style={{ ...labelStyle, color: '#dc2626' }}>🔑 Webhook Secret <span style={{ fontWeight: 400, color: '#6b7280', fontSize: '0.78rem' }}>（仅此一次，请妥善保存）</span></label>
+            <label style={{ ...labelStyle, color: '#dc2626' }}>Webhook Secret <span style={{ fontWeight: 400, color: '#6b7280', fontSize: '0.78rem' }}>（仅此一次，请妥善保存）</span></label>
             <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
               <input readOnly value={secret} style={{ ...inputStyle, background: '#fef9c3', color: '#374151', fontFamily: 'monospace', fontSize: '0.8rem', flex: 1 }} />
               <button onClick={() => copy(secret, setCopiedSecret, 'Webhook Secret')} style={{ ...btnPrimary, whiteSpace: 'nowrap', background: copiedSecret ? '#10b981' : '#3b82f6' }}>
-                {copiedSecret ? '✓ 已复制' : '📋 复制'}
+                {copiedSecret ? '✓ 已复制' : '复制'}
               </button>
             </div>
             <p style={{ margin: '0.35rem 0 0', fontSize: '0.75rem', color: '#dc2626' }}>{!viewMode && '⚠️ Secret 只在创建时显示一次，关闭弹窗后将无法再次查看'}</p>
@@ -1391,7 +1392,7 @@ function SetupGuideModal({ integration, apiBaseUrl, viewMode, onClose }: {
         </div>
 
         <div style={{ padding: '1rem 1.5rem', borderTop: '1px solid #f3f4f6', display: 'flex', justifyContent: 'flex-end' }}>
-          <button onClick={onClose} style={{ ...btnPrimary, background: viewMode ? '#6366f1' : '#10b981' }}>{viewMode ? '关闭' : '✓ 我已完成配置'}</button>
+          <button onClick={onClose} style={{ padding: '0.4rem 1rem', background: '#e5e7eb', color: '#374151', border: 'none', borderRadius: '0.375rem', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 500 }}>{viewMode ? '关闭' : '✓ 我已完成配置'}</button>
         </div>
       </div>
     </div>

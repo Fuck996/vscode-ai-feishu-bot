@@ -6,27 +6,36 @@ import SceneIcon from '../components/SceneIcon';
 import { useToast } from '../hooks/useToast';
 import authService from '../services/auth';
 
-// 集成类型短标签（用于机器人行内展示）
-const INTEGRATION_TYPE_EMOJI: Record<string, string> = {
-  vercel:       '▲',
-  railway:      '🚂',
-  github:       '🐙',
-  gitlab:       '🦊',
-  'vscode-chat':'💬',
-  api:          '🔌',
-  custom:       '🛠️',
-  synology:     '📶',
+// 集成类型标签与颜色（与集成表保持一致）
+const INTEGRATION_TYPE_LABELS: Record<string, string> = {
+  vercel:       '▲ Vercel',
+  railway:      '🚂 Railway',
+  github:       '🐙 GitHub',
+  gitlab:       '🦊 GitLab',
+  'vscode-chat':'💬 VS Code Chat',
+  api:          '🔌 Direct API',
+  custom:       '🛠️ Custom Webhook',
+  synology:     '📶 Synology NAS',
 };
 
-const INTEGRATION_TYPE_LABEL: Record<string, string> = {
-  vercel:       'Vercel',
-  railway:      'Railway',
-  github:       'GitHub',
-  gitlab:       'GitLab',
-  'vscode-chat':'VSCode',
-  api:          'API',
-  custom:       'Custom',
-  synology:     'NAS',
+const INTEGRATION_TYPE_COLORS: Record<string, React.CSSProperties> = {
+  vercel:       { background: '#f0fdf4', color: '#166534' },
+  railway:      { background: '#fef2f2', color: '#991b1b' },
+  github:       { background: '#e0f2fe', color: '#0c4a6e' },
+  gitlab:       { background: '#fce7f3', color: '#9d174d' },
+  'vscode-chat':{ background: '#ede9fe', color: '#4c1d95' },
+  api:          { background: '#dbeafe', color: '#1e40af' },
+  custom:       { background: '#f3f4f6', color: '#374151' },
+  synology:     { background: '#fff7ed', color: '#9a3412' },
+};
+
+const integrationTypeBadgeStyle: React.CSSProperties = {
+  display: 'inline-block',
+  padding: '0.2rem 0.6rem',
+  borderRadius: '0.375rem',
+  fontSize: '0.78rem',
+  fontWeight: 600,
+  whiteSpace: 'nowrap',
 };
 
 interface Robot {
@@ -463,9 +472,7 @@ export default function Robots() {
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
               <button
                 onClick={() => setIsAddRobotModalOpen(true)}
-                style={{ padding: '0.45rem 0.875rem', backgroundColor: '#10b981', color: 'white', border: 'none', borderRadius: '0.375rem', cursor: 'pointer', fontSize: '0.8125rem', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '0.375rem', whiteSpace: 'nowrap' }}
-                onMouseEnter={e => (e.currentTarget.style.backgroundColor = '#059669')}
-                onMouseLeave={e => (e.currentTarget.style.backgroundColor = '#10b981')}
+                style={{ padding: '0.375rem 0.875rem', backgroundColor: '#1f883d', color: 'white', border: 'none', borderRadius: '0.375rem', cursor: 'pointer', fontSize: '0.8125rem', fontWeight: 500, whiteSpace: 'nowrap' }}
               >
                 ＋ 新建机器人
               </button>
@@ -523,7 +530,7 @@ export default function Robots() {
                 )}
               </div>
             ) : (
-              <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '700px' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '820px' }}>
                 <tbody>
                   {filteredRobots.map(robot => {
                     const lastMsg = robot.lastMessageAt ? formatLastMessageDate(robot.lastMessageAt) : null;
@@ -544,14 +551,14 @@ export default function Robots() {
                             <span style={{ color: '#656d76', fontSize: '0.75rem' }}>{robot.messageCount || 0} 条记录</span>
                           </div>
                         </td>
-                        {/* 列2：已使用的集成类型（横向排列） */}
-                        <td style={{ padding: '0.875rem 0.75rem', width: '180px' }}>
+                        {/* 列2：已使用的集成类型（优先横向排列，不足才换行） */}
+                        <td style={{ padding: '0.875rem 0.75rem', width: '280px' }}>
                           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.3rem' }}>
                             {(robotIntegrationTypes[robot.id] ?? []).length === 0 ? (
                               <span style={{ color: '#9ca3af', fontSize: '0.75rem' }}>暂无集成</span>
                             ) : (robotIntegrationTypes[robot.id]).map(type => (
-                              <span key={type} style={{ display: 'inline-flex', alignItems: 'center', gap: '0.2rem', background: '#f6f8fa', border: '1px solid #e5e7eb', borderRadius: '0.375rem', padding: '0.1rem 0.45rem', fontSize: '0.72rem', color: '#374151', whiteSpace: 'nowrap' }}>
-                                {INTEGRATION_TYPE_EMOJI[type] || '🔗'} {INTEGRATION_TYPE_LABEL[type] || type}
+                              <span key={type} style={{ ...integrationTypeBadgeStyle, ...(INTEGRATION_TYPE_COLORS[type] || { background: '#f3f4f6', color: '#374151' }) }}>
+                                {INTEGRATION_TYPE_LABELS[type] || `🔗 ${type}`}
                               </span>
                             ))}
                           </div>
@@ -605,7 +612,7 @@ export default function Robots() {
                               <button
                                 type="button"
                                 onClick={(event) => openActionMenuAt(event, robot.id)}
-                                style={{ width: '30px', height: '30px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', border: '1px solid #d0d7de', borderRadius: '0.5rem', backgroundColor: '#ffffff', color: '#57606a', cursor: 'pointer' }}
+                                style={{ width: '30px', height: '30px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', border: 'none', borderRadius: '0.5rem', backgroundColor: '#ffffff', color: '#57606a', cursor: 'pointer' }}
                                 aria-label="更多操作"
                               >
                                 <MoreHorizontal size={15} />
@@ -664,9 +671,8 @@ export default function Robots() {
       {/* 编辑机器人模态框 */}
       {isEditRobotModalOpen && editingRobot && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0, 0, 0, 0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50 }}
-          onClick={() => setIsEditRobotModalOpen(false)}>
-          <div style={{ backgroundColor: 'white', borderRadius: '0.5rem', boxShadow: '0 20px 25px rgba(0,0,0,0.15)', width: '90%', maxWidth: '450px', maxHeight: '90vh', overflow: 'auto' }}
-            onClick={(e) => e.stopPropagation()}>
+          >
+          <div style={{ backgroundColor: 'white', borderRadius: '0.5rem', boxShadow: '0 20px 25px rgba(0,0,0,0.15)', width: '90%', maxWidth: '450px', maxHeight: '90vh', overflow: 'auto' }}>
             <div style={{ padding: '1.5rem', borderBottom: '1px solid #e5e7eb', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <h2 style={{ fontSize: '1.25rem', fontWeight: 600, color: '#1f2937', margin: 0 }}>✏️ 编辑机器人</h2>
               <button onClick={() => setIsEditRobotModalOpen(false)} style={{ background: 'none', border: 'none', fontSize: '1.5rem', cursor: 'pointer', color: '#6b7280', padding: '0.25rem 0.5rem' }}
@@ -723,7 +729,6 @@ export default function Robots() {
           justifyContent: 'center',
           zIndex: 50,
         }}
-        onClick={() => setIsAddRobotModalOpen(false)}
         >
           <div style={{
             backgroundColor: 'white',
@@ -734,7 +739,6 @@ export default function Robots() {
             maxHeight: '90vh',
             overflow: 'auto',
           }}
-          onClick={(e) => e.stopPropagation()}
           >
             {/* 模态框头部 */}
             <div style={{

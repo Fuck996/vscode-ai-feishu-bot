@@ -191,7 +191,7 @@ function MainLayout({ children }: { children: React.ReactNode }) {
       <footer style={{ marginTop: '1.5rem', paddingBottom: '1.5rem' }}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <p className="github-footer__text text-center text-gray-400" style={{ fontSize: '0.7rem' }}>
-            © 2026 CortexFlow. All rights reserved. | System v{backendVersion} | Updated: {new Date().toLocaleString('en-US', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })}
+            © 2026 CortexFlow. All rights reserved. | System v{backendVersion} | Updated: {new Date().toLocaleString('en-US', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hour12: false })}
           </p>
         </div>
       </footer>
