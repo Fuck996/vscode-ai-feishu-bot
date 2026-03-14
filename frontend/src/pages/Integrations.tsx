@@ -576,7 +576,7 @@ export default function Integrations() {
                         {integration.projectSubName && (
                           <div style={{ fontSize: '0.75rem', color: '#9ca3af' }}>{integration.projectSubName}</div>
                         )}
-                        <div style={{ fontSize: '0.75rem', color: '#656d76', marginTop: '0.1rem' }}>{integrationNotifCounts[integration.id] !== undefined ? toRoman(integrationNotifCounts[integration.id]) : '—'} 条记录</div>
+                        <div style={{ fontSize: '0.75rem', color: '#656d76', marginTop: '0.1rem' }}>{integrationNotifCounts[integration.id] ?? 0} 条记录</div>
                       </td>
                       {/* 类型 + 通知时机 */}
                       <td style={tdStyle}>

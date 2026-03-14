@@ -270,7 +270,7 @@ const History: React.FC = () => {
                               {notification.title}
                             </span>
                             <span style={{ color: '#656d76', fontSize: '0.75rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                              {notification.source || '—'}
+                              {(notification.source || '').replace('系统消息/', '系统通知/') || '—'}
                             </span>
                           </div>
                         </td>
@@ -405,7 +405,7 @@ const History: React.FC = () => {
             <div style={{ padding: '1.5rem', flex: 1, overflowY: 'auto' }}>
               <div style={{ marginBottom: '1.5rem' }}>
                 <label style={{ fontSize: '0.75rem', color: '#6b7280', fontWeight: 600, display: 'block', marginBottom: '0.25rem' }}>来源</label>
-                <p style={{ margin: 0, fontSize: '0.875rem', color: '#374151' }}>{selectedNotification.source || '未指定'}</p>
+                <p style={{ margin: 0, fontSize: '0.875rem', color: '#374151' }}>{(selectedNotification.source || '').replace('系统消息/', '系统通知/') || '未指定'}</p>
               </div>
               <div style={{ marginBottom: '1.5rem' }}>
                 <label style={{ fontSize: '0.75rem', color: '#6b7280', fontWeight: 600, display: 'block', marginBottom: '0.5rem' }}>详细内容</label>
