@@ -114,6 +114,9 @@ const Services: React.FC = () => {
   const [filterStatus, setFilterStatus] = useState<'all' | 'active' | 'inactive'>('all');
   const [filterRobot, setFilterRobot] = useState<string>('all');
   const [filterModel, setFilterModel] = useState<string>('all');
+  const [taskModalOpen, setTaskModalOpen] = useState(false);
+  const [taskModalMode, setTaskModalMode] = useState<'add' | 'edit'>('add');
+  const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
   const logPanelRef = useRef<HTMLDivElement>(null);
 
   // 菜单项样式函数
@@ -303,9 +306,9 @@ const Services: React.FC = () => {
 
   const formatCountdown = (cd: TimeCountdown | undefined) => {
     if (!cd) return '';
-    if (cd.days > 0) return `${cd.days}天 ${cd.hours}小时`;
-    if (cd.hours > 0) return `${cd.hours}小时 ${cd.minutes}分`;
-    return `${cd.minutes}分 ${cd.seconds}秒`;
+    if (cd.days > 0) return `${cd.days}天 ${cd.hours}小时 ${cd.minutes}分钟`;
+    if (cd.hours > 0) return `${cd.hours}小时 ${cd.minutes}分钟`;
+    return `${cd.minutes}分钟 ${cd.seconds}秒`;
   };
 
   const getServiceNames = () => {
@@ -731,7 +734,7 @@ const Services: React.FC = () => {
                 AI 汇报服务
               </div>
               <div style={{ fontSize: '0.75rem', color: '#9ca3af', marginBottom: '0.5rem' }}>
-                定时调度 · OpenAI 摘要 · 飞书推送
+                Scheduled · AI Summary · Feishu Distribution
               </div>
               <p style={{ fontSize: '0.8125rem', color: '#6b7280', margin: 0, lineHeight: 1.5, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                 定时收集集成数据，AI 生成摘要并推送至飞书
@@ -748,7 +751,7 @@ const Services: React.FC = () => {
               </div>
               <div style={{ textAlign: 'center', minWidth: '80px', padding: '0.5rem', background: '#f0f9ff', borderRadius: '0.375rem', borderLeft: '3px solid #3b82f6' }}>
                 <div style={{ fontSize: '0.7rem', color: '#1e40af', fontWeight: 600, marginBottom: '0.125rem' }}>下次发送</div>
-                <div style={{ fontSize: '0.8rem', color: '#0284c7', fontWeight: 500 }}>2天 6小时</div>
+                <div style={{ fontSize: '0.8rem', color: '#0284c7', fontWeight: 500 }}>2天 6小时 45分钟</div>
               </div>
             </div>
           </div>
@@ -864,7 +867,9 @@ const Services: React.FC = () => {
                   )}
                   <ChevronDown size={13} />
                 </button>
-                <button style={{ padding: '0.375rem 0.875rem', backgroundColor: '#1f883d', color: 'white', border: 'none', borderRadius: '0.375rem', cursor: 'pointer', fontSize: '0.8125rem', fontWeight: 500 }}>
+                <button 
+                  onClick={() => { setTaskModalMode('add'); setTaskModalOpen(true); }}
+                  style={{ padding: '0.375rem 0.875rem', backgroundColor: '#1f883d', color: 'white', border: 'none', borderRadius: '0.375rem', cursor: 'pointer', fontSize: '0.8125rem', fontWeight: 500 }}>
                   + 新增
                 </button>
               </div>
@@ -1054,7 +1059,9 @@ const Services: React.FC = () => {
                                 </button>
                                 <button
                                   onClick={() => {
-                                    console.log('编辑任务:', task.id);
+                                    setSelectedTaskId(task.id);
+                                    setTaskModalMode('edit');
+                                    setTaskModalOpen(true);
                                     setTaskMenuPos(null);
                                   }}
                                   style={{
@@ -1159,6 +1166,148 @@ const Services: React.FC = () => {
           box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
         }
       `}</style>
+
+      {/* 新增/编辑周报任务弹窗 */}
+      {taskModalOpen && (
+        <div 
+          onClick={() => setTaskModalOpen(false)}
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(0,0,0,0.4)',
+            zIndex: 200,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+        >
+          <div 
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              background: 'white',
+              borderRadius: '1rem',
+              boxShadow: '0 20px 60px rgba(0,0,0,0.25)',
+              width: '680px',
+              maxWidth: '95vw',
+              maxHeight: '90vh',
+              overflowY: 'auto',
+            }}
+          >
+            {/* 弹窗头 */}
+            <div style={{
+              padding: '1.5rem',
+              borderBottom: '1px solid #f3f4f6',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+            }}>
+              <div style={{ fontSize: '1.125rem', fontWeight: 700, color: '#1f2937' }}>
+                {taskModalMode === 'add' ? '新增周报任务' : '编辑周报任务'}
+              </div>
+              <button 
+                onClick={() => setTaskModalOpen(false)}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  fontSize: '1.25rem',
+                  cursor: 'pointer',
+                  color: '#9ca3af',
+                  lineHeight: 1,
+                  padding: '0.25rem',
+                  borderRadius: '0.25rem',
+                }}
+                onMouseEnter={(e) => { e.currentTarget.style.color = '#374151'; e.currentTarget.style.backgroundColor = '#f3f4f6'; }}
+                onMouseLeave={(e) => { e.currentTarget.style.color = '#9ca3af'; e.currentTarget.style.backgroundColor = 'transparent'; }}
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* 弹窗体 */}
+            <div style={{ padding: '1.5rem' }}>
+              <div style={{ marginBottom: '1.5rem' }}>
+                <div style={{ fontSize: '0.8125rem', fontWeight: 600, color: '#374151', marginBottom: '0.875rem', paddingBottom: '0.5rem', borderBottom: '1px solid #f3f4f6' }}>
+                  📝 基础信息
+                </div>
+                <div style={{ marginBottom: '1rem' }}>
+                  <label style={{ display: 'block', fontSize: '0.8125rem', fontWeight: 500, color: '#374151', marginBottom: '0.375rem' }}>
+                    任务名称 <span style={{ color: '#ef4444' }}>*</span>
+                  </label>
+                  <input type="text" placeholder="如：飞书 AI 系统周报" style={{ width: '100%', padding: '0.5rem 0.75rem', border: '1px solid #d1d5db', borderRadius: '0.375rem', fontSize: '0.875rem', fontFamily: 'inherit' }} />
+                </div>
+              </div>
+
+              <div style={{ marginBottom: '1.5rem' }}>
+                <div style={{ fontSize: '0.8125rem', fontWeight: 600, color: '#374151', marginBottom: '0.875rem', paddingBottom: '0.5rem', borderBottom: '1px solid #f3f4f6' }}>
+                  📅 发送计划
+                </div>
+                <div style={{ marginBottom: '1rem' }}>
+                  <label style={{ display: 'block', fontSize: '0.8125rem', fontWeight: 500, color: '#374151', marginBottom: '0.375rem' }}>
+                    发送时间 <span style={{ color: '#ef4444' }}>*</span>
+                  </label>
+                  <input type="time" value="09:00" style={{ width: '100%', padding: '0.5rem 0.75rem', border: '1px solid #d1d5db', borderRadius: '0.375rem', fontSize: '0.875rem', fontFamily: 'inherit' }} />
+                </div>
+              </div>
+
+              <div style={{ marginBottom: '1.5rem' }}>
+                <div style={{ fontSize: '0.8125rem', fontWeight: 600, color: '#374151', marginBottom: '0.875rem', paddingBottom: '0.5rem', borderBottom: '1px solid #f3f4f6' }}>
+                  🤖 AI 摘要配置
+                </div>
+                <div style={{ marginBottom: '1rem' }}>
+                  <label style={{ display: 'block', fontSize: '0.8125rem', fontWeight: 500, color: '#374151', marginBottom: '0.375rem' }}>
+                    AI 模型
+                  </label>
+                  <select style={{ width: '100%', padding: '0.5rem 0.75rem', border: '1px solid #d1d5db', borderRadius: '0.375rem', fontSize: '0.875rem', fontFamily: 'inherit', backgroundColor: 'white' }}>
+                    <option>GPT-4o</option>
+                    <option>GPT-4o mini</option>
+                    <option>Claude 3.5 Sonnet</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            {/* 弹窗底 */}
+            <div style={{
+              padding: '1.25rem 1.5rem',
+              borderTop: '1px solid #f3f4f6',
+              display: 'flex',
+              justifyContent: 'flex-end',
+              gap: '0.625rem',
+            }}>
+              <button 
+                onClick={() => setTaskModalOpen(false)}
+                style={{
+                  padding: '0.5rem 1rem',
+                  border: '1px solid #d1d5db',
+                  background: 'white',
+                  color: '#1f2937',
+                  borderRadius: '0.375rem',
+                  cursor: 'pointer',
+                  fontSize: '0.875rem',
+                  fontWeight: 500,
+                }}
+              >
+                取消
+              </button>
+              <button 
+                onClick={() => setTaskModalOpen(false)}
+                style={{
+                  padding: '0.5rem 1rem',
+                  backgroundColor: '#1f883d',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '0.375rem',
+                  cursor: 'pointer',
+                  fontSize: '0.875rem',
+                  fontWeight: 500,
+                }}
+              >
+                {taskModalMode === 'add' ? '创建' : '保存'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
