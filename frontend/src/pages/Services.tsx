@@ -119,7 +119,8 @@ const Services: React.FC = () => {
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
   const [modalWeekdays, setModalWeekdays] = useState<number[]>([1]);
   const [modalModel, setModalModel] = useState<string>('GPT-4o');
-  const [modalStyle, setModalStyle] = useState<string>('数据导向');
+  const [modalStyle, setModalStyle] = useState<string>('总结汇报');
+  const [modalRobot, setModalRobot] = useState<string>('');
   const logPanelRef = useRef<HTMLDivElement>(null);
 
   // 菜单项样式函数
@@ -1234,7 +1235,7 @@ const Services: React.FC = () => {
               {/* ── 第1区：基础信息 ── */}
               <div>
                 <div style={{ fontSize: '0.8125rem', fontWeight: 600, color: '#374151', marginBottom: '0.875rem', paddingBottom: '0.5rem', borderBottom: '1px solid #f3f4f6' }}>
-                  📝 基础信息
+                  基础信息
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.875rem' }}>
                   <div>
@@ -1263,7 +1264,7 @@ const Services: React.FC = () => {
               {/* ── 第2区：发送计划 ── */}
               <div>
                 <div style={{ fontSize: '0.8125rem', fontWeight: 600, color: '#374151', marginBottom: '0.875rem', paddingBottom: '0.5rem', borderBottom: '1px solid #f3f4f6' }}>
-                  📅 发送计划
+                  发送计划
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.875rem' }}>
                   {/* 星期多选 */}
@@ -1337,42 +1338,76 @@ const Services: React.FC = () => {
                 </div>
               </div>
 
-              {/* ── 第3区：汇总集成 ── */}
+              {/* ── 第3区：汇总范围 ── */}
               <div>
                 <div style={{ fontSize: '0.8125rem', fontWeight: 600, color: '#374151', marginBottom: '0.875rem', paddingBottom: '0.5rem', borderBottom: '1px solid #f3f4f6' }}>
-                  🔗 汇总集成
+                  汇总范围
                 </div>
-                <div style={{ border: '1px solid #d1d5db', borderRadius: '0.5rem', overflow: 'hidden' }}>
-                  {[
-                    { name: 'GitHub 代码仓库', type: 'GitHub', meta: '126 次事件' },
-                    { name: '飞书工作群组', type: '飞书', meta: '89 条消息' },
-                    { name: 'Jira 任务追踪', type: 'Jira', meta: '34 个 Issue' },
-                  ].map((item, idx) => (
-                    <label
-                      key={idx}
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        padding: '0.625rem 0.875rem',
-                        gap: '0.75rem',
-                        borderBottom: idx < 2 ? '1px solid #f3f4f6' : 'none',
-                        cursor: 'pointer',
-                        backgroundColor: 'white',
-                      }}
-                    >
-                      <input type="checkbox" defaultChecked style={{ width: '15px', height: '15px', cursor: 'pointer', accentColor: '#3b82f6' }} />
-                      <span style={{ flex: 1, fontSize: '0.875rem', color: '#1f2937', fontWeight: 500 }}>{item.name}</span>
-                      <span style={{ fontSize: '0.6875rem', padding: '0.125rem 0.5rem', backgroundColor: '#f3f4f6', color: '#6b7280', borderRadius: '0.25rem', fontWeight: 500 }}>{item.type}</span>
-                      <span style={{ fontSize: '0.75rem', color: '#9ca3af' }}>{item.meta}</span>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.875rem' }}>
+                  {/* 先选机器人 */}
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.8125rem', fontWeight: 500, color: '#374151', marginBottom: '0.35rem' }}>
+                      汇报机器人 <span style={{ color: '#ef4444' }}>*</span>
                     </label>
-                  ))}
+                    <select
+                      value={modalRobot}
+                      onChange={(e) => setModalRobot(e.target.value)}
+                      style={{ width: '100%', padding: '0.5rem 0.75rem', border: '1px solid #d1d5db', borderRadius: '0.375rem', fontSize: '0.875rem', fontFamily: 'inherit', backgroundColor: 'white', boxSizing: 'border-box' }}
+                    >
+                      <option value="">请选择机器人</option>
+                      <option value="main">主汇报机器人</option>
+                      <option value="test">测试机器人</option>
+                    </select>
+                  </div>
+                  {/* 选了机器人后才显示集成列表 */}
+                  {modalRobot === '' ? (
+                    <div style={{ padding: '1rem', backgroundColor: '#f9fafb', border: '1px dashed #d1d5db', borderRadius: '0.5rem', textAlign: 'center', fontSize: '0.8125rem', color: '#9ca3af' }}>
+                      请先选择机器人，将自动加载该机器人下的集成
+                    </div>
+                  ) : (
+                    <div>
+                      <label style={{ display: 'block', fontSize: '0.8125rem', fontWeight: 500, color: '#374151', marginBottom: '0.5rem' }}>
+                        选择集成 <span style={{ color: '#6b7280', fontWeight: 400 }}>（勾选参与本次汇总的集成）</span>
+                      </label>
+                      <div style={{ border: '1px solid #d1d5db', borderRadius: '0.5rem', overflow: 'hidden' }}>
+                        {(modalRobot === 'main'
+                          ? [
+                              { name: 'GitHub 代码仓库', type: 'GitHub', meta: '126 次事件' },
+                              { name: '飞书工作群组', type: '飞书', meta: '89 条消息' },
+                              { name: 'Jira 任务追踪', type: 'Jira', meta: '34 个 Issue' },
+                            ]
+                          : [
+                              { name: '飞书工作群组', type: '飞书', meta: '89 条消息' },
+                            ]
+                        ).map((item, idx, arr) => (
+                          <label
+                            key={idx}
+                            style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              padding: '0.625rem 0.875rem',
+                              gap: '0.75rem',
+                              borderBottom: idx < arr.length - 1 ? '1px solid #f3f4f6' : 'none',
+                              cursor: 'pointer',
+                              backgroundColor: 'white',
+                            }}
+                          >
+                            <input type="checkbox" defaultChecked style={{ width: '15px', height: '15px', cursor: 'pointer', accentColor: '#3b82f6' }} />
+                            <span style={{ flex: 1, fontSize: '0.875rem', color: '#1f2937', fontWeight: 500 }}>{item.name}</span>
+                            <span style={{ fontSize: '0.6875rem', padding: '0.125rem 0.5rem', backgroundColor: '#f3f4f6', color: '#6b7280', borderRadius: '0.25rem', fontWeight: 500 }}>{item.type}</span>
+                            <span style={{ fontSize: '0.75rem', color: '#9ca3af' }}>{item.meta}</span>
+                          </label>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
 
-              {/* ── 第4区：AI 摘要配置 ── */}
+              {/* ── 第4区：模型配置 ── */}
               <div>
                 <div style={{ fontSize: '0.8125rem', fontWeight: 600, color: '#374151', marginBottom: '0.875rem', paddingBottom: '0.5rem', borderBottom: '1px solid #f3f4f6' }}>
-                  🤖 AI 摘要配置
+                  模型配置
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.875rem' }}>
                   {/* 模型卡片网格 */}
@@ -1382,10 +1417,14 @@ const Services: React.FC = () => {
                     </label>
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
                       {[
-                        { id: 'GPT-4o', label: 'GPT-4o', desc: '效果最佳，速度均衡' },
+                        { id: 'GPT-4o', label: 'GPT-4o', desc: '综合效果最佳' },
                         { id: 'GPT-4o mini', label: 'GPT-4o mini', desc: '速度快，成本低' },
                         { id: 'Claude 3.5 Sonnet', label: 'Claude 3.5', desc: '擅长长文档分析' },
-                        { id: 'custom', label: '自定义模型', desc: '填写 API 信息' },
+                        { id: 'DeepSeek-V3', label: 'DeepSeek-V3', desc: '国内免费，性能强劲' },
+                        { id: 'Qwen-Plus', label: 'Qwen-Plus', desc: '阿里通义，性价比高' },
+                        { id: 'GLM-4-Flash', label: 'GLM-4-Flash', desc: '智谱AI，免费使用' },
+                        { id: 'Kimi', label: 'Kimi (Moonshot)', desc: '月之暗面，擅长长文' },
+                        { id: 'custom', label: '自定义模型', desc: '填写自定义 API 信息' },
                       ].map(m => {
                         const isSelected = modalModel === m.id;
                         return (
@@ -1395,14 +1434,14 @@ const Services: React.FC = () => {
                             style={{
                               border: `1.5px solid ${isSelected ? '#3b82f6' : '#d1d5db'}`,
                               borderRadius: '0.5rem',
-                              padding: '0.75rem',
+                              padding: '0.625rem 0.75rem',
                               cursor: 'pointer',
                               backgroundColor: isSelected ? '#eff6ff' : 'white',
                               transition: 'all 0.15s',
                             }}
                           >
-                            <div style={{ fontWeight: 600, fontSize: '0.875rem', color: isSelected ? '#1d4ed8' : '#1f2937' }}>{m.label}</div>
-                            <div style={{ fontSize: '0.75rem', color: '#6b7280', marginTop: '0.125rem' }}>{m.desc}</div>
+                            <div style={{ fontWeight: 600, fontSize: '0.8125rem', color: isSelected ? '#1d4ed8' : '#1f2937' }}>{m.label}</div>
+                            <div style={{ fontSize: '0.6875rem', color: '#6b7280', marginTop: '0.125rem' }}>{m.desc}</div>
                           </div>
                         );
                       })}
@@ -1419,20 +1458,21 @@ const Services: React.FC = () => {
                       style={{ width: '100%', padding: '0.5rem 0.75rem', border: '1px solid #d1d5db', borderRadius: '0.375rem', fontSize: '0.875rem', fontFamily: 'inherit', boxSizing: 'border-box' }}
                     />
                   </div>
-                  {/* 汇报风格 pills */}
+                  {/* 汇报方向 pills */}
                   <div>
                     <label style={{ display: 'block', fontSize: '0.8125rem', fontWeight: 500, color: '#374151', marginBottom: '0.5rem' }}>
-                      汇报风格
+                      汇报方向
                     </label>
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
-                      {['数据导向', '管理摘要', '技术详情', '简报模式'].map(style => {
-                        const isSelected = modalStyle === style;
+                    <div style={{ display: 'flex', gap: '0.5rem' }}>
+                      {['总结汇报', '数据统计', '主要成果', '问题聚焦'].map(s => {
+                        const isSelected = modalStyle === s;
                         return (
                           <button
-                            key={style}
-                            onClick={() => setModalStyle(style)}
+                            key={s}
+                            onClick={() => setModalStyle(s)}
                             style={{
-                              padding: '0.375rem 0.875rem',
+                              flex: 1,
+                              padding: '0.375rem 0',
                               border: `1.5px solid ${isSelected ? '#3b82f6' : '#d1d5db'}`,
                               borderRadius: '1rem',
                               fontSize: '0.8125rem',
@@ -1443,7 +1483,7 @@ const Services: React.FC = () => {
                               transition: 'all 0.15s',
                             }}
                           >
-                            {style}
+                            {s}
                           </button>
                         );
                       })}
@@ -1459,36 +1499,6 @@ const Services: React.FC = () => {
                       rows={3}
                       style={{ width: '100%', padding: '0.5rem 0.75rem', border: '1px solid #d1d5db', borderRadius: '0.375rem', fontSize: '0.875rem', fontFamily: 'inherit', resize: 'vertical', boxSizing: 'border-box' }}
                     />
-                  </div>
-                </div>
-              </div>
-
-              {/* ── 第5区：推送目标 ── */}
-              <div>
-                <div style={{ fontSize: '0.8125rem', fontWeight: 600, color: '#374151', marginBottom: '0.875rem', paddingBottom: '0.5rem', borderBottom: '1px solid #f3f4f6' }}>
-                  📤 推送目标
-                </div>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-                  <div>
-                    <label style={{ display: 'block', fontSize: '0.8125rem', fontWeight: 500, color: '#374151', marginBottom: '0.35rem' }}>
-                      汇报机器人 <span style={{ color: '#ef4444' }}>*</span>
-                    </label>
-                    <select style={{ width: '100%', padding: '0.5rem 0.75rem', border: '1px solid #d1d5db', borderRadius: '0.375rem', fontSize: '0.875rem', fontFamily: 'inherit', backgroundColor: 'white', boxSizing: 'border-box' }}>
-                      <option>请选择机器人</option>
-                      <option>主汇报机器人</option>
-                      <option>测试机器人</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label style={{ display: 'block', fontSize: '0.8125rem', fontWeight: 500, color: '#374151', marginBottom: '0.35rem' }}>
-                      消息卡片颜色
-                    </label>
-                    <select style={{ width: '100%', padding: '0.5rem 0.75rem', border: '1px solid #d1d5db', borderRadius: '0.375rem', fontSize: '0.875rem', fontFamily: 'inherit', backgroundColor: 'white', boxSizing: 'border-box' }}>
-                      <option>🔵 蓝色（默认）</option>
-                      <option>🟢 绿色</option>
-                      <option>🟣 紫色</option>
-                      <option>🟠 橙色</option>
-                    </select>
                   </div>
                 </div>
               </div>
@@ -1517,20 +1527,6 @@ const Services: React.FC = () => {
                 }}
               >
                 取消
-              </button>
-              <button
-                style={{
-                  padding: '0.5rem 1rem',
-                  border: '1.5px solid #1f883d',
-                  background: 'white',
-                  color: '#1f883d',
-                  borderRadius: '0.375rem',
-                  cursor: 'pointer',
-                  fontSize: '0.875rem',
-                  fontWeight: 500,
-                }}
-              >
-                🧪 立即试运行
               </button>
               <button
                 onClick={() => setTaskModalOpen(false)}
