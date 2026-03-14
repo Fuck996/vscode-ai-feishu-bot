@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useCallback, useRef } from 'react';
+import { CalendarDays, Clock3, MoreHorizontal } from 'lucide-react';
 import SceneIcon, { SceneIconName } from '../components/SceneIcon';
 import authService from '../services/auth';
 
@@ -109,6 +110,7 @@ const Services: React.FC = () => {
   const [autoRefresh, setAutoRefresh] = useState(true);
   const [operatingServiceId, setOperatingServiceId] = useState<string | null>(null);
   const [hoveredMenu, setHoveredMenu] = useState<string | null>(null);
+  const [taskMenuPos, setTaskMenuPos] = useState<{ top: number; left: number; taskId: string } | null>(null);
   const logPanelRef = useRef<HTMLDivElement>(null);
 
   // 菜单项样式函数
@@ -361,7 +363,7 @@ const Services: React.FC = () => {
   }
 
   return (
-    <div style={{ backgroundColor: '#f3f4f6', minHeight: '100vh', paddingBottom: '2rem' }}>
+    <div style={{ backgroundColor: '#f3f4f6', minHeight: '100vh', paddingBottom: '2rem' }} onClick={() => { if (taskMenuPos) setTaskMenuPos(null); }}>
       <div style={{ maxWidth: '1400px', margin: '0 auto', padding: '2rem' }}>
         {/* 双栏布局 */}
         <div style={{ display: 'grid', gridTemplateColumns: '220px 1fr', gap: '1.5rem' }}>
@@ -793,51 +795,237 @@ const Services: React.FC = () => {
               </button>
             </div>
             <div style={{ overflowX: 'auto' }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse', tableLayout: 'fixed', minWidth: '900px' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', tableLayout: 'fixed', minWidth: '950px' }}>
                 <tbody>
                   {[
-                    { id: '1', name: '飞书 AI 系统周报', desc: '覆盖全部集成的综合周报', schedule: '每周一 09:00', integrations: ['GitHub', 'VS Code Chat', '+2'], model: 'GPT-4o', robot: '主汇报机器人', lastSent: '2026-03-10 09:02', lastStatus: '✅ 成功推送', status: 'active' },
-                    { id: '2', name: 'GitHub CI/CD 周报', desc: '专注构建与部署事件摘要', schedule: '每周五 18:00', integrations: ['GitHub'], model: 'GPT-4o mini', robot: '研发群机器人', lastSent: '2026-03-07 18:01', lastStatus: '✅ 成功推送', status: 'active' },
-                    { id: '3', name: 'MCP 工作汇报周报', desc: 'AI Copilot 工作成果汇总', schedule: '每周三 10:00', integrations: ['VS Code Chat'], model: 'GPT-4o', robot: '主汇报机器人', lastSent: '—', lastStatus: '尚未运行', status: 'inactive' },
-                  ].map((task) => (
-                    <tr key={task.id} style={{ borderBottom: '1px solid #f3f4f6' }}>
-                      <td style={{ padding: '0.875rem 1.5rem', width: '200px' }}>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
-                          <span style={{ fontWeight: 600, fontSize: '0.875rem', color: '#1f2328' }}>{task.name}</span>
-                          <span style={{ fontSize: '0.75rem', color: '#656d76' }}>{task.desc}</span>
-                        </div>
-                      </td>
-                      <td style={{ padding: '0.875rem 0.75rem', width: '140px', textAlign: 'center', color: '#3b5bdb', fontSize: '0.75rem', fontWeight: 600 }}>📅 {task.schedule}</td>
-                      <td style={{ padding: '0.875rem 0.75rem', width: '160px' }}>
-                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.3rem' }}>
-                          {task.integrations.map((tag, idx) => (
-                            <span key={idx} style={{ display: 'inline-block', padding: '0.2rem 0.6rem', borderRadius: '0.375rem', fontSize: '0.75rem', fontWeight: 600, background: '#dbeafe', color: '#1e40af' }}>
-                              {tag}
-                            </span>
-                          ))}
-                        </div>
-                      </td>
-                      <td style={{ padding: '0.875rem 0.75rem', width: '100px', textAlign: 'center' }}>
-                        <span style={{ fontSize: '0.8125rem', color: '#6b7280' }}>{task.model}</span>
-                      </td>
-                      <td style={{ padding: '0.875rem 0.75rem', width: '120px', textAlign: 'center' }}>
-                        <span style={{ fontSize: '0.8125rem', color: '#1f2937' }}>🤖 {task.robot}</span>
-                      </td>
-                      <td style={{ padding: '0.875rem 0.75rem', width: '150px', textAlign: 'center' }}>
-                        <div style={{ fontSize: '0.8125rem', color: '#374151' }}>{task.lastSent}</div>
-                        <div style={{ fontSize: '0.75rem', color: '#9ca3af' }}>{task.lastStatus}</div>
-                      </td>
-                      <td style={{ padding: '0.875rem 0.75rem', width: '100px', textAlign: 'center' }}>
-                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem', padding: '0.2rem 0.625rem', borderRadius: '1rem', fontSize: '0.75rem', fontWeight: 600, background: task.status === 'active' ? '#d1fae5' : '#f3f4f6', color: task.status === 'active' ? '#065f46' : '#6b7280' }}>
-                          ● {task.status === 'active' ? '启用' : '禁用'}
-                        </span>
-                      </td>
-                      <td style={{ padding: '0.875rem 1.5rem', width: '150px', textAlign: 'right' }}>
-                        <button style={{ padding: '0.375rem 0.75rem', border: '1px solid #d1d5db', background: 'white', color: '#0969da', borderRadius: '0.375rem', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 500, marginRight: '0.25rem' }}>编辑</button>
-                        <button style={{ padding: '0.375rem 0.75rem', border: '1px solid #d1d5db', background: 'white', color: '#ef4444', borderRadius: '0.375rem', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 500 }}>删除</button>
-                      </td>
-                    </tr>
-                  ))}
+                    { id: '1', name: '飞书 AI 系统周报', integrations: ['GitHub', 'VS Code Chat', 'Telegram'], model: 'GPT-4o', robot: '主汇报机器人', schedule: '每周一 09:00', lastSent: '2026-03-10 09:02', status: 'active' },
+                    { id: '2', name: 'GitHub CI/CD 周报', integrations: ['GitHub'], model: 'GPT-4o mini', robot: '研发群机器人', schedule: '每周五 18:00', lastSent: '2026-03-07 18:01', status: 'active' },
+                    { id: '3', name: 'MCP 工作汇报周报', integrations: ['VS Code Chat'], model: 'GPT-4o', robot: '主汇报机器人', schedule: '每周三 10:00', lastSent: '2026-03-03 09:03', status: 'inactive' },
+                  ].map((task) => {
+                    const integrationsToShow = task.integrations.slice(0, 3);
+                    const hasMore = task.integrations.length > 3;
+                    const moreCount = task.integrations.length - 3;
+                    
+                    return (
+                      <tr key={task.id} style={{ borderBottom: '1px solid #f3f4f6' }}>
+                        {/* 第 1 列：任务名 + 模型 */}
+                        <td style={{ padding: '0.875rem 1.5rem', width: '260px' }}>
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                            <span style={{ fontWeight: 600, fontSize: '0.875rem', color: '#1f2328' }}>{task.name}</span>
+                            <span style={{ fontSize: '0.75rem', color: '#656d76' }}>{task.model}</span>
+                          </div>
+                        </td>
+
+                        {/* 第 2 列：集成名（最多 3 个 + N） */}
+                        <td style={{ padding: '0.875rem 0.75rem', width: '280px' }}>
+                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.3rem' }}>
+                            {integrationsToShow.map((integration, idx) => (
+                              <span
+                                key={idx}
+                                style={{
+                                  display: 'inline-block',
+                                  padding: '0.2rem 0.6rem',
+                                  borderRadius: '0.375rem',
+                                  fontSize: '0.75rem',
+                                  fontWeight: 600,
+                                  background: '#dbeafe',
+                                  color: '#1e40af',
+                                  whiteSpace: 'nowrap',
+                                }}
+                              >
+                                {integration}
+                              </span>
+                            ))}
+                            {hasMore && (
+                              <span
+                                style={{
+                                  display: 'inline-block',
+                                  padding: '0.2rem 0.6rem',
+                                  borderRadius: '0.375rem',
+                                  fontSize: '0.75rem',
+                                  fontWeight: 600,
+                                  background: '#e5e7eb',
+                                  color: '#374151',
+                                }}
+                              >
+                                +{moreCount}
+                              </span>
+                            )}
+                          </div>
+                        </td>
+
+                        {/* 第 3 列：机器人名 + 日程时间 */}
+                        <td style={{ padding: '0.875rem 0.75rem', width: '220px' }}>
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem', fontSize: '0.875rem', fontWeight: 600, color: '#1f2328' }}>
+                              <SceneIcon name="robot" size={14} inheritColor />
+                              {task.robot}
+                            </div>
+                            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem', fontSize: '0.75rem', color: '#656d76' }}>
+                              <CalendarDays size={12} color="#57606a" />
+                              {task.schedule}
+                            </div>
+                          </div>
+                        </td>
+
+                        {/* 第 4 列：操作列（最后活动时间 | 启停开关 | 三点菜单） */}
+                        <td style={{ padding: '0.875rem 1.5rem 0.875rem 0.75rem', width: '240px', textAlign: 'right' }}>
+                          <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.75rem' }}>
+                            {/* 最后活动时间 */}
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
+                              <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem', color: '#374151', fontSize: '0.8125rem', fontWeight: 500, whiteSpace: 'nowrap' }}>
+                                <CalendarDays size={12} color="#57606a" />
+                                {task.lastSent.split(' ')[0]}
+                              </div>
+                              <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem', color: '#656d76', fontSize: '0.72rem', whiteSpace: 'nowrap' }}>
+                                <Clock3 size={12} color="#57606a" />
+                                {task.lastSent.split(' ')[1]}
+                              </div>
+                            </div>
+
+                            {/* 分隔竖线 */}
+                            <span style={{ color: '#e5e7eb', fontSize: '1rem', flexShrink: 0 }}>|</span>
+
+                            {/* 启停开关 */}
+                            <button
+                              onClick={() => {}}
+                              style={{
+                                width: '36px',
+                                height: '20px',
+                                backgroundColor: task.status === 'active' ? '#10b981' : '#cbd5e1',
+                                borderRadius: '10px',
+                                position: 'relative',
+                                cursor: 'pointer',
+                                border: 'none',
+                                padding: 0,
+                                transition: 'background-color 0.2s',
+                                flexShrink: 0,
+                              }}
+                            >
+                              <div
+                                style={{
+                                  width: '16px',
+                                  height: '16px',
+                                  backgroundColor: 'white',
+                                  borderRadius: '8px',
+                                  position: 'absolute',
+                                  top: '2px',
+                                  left: task.status === 'active' ? '18px' : '2px',
+                                  transition: 'left 0.2s',
+                                }}
+                              />
+                            </button>
+
+                            {/* 三点菜单按钮 */}
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                const rect = e.currentTarget.getBoundingClientRect();
+                                setTaskMenuPos({ top: rect.bottom + 8, left: rect.left, taskId: task.id });
+                              }}
+                              style={{
+                                background: 'none',
+                                border: 'none',
+                                cursor: 'pointer',
+                                padding: '0.25rem',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                color: '#6b7280',
+                                flexShrink: 0,
+                              }}
+                              onMouseEnter={(e) => { e.currentTarget.style.color = '#1f2937'; }}
+                              onMouseLeave={(e) => { e.currentTarget.style.color = '#6b7280'; }}
+                            >
+                              <MoreHorizontal size={16} />
+                            </button>
+
+                            {/* 三点菜单弹窗 */}
+                            {taskMenuPos && taskMenuPos.taskId === task.id && (
+                              <div
+                                onClick={(e) => e.stopPropagation()}
+                                style={{
+                                  position: 'fixed',
+                                  top: `${taskMenuPos.top}px`,
+                                  left: `${taskMenuPos.left - 100}px`,
+                                  background: 'white',
+                                  border: '1px solid #e5e7eb',
+                                  borderRadius: '0.5rem',
+                                  boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+                                  zIndex: 1000,
+                                  minWidth: '120px',
+                                }}
+                              >
+                                <button
+                                  onClick={() => {
+                                    console.log('测试任务:', task.id);
+                                    setTaskMenuPos(null);
+                                  }}
+                                  style={{
+                                    width: '100%',
+                                    padding: '0.5rem 1rem',
+                                    border: 'none',
+                                    background: 'none',
+                                    textAlign: 'left',
+                                    fontSize: '0.875rem',
+                                    color: '#1f2937',
+                                    cursor: 'pointer',
+                                  }}
+                                  onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#f3f4f6'; }}
+                                  onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; }}
+                                >
+                                  测试
+                                </button>
+                                <button
+                                  onClick={() => {
+                                    console.log('编辑任务:', task.id);
+                                    setTaskMenuPos(null);
+                                  }}
+                                  style={{
+                                    width: '100%',
+                                    padding: '0.5rem 1rem',
+                                    border: 'none',
+                                    background: 'none',
+                                    textAlign: 'left',
+                                    fontSize: '0.875rem',
+                                    color: '#1f2937',
+                                    cursor: 'pointer',
+                                    borderTop: '1px solid #f3f4f6',
+                                  }}
+                                  onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#f3f4f6'; }}
+                                  onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; }}
+                                >
+                                  编辑
+                                </button>
+                                <button
+                                  onClick={() => {
+                                    console.log('删除任务:', task.id);
+                                    setTaskMenuPos(null);
+                                  }}
+                                  style={{
+                                    width: '100%',
+                                    padding: '0.5rem 1rem',
+                                    border: 'none',
+                                    background: 'none',
+                                    textAlign: 'left',
+                                    fontSize: '0.875rem',
+                                    color: '#ef4444',
+                                    cursor: 'pointer',
+                                    borderTop: '1px solid #f3f4f6',
+                                  }}
+                                  onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#fef2f2'; }}
+                                  onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; }}
+                                >
+                                  删除
+                                </button>
+                              </div>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
