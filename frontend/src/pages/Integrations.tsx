@@ -579,28 +579,28 @@ export default function Integrations() {
                           })}
                         </div>
                       </td>
-                      {/* 状态 */}
-                      <td style={tdStyle}>
-                        <ToggleSwitch
-                          checked={integration.status === 'active'}
-                          disabled={togglingId === integration.id}
-                          onChange={() => handleToggleStatus(integration)}
-                        />
-                      </td>
+                      {/* 状态 + 操作（合并列） */}
                       <td style={{ ...tdStyle, textAlign: 'right' }}>
-                        <div style={{ display: 'inline-flex' }} onClick={e => e.stopPropagation()}>
-                          <button
-                            type="button"
-                            onClick={e => {
-                              e.stopPropagation();
-                              const rect = e.currentTarget.getBoundingClientRect();
-                              setIntegrationMenu(cur => cur?.id === integration.id ? null : { id: integration.id, top: rect.bottom + 6, left: rect.right - 132 });
-                            }}
-                            style={{ width: '32px', height: '32px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', border: '1px solid #d0d7de', borderRadius: '0.5rem', backgroundColor: '#ffffff', color: '#57606a', cursor: 'pointer' }}
-                            aria-label="更多操作"
-                          >
-                            <MoreHorizontal size={16} />
-                          </button>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '0.75rem' }}>
+                          <ToggleSwitch
+                            checked={integration.status === 'active'}
+                            disabled={togglingId === integration.id}
+                            onChange={() => handleToggleStatus(integration)}
+                          />
+                          <div onClick={e => e.stopPropagation()}>
+                            <button
+                              type="button"
+                              onClick={e => {
+                                e.stopPropagation();
+                                const rect = e.currentTarget.getBoundingClientRect();
+                                setIntegrationMenu(cur => cur?.id === integration.id ? null : { id: integration.id, top: rect.bottom + 6, left: rect.right - 132 });
+                              }}
+                              style={{ width: '32px', height: '32px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', border: '1px solid #d0d7de', borderRadius: '0.5rem', backgroundColor: '#ffffff', color: '#57606a', cursor: 'pointer' }}
+                              aria-label="更多操作"
+                            >
+                              <MoreHorizontal size={16} />
+                            </button>
+                          </div>
                         </div>
                       </td>
                     </tr>

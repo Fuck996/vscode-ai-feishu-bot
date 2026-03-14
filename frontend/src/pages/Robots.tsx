@@ -511,31 +511,30 @@ export default function Robots() {
                             <span style={{ color: '#9ca3af', fontSize: '0.8125rem' }}>未发送</span>
                           )}
                         </td>
-                        {/* 列4：快捷开关 */}
-                        <td style={{ padding: '0.875rem 0.75rem', width: '90px' }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                            <button
-                              onClick={() => handleToggleRobotStatus(robot)}
-                              style={{ width: '40px', height: '22px', backgroundColor: robot.status === 'active' ? '#10b981' : '#cbd5e1', borderRadius: '11px', position: 'relative', cursor: 'pointer', border: 'none', padding: 0, transition: 'background-color 0.2s', flexShrink: 0 }}
-                            >
-                              <div style={{ width: '18px', height: '18px', backgroundColor: 'white', borderRadius: '9px', position: 'absolute', top: '2px', left: robot.status === 'active' ? '20px' : '2px', transition: 'left 0.2s' }} />
-                            </button>
-                            <span style={{ fontSize: '0.75rem', fontWeight: 600, color: robot.status === 'active' ? '#10b981' : '#9ca3af', whiteSpace: 'nowrap' }}>
-                              {robot.status === 'active' ? '启用' : '禁用'}
-                            </span>
-                          </div>
-                        </td>
-                        {/* 列5：操作菜单 */}
-                        <td style={{ padding: '0.875rem 1rem', width: '56px', textAlign: 'right', position: 'relative' }}>
-                          <div style={{ display: 'inline-flex', position: 'relative' }} onClick={e => e.stopPropagation()}>
-                            <button
-                              type="button"
-                              onClick={(event) => openActionMenuAt(event, robot.id)}
-                              style={{ width: '32px', height: '32px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', border: '1px solid #d0d7de', borderRadius: '0.5rem', backgroundColor: '#ffffff', color: '#57606a', cursor: 'pointer' }}
-                              aria-label="更多操作"
-                            >
-                              <MoreHorizontal size={16} />
-                            </button>
+                        {/* 列4+5：启停开关 + 操作菜单（合并列） */}
+                        <td style={{ padding: '0.875rem 1rem', width: '146px', textAlign: 'right' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '0.75rem' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                              <button
+                                onClick={() => handleToggleRobotStatus(robot)}
+                                style={{ width: '40px', height: '22px', backgroundColor: robot.status === 'active' ? '#10b981' : '#cbd5e1', borderRadius: '11px', position: 'relative', cursor: 'pointer', border: 'none', padding: 0, transition: 'background-color 0.2s', flexShrink: 0 }}
+                              >
+                                <div style={{ width: '18px', height: '18px', backgroundColor: 'white', borderRadius: '9px', position: 'absolute', top: '2px', left: robot.status === 'active' ? '20px' : '2px', transition: 'left 0.2s' }} />
+                              </button>
+                              <span style={{ fontSize: '0.75rem', fontWeight: 600, color: robot.status === 'active' ? '#10b981' : '#9ca3af', whiteSpace: 'nowrap' }}>
+                                {robot.status === 'active' ? '启用' : '禁用'}
+                              </span>
+                            </div>
+                            <div style={{ display: 'inline-flex', position: 'relative' }} onClick={e => e.stopPropagation()}>
+                              <button
+                                type="button"
+                                onClick={(event) => openActionMenuAt(event, robot.id)}
+                                style={{ width: '32px', height: '32px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', border: '1px solid #d0d7de', borderRadius: '0.5rem', backgroundColor: '#ffffff', color: '#57606a', cursor: 'pointer' }}
+                                aria-label="更多操作"
+                              >
+                                <MoreHorizontal size={16} />
+                              </button>
+                            </div>
                           </div>
                         </td>
                       </tr>

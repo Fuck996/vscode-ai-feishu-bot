@@ -142,10 +142,10 @@ function MainLayout({ children }: { children: React.ReactNode }) {
             type="button"
             className="github-topbar__brand"
             onClick={() => navigate('/dashboard')}
-            title="飞书AI通知系统"
+            title="CortexFlow"
           >
-            <SceneIcon name="brand" size={30} title="飞书AI通知系统" />
-            <span className="github-topbar__brand-title">飞书AI通知系统</span>
+            <SceneIcon name="brand" size={30} title="CortexFlow" />
+            <span className="github-topbar__brand-title">CortexFlow</span>
           </button>
           
           <div className="github-topbar__links" aria-label="主导航">
@@ -189,9 +189,9 @@ function MainLayout({ children }: { children: React.ReactNode }) {
 
       {/* 页脚 */}
       <footer className="bg-gray-100 border-t border-gray-200 mt-8">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <p className="github-footer__text text-center text-sm text-gray-600">
-            © 2026 飞书AI通知系统. 所有权利保留. | 系统版本 v{backendVersion} | 更新: {new Date().toLocaleString('zh-CN', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })}
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+          <p className="github-footer__text text-center text-xs text-gray-500" style={{ fontSize: '0.75rem' }}>
+            © 2026 CortexFlow. All rights reserved. | System v{backendVersion} | Updated: {new Date().toLocaleString('en-US', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })}
           </p>
         </div>
       </footer>

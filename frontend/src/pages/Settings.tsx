@@ -385,7 +385,7 @@ const Settings: React.FC = () => {
 
                     {/* 密码找回机器人 */}
                     <div>
-                      <div style={{ fontWeight: 500, color: '#1f2937', fontSize: '0.875rem', marginBottom: '0.25rem' }}>🔔 密码找回机器人配置</div>
+                      <div style={{ fontWeight: 500, color: '#1f2937', fontSize: '0.875rem', marginBottom: '0.25rem' }}>密码找回机器人配置</div>
                       <p style={{ fontSize: '0.75rem', color: '#6b7280', marginBottom: '0.875rem' }}>当忘记密码时，系统将通过此机器人向您发送重置验证码</p>
                       <div style={{ marginBottom: '0.75rem' }}>
                         <label style={{ display: 'block', fontSize: '0.8rem', color: '#6b7280', fontWeight: 600, marginBottom: '0.3rem' }}>选择密码找回机器人</label>
