@@ -156,6 +156,7 @@ export default function Integrations() {
   const [filterType, setFilterType] = useState<string[]>([]);
   const [filterStatusOpen, setFilterStatusOpen] = useState(false);
   const [filterTypeMenuPos, setFilterTypeMenuPos] = useState<{ top: number; left: number } | null>(null);
+  const [integrationNotifCounts, setIntegrationNotifCounts] = useState<Record<string, number>>({});
   // 集成操作三点菜单状态
   const [integrationMenu, setIntegrationMenu] = useState<{ id: string; top: number; left: number } | null>(null);
 
@@ -197,7 +198,11 @@ export default function Integrations() {
       const intData = await intRes.json();
       if (robotRes.ok && robotData.success) setRobot(robotData.data);
       else setError(robotData.error || '获取机器人信息失败');
-      if (intRes.ok && intData.success) setIntegrations(intData.data || []);
+      if (intRes.ok && intData.success) {
+        const list: Integration[] = intData.data || [];
+        setIntegrations(list);
+        fetchIntegrationNotifCounts(list);
+      }
     } catch {
       setError('网络错误，请稍后重试');
     } finally {
@@ -208,6 +213,24 @@ export default function Integrations() {
   const showMessage = (msg: string) => {
     setMessage(msg);
     setTimeout(() => setMessage(null), 3000);
+  };
+
+  // ===== 计算每个集成的通知条数 =====
+  const fetchIntegrationNotifCounts = async (intList: Integration[]) => {
+    try {
+      const res = await authService.fetchWithAuth(`${API_BASE_URL}/api/notifications?limit=200`);
+      if (res.ok) {
+        const d = await res.json();
+        if (d.success && Array.isArray(d.data)) {
+          const counts: Record<string, number> = {};
+          intList.forEach(intg => {
+            const key = `${intg.projectType}/${intg.projectName}`;
+            counts[intg.id] = d.data.filter((n: { source?: string }) => n.source === key).length;
+          });
+          setIntegrationNotifCounts(counts);
+        }
+      }
+    } catch { /* 静默处理 */ }
   };
 
   // ===== 格式化最后活动时间 =====
@@ -553,7 +576,7 @@ export default function Integrations() {
                         {integration.projectSubName && (
                           <div style={{ fontSize: '0.75rem', color: '#9ca3af' }}>{integration.projectSubName}</div>
                         )}
-                        <div style={{ fontSize: '0.75rem', color: '#656d76', marginTop: '0.1rem' }}>— 条记录</div>
+                        <div style={{ fontSize: '0.75rem', color: '#656d76', marginTop: '0.1rem' }}>{integrationNotifCounts[integration.id] ?? '—'} 条记录</div>
                       </td>
                       {/* 类型 + 通知时机 */}
                       <td style={tdStyle}>
