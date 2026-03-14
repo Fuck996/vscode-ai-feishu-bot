@@ -234,19 +234,27 @@ const Settings: React.FC = () => {
 
   const getResourceTypeLabel = (type: string): string => {
     const map: Record<string, string> = {
-      user: '\ud83d\udc64 \u7528\u6237', robot: '\ud83e\udd16 \u673a\u5668\u4eba', integration: '\ud83d\udd17 \u96c6\u6210',
-      service: '\ud83d\udce1 \u670d\u52a1', notification: '\ud83d\udd14 \u901a\u77e5', system: '\u2699\ufe0f \u7cfb\u7edf',
+      user: '用户', robot: '机器人', integration: '集成',
+      service: '服务', notification: '通知', system: '系统',
     };
     return map[type] || type;
   };
 
-  const getActionIcon = (action: string): string => {
-    const map: Record<string, string> = {
-      create: '\u2795', delete: '\ud83d\uddd1\ufe0f', login: '\ud83d\udd11',
-      change_password: '\u26a0\ufe0f', reset_password: '\u26a0\ufe0f', update: '\u270f\ufe0f',
-      start: '\u25b6\ufe0f', stop: '\u23f9\ufe0f',
+  const getActionIconName = (action: string) => {
+    const m: Record<string, 'add' | 'error' | 'key' | 'settings' | 'robot' | 'service' | 'audit'> = {
+      create: 'add', delete: 'error', login: 'key', logout: 'key',
+      change_password: 'key', reset_password: 'key', update: 'settings',
+      start: 'robot', stop: 'service',
     };
-    return map[action] || '\ud83d\udccb';
+    return m[action] || 'audit';
+  };
+
+  const getResourceIconName = (type: string) => {
+    const m: Record<string, 'user' | 'robot' | 'integration' | 'service' | 'notification' | 'settings'> = {
+      user: 'user', robot: 'robot', integration: 'integration',
+      service: 'service', notification: 'notification', system: 'settings',
+    };
+    return m[type] || 'settings';
   };
 
   const filteredLogs = filterAuditType ? auditLogs.filter(l => l.resourceType === filterAuditType) : auditLogs;
@@ -535,15 +543,18 @@ const Settings: React.FC = () => {
                     <div style={{ padding: '0.5rem 1.5rem' }}>
                       {paginatedLogs.map((log, idx) => (
                         <div key={log.id + '-' + idx} style={{ display: 'flex', alignItems: 'flex-start', gap: '1rem', padding: '0.875rem 0', borderBottom: '1px solid #f3f4f6' }}>
-                          <div style={{ width: 32, height: 32, borderRadius: '50%', background: getActionColor(log.action) + '20', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.875rem', flexShrink: 0 }}>
-                            {getActionIcon(log.action)}
+                          <div style={{ width: 32, height: 32, borderRadius: '50%', background: getActionColor(log.action) + '20', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, color: getActionColor(log.action) }}>
+                            <SceneIcon name={getActionIconName(log.action)} size={16} inheritColor />
                           </div>
                           <div style={{ flex: 1, minWidth: 0 }}>
                             <div style={{ fontSize: '0.875rem', fontWeight: 500, color: '#1f2937' }}>
                               <span style={{ padding: '0.15rem 0.5rem', borderRadius: '0.25rem', background: getActionColor(log.action) + '20', color: getActionColor(log.action), fontWeight: 600, fontSize: '0.8rem', marginRight: '0.5rem' }}>
                                 {getActionLabel(log.action)}
                               </span>
-                              {getResourceTypeLabel(log.resourceType)}
+                              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem', verticalAlign: 'middle' }}>
+                                <SceneIcon name={getResourceIconName(log.resourceType)} size={13} />
+                                {getResourceTypeLabel(log.resourceType)}
+                              </span>
                             </div>
                             <div style={{ fontSize: '0.8rem', color: '#6b7280', marginTop: '0.125rem' }}>{log.description}</div>
                             <div style={{ fontSize: '0.75rem', color: '#9ca3af', marginTop: '0.25rem' }}>用户：{log.username}</div>

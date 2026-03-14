@@ -261,7 +261,10 @@ const History: React.FC = () => {
                         {/* 标题 + 来源 */}
                         <td style={{ padding: '1rem 0.75rem', fontSize: '0.875rem', width: '260px' }}>
                           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem', minWidth: 0 }}>
-                            <span style={{ color: '#1f2328', fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                            <span
+                              style={{ color: '#0969da', fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', cursor: 'pointer' }}
+                              onClick={() => setSelectedNotification(notification)}
+                            >
                               {notification.title}
                             </span>
                             <span style={{ color: '#656d76', fontSize: '0.75rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>

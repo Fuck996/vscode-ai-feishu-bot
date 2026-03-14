@@ -624,7 +624,10 @@ const Dashboard: React.FC = () => {
                           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', minWidth: 0 }}>
                             <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                               <SceneIcon name="robotMessage" size={16} title={robot.name} style={{ flexShrink: 0 }} />
-                              <span style={{ fontWeight: 600, color: '#1f2328', fontSize: '0.875rem', overflow: 'hidden', textOverflow: 'ellipsis' }}>{robot.name}</span>
+                              <span
+                                style={{ fontWeight: 600, color: '#0969da', fontSize: '0.875rem', overflow: 'hidden', textOverflow: 'ellipsis', cursor: 'pointer' }}
+                                onClick={() => navigate(`/robots/${robot.id}/integrations`)}
+                              >{robot.name}</span>
                             </span>
                             <span style={{ color: '#656d76', fontSize: '0.75rem', paddingLeft: '1.5rem', whiteSpace: 'nowrap' }}>
                               {robot.messageCount} 条记录
@@ -719,7 +722,10 @@ const Dashboard: React.FC = () => {
                       <tr key={notification.id} style={{ borderBottom: '1px solid #f3f4f6' }}>
                         <td style={{ padding: '1rem 1.5rem', fontSize: '0.875rem', width: '260px' }}>
                           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem', minWidth: 0 }}>
-                            <span style={{ color: '#1f2328', fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                            <span
+                              style={{ color: '#0969da', fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', cursor: 'pointer' }}
+                              onClick={() => openNotificationDetail(notification)}
+                            >
                               {notification.title}
                             </span>
                             <span style={{ color: '#656d76', fontSize: '0.75rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>

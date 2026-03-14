@@ -138,6 +138,8 @@ export default function Integrations() {
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [togglingId, setTogglingId] = useState<string | null>(null);
+  const [filterStatus, setFilterStatus] = useState('');
+  const [filterType, setFilterType] = useState('');
 
   // 模态框状态
   const [modalOpen, setModalOpen] = useState(false);
@@ -337,21 +339,23 @@ export default function Integrations() {
   };
 
   // ===== 页面渲染 =====
-  if (loading) return <div style={{ textAlign: 'center', padding: '4rem', color: '#6b7280' }}>加载中...</div>;
+  const filteredIntegrations = integrations.filter(i => {
+    if (filterStatus && i.status !== filterStatus) return false;
+    if (filterType && i.projectType !== filterType) return false;
+    return true;
+  });
+
+  if (loading) return (
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh', backgroundColor: '#f6f8fa', flexDirection: 'column', gap: '1.5rem' }}>
+      <div style={{ width: '60px', height: '60px', border: '4px solid #e5e7eb', borderTop: '4px solid #3b82f6', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
+      <p style={{ fontSize: '1rem', color: '#6b7280', fontWeight: 500 }}>加载中...</p>
+      <style>{`@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }`}</style>
+    </div>
+  );
 
   return (
     <div style={{ backgroundColor: '#f6f8fa', minHeight: '100vh', paddingBottom: '2rem' }}>
       <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '2rem' }}>
-
-        <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '1.5rem' }}>
-          <button onClick={openCreateModal} style={{
-            padding: '0.5rem 1rem', backgroundColor: '#1f883d', color: 'white',
-            border: 'none', borderRadius: '0.375rem', cursor: 'pointer',
-            fontSize: '0.875rem', fontWeight: 500, whiteSpace: 'nowrap',
-          }}>
-            添加集成
-          </button>
-        </div>
 
         {/* 全局消息 */}
         {(error || message) && (
@@ -388,15 +392,42 @@ export default function Integrations() {
 
         {/* 集成列表 */}
         <div style={{ background: 'white', borderRadius: '0.75rem', boxShadow: '0 1px 3px rgba(0,0,0,0.08)', overflow: 'hidden' }}>
-          <div style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid #f3f4f6', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span style={{ fontWeight: 600, color: '#1f2937' }}>已配置的项目集成</span>
-            <span style={{ fontSize: '0.875rem', color: '#6b7280' }}>共 {integrations.length} 个</span>
+          <div style={{ padding: '1rem 1.5rem', borderBottom: '1px solid #f3f4f6', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+              <span style={{ fontSize: '0.9375rem', fontWeight: 700, color: '#1f2328' }}>已配置集成</span>
+              <span style={{ fontSize: '0.8125rem', color: '#656d76' }}>共 {filteredIntegrations.length} 个</span>
+            </div>
+            <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+              <button onClick={openCreateModal} style={{ padding: '0.375rem 0.875rem', backgroundColor: '#1f883d', color: 'white', border: 'none', borderRadius: '0.375rem', cursor: 'pointer', fontSize: '0.8125rem', fontWeight: 500, whiteSpace: 'nowrap' }}>添加集成</button>
+              <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)} style={{ padding: '0.3rem 0.6rem', border: '1px solid #d0d7de', borderRadius: '0.375rem', fontSize: '0.8125rem', background: 'white', color: '#1f2328', cursor: 'pointer' }}>
+                <option value="">状态：全部</option>
+                <option value="active">启用</option>
+                <option value="inactive">停用</option>
+              </select>
+              <select value={filterType} onChange={e => setFilterType(e.target.value)} style={{ padding: '0.3rem 0.6rem', border: '1px solid #d0d7de', borderRadius: '0.375rem', fontSize: '0.8125rem', background: 'white', color: '#1f2328', cursor: 'pointer' }}>
+                <option value="">类型：全部</option>
+                <option value="github">GitHub</option>
+                <option value="gitlab">GitLab</option>
+                <option value="vercel">Vercel</option>
+                <option value="railway">Railway</option>
+                <option value="synology">Synology</option>
+                <option value="vscode-chat">VSCode</option>
+                <option value="api">API</option>
+                <option value="custom">自定义</option>
+              </select>
+            </div>
           </div>
 
-          {integrations.length === 0 ? (
+          {filteredIntegrations.length === 0 ? (
             <div style={{ padding: '3rem', textAlign: 'center', color: '#9ca3af', fontSize: '0.875rem' }}>
-              <p>暂无集成配置</p>
-              <p style={{ marginTop: '0.5rem' }}>点击"添加集成"为此机器人配置第一个项目集成</p>
+              {integrations.length === 0 ? (
+                <>
+                  <p>暂无集成配置</p>
+                  <p style={{ marginTop: '0.5rem' }}>点击"添加集成"为此机器人配置第一个项目集成</p>
+                </>
+              ) : (
+                <p>无匹配结果，请调整筛选条件</p>
+              )}
             </div>
           ) : (
             <div style={{ overflowX: 'auto' }}>
@@ -412,7 +443,7 @@ export default function Integrations() {
                   </tr>
                 </thead>
                 <tbody>
-                  {integrations.map(integration => (
+                  {filteredIntegrations.map(integration => (
                     <tr key={integration.id} style={{ borderBottom: '1px solid #f3f4f6' }}>
                       <td style={tdStyle}>
                         <span style={{ ...typeBadgeStyle, ...TYPE_COLORS[integration.projectType] }}>
