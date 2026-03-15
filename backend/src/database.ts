@@ -341,8 +341,8 @@ class DatabaseService {
 
     // ─── 数据迁移：更新 DeepSeek 名称 ───
     const existingDeepseek = this.modelConfigs.find(m => m.id === 'deepseek');
-    if (existingDeepseek && existingDeepseek.name !== 'DeepSeek V3') {
-      existingDeepseek.name = 'DeepSeek V3';
+    if (existingDeepseek && existingDeepseek.name !== 'DeepSeek (deepseek-chat / V3.2)') {
+      existingDeepseek.name = 'DeepSeek (deepseek-chat / V3.2)';
       existingDeepseek.updatedAt = new Date().toISOString();
     }
 
@@ -353,19 +353,21 @@ class DatabaseService {
       existingMoonshot.updatedAt = new Date().toISOString();
     }
 
-    // ─── 数据完整性检查：无 apiKey 的内置模型不应处于 connected 状态 ───
+    // ─── 数据完整性检查：无 apiKey（或空 apiKey）的模型不应处于 connected 状态 ───
     for (const model of this.modelConfigs) {
-      if (model.isBuiltIn && !model.apiKey && model.status === 'connected') {
-        model.status = 'unconfigured';
-        model.updatedAt = new Date().toISOString();
+      if (!model.apiKey || model.apiKey.trim() === '') {
+        if (model.status === 'connected' || model.status === 'testing') {
+          model.status = 'unconfigured';
+          model.updatedAt = new Date().toISOString();
+        }
       }
     }
 
-    // 定义预置内置模型（仅云端 API，不含本地模型）
+    // 定义预置内置模型（仅云端 API）
     const builtInModels = [
       {
         id: 'deepseek',
-        name: 'DeepSeek V3',
+        name: 'DeepSeek (deepseek-chat / V3.2)',
         apiUrl: 'https://api.deepseek.com/v1',
         apiKey: undefined,
         isBuiltIn: true,
@@ -375,7 +377,7 @@ class DatabaseService {
       },
       {
         id: 'openai',
-        name: 'OpenAI',
+        name: 'OpenAI (GPT-4o)',
         apiUrl: 'https://api.openai.com/v1',
         apiKey: undefined,
         isBuiltIn: true,
@@ -385,7 +387,7 @@ class DatabaseService {
       },
       {
         id: 'claude',
-        name: 'Anthropic Claude',
+        name: 'Anthropic Claude (claude-3-5-sonnet)',
         apiUrl: 'https://api.anthropic.com/v1',
         apiKey: undefined,
         isBuiltIn: true,
@@ -395,7 +397,7 @@ class DatabaseService {
       },
       {
         id: 'moonshot',
-        name: 'Moonshot (Kimi)',
+        name: 'Moonshot Kimi (kimi-k2-turbo)',
         apiUrl: 'https://api.moonshot.cn/v1',
         apiKey: undefined,
         isBuiltIn: true,

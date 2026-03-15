@@ -1919,53 +1919,12 @@ const Services: React.FC = () => {
                 </div>
               </div>
               <div>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.35rem' }}>
-                  <label style={{ fontSize: '0.8125rem', fontWeight: 500, color: '#374151' }}>
-                    API Key <span style={{ color: '#ef4444' }}>*</span>
-                  </label>
-                  {/* 若已配置 Key，显示状态标签和清除按钮 */}
-                  {(selectedBuiltInModel as any).apiKey && (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                      <span style={{ fontSize: '0.75rem', color: '#10b981', fontWeight: 500 }}>
-                        已配置：{String((selectedBuiltInModel as any).apiKey).slice(0, 6)}...{String((selectedBuiltInModel as any).apiKey).slice(-4)}
-                      </span>
-                      <button
-                        onClick={async () => {
-                          const modelId = (selectedBuiltInModel as any).id;
-                          if (!modelId) return;
-                          try {
-                            const result = await mcpModelsService.updateModel(modelId, { apiKey: '', status: 'unconfigured' });
-                            if (result.success) {
-                              toastService.success('API Key 已清除，模型状态已重置');
-                              setBuiltInModelModalOpen(false);
-                              // 刷新模型列表
-                              const res = await mcpModelsService.getBuiltInModels();
-                              if (res.success && res.data) setBuiltInModelsList(res.data);
-                            } else {
-                              toastService.error('清除失败：' + (result.error || result.message || '未知错误'));
-                            }
-                          } catch (err) {
-                            toastService.error('清除出错：' + (err instanceof Error ? err.message : '未知错误'));
-                          }
-                        }}
-                        style={{
-                          padding: '0.2rem 0.6rem',
-                          fontSize: '0.75rem',
-                          color: '#ef4444',
-                          background: 'none',
-                          border: '1px solid #ef4444',
-                          borderRadius: '0.25rem',
-                          cursor: 'pointer',
-                        }}
-                      >
-                        清除
-                      </button>
-                    </div>
-                  )}
-                </div>
+                <label style={{ display: 'block', fontSize: '0.8125rem', fontWeight: 500, color: '#374151', marginBottom: '0.35rem' }}>
+                  API Key <span style={{ color: '#ef4444' }}>*</span>
+                </label>
                 <input
                   type="text"
-                  placeholder={(selectedBuiltInModel as any).apiKey ? '输入新 Key 以更新（留空则保留已配置的 Key）' : '输入该模型的 API Key'}
+                  placeholder="输入该模型的 API Key"
                   value={builtInModelApiKey}
                   onChange={(e) => setBuiltInModelApiKey(e.target.value)}
                   autoComplete="off"
@@ -1975,8 +1934,7 @@ const Services: React.FC = () => {
               </div>
               <button
                 onClick={async () => {
-                  const existingKey = (selectedBuiltInModel as any).apiKey;
-                  if (!selectedBuiltInModel || (!builtInModelApiKey.trim() && !existingKey)) {
+                  if (!selectedBuiltInModel || !builtInModelApiKey.trim()) {
                     toastService.warning('请输入 API Key');
                     return;
                   }
@@ -1987,9 +1945,7 @@ const Services: React.FC = () => {
                       toastService.error('无法确定模型ID');
                       return;
                     }
-                    // 若输入为空则使用后端存储的 Key（传 undefined 让后端用已存 Key）
-                    const keyToTest = builtInModelApiKey.trim() || undefined;
-                    const result = await mcpModelsService.testModel(modelId, keyToTest);
+                    const result = await mcpModelsService.testModel(modelId, builtInModelApiKey);
                     if (result.success) {
                       toastService.success('测试连接成功');
                     } else {
@@ -2042,8 +1998,7 @@ const Services: React.FC = () => {
               </button>
               <button
                 onClick={async () => {
-                  const existingKey = (selectedBuiltInModel as any).apiKey;
-                  if (!selectedBuiltInModel || (!builtInModelApiKey.trim() && !existingKey)) {
+                  if (!selectedBuiltInModel || !builtInModelApiKey.trim()) {
                     toastService.warning('请输入 API Key');
                     return;
                   }
@@ -2051,11 +2006,7 @@ const Services: React.FC = () => {
                   try {
                     const modelId = (selectedBuiltInModel as any).id;
                     if (modelId) {
-                      // 有输入时更新为新 Key，无输入时不修改 Key（仅保存其他配置）
-                      const updatePayload = builtInModelApiKey.trim()
-                        ? { apiKey: builtInModelApiKey }
-                        : {};
-                      const result = await mcpModelsService.updateModel(modelId, updatePayload);
+                      const result = await mcpModelsService.updateModel(modelId, { apiKey: builtInModelApiKey });
                       if (result.success) {
                         toastService.success('配置保存成功');
                         setBuiltInModelModalOpen(false);

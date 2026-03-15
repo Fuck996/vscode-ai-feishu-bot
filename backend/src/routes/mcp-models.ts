@@ -176,9 +176,10 @@ router.post('/:id/test', async (req: Request, res: Response) => {
       return res.status(404).json({ success: false, error: '模型不存在' });
     }
     
-    const keyToUse = apiKey || model.apiKey;
-    if (!keyToUse && !model.isBuiltIn) {
-      return res.status(400).json({ success: false, error: 'API Key 未提供' });
+    const keyToUse = apiKey !== undefined ? apiKey : model.apiKey;
+    // 所有模型均需要 API Key，空字符串也视为未配置
+    if (!keyToUse || (typeof keyToUse === 'string' && keyToUse.trim() === '')) {
+      return res.status(400).json({ success: false, message: '请先配置 API Key 后再测试连接' });
     }
     
     // 更新状态为测试中
@@ -218,10 +219,11 @@ router.post('/:id/test', async (req: Request, res: Response) => {
           break;
           
         case 'claude':
-          // Claude: GET /v1/models，需要 x-api-key header
+          // Claude: GET /v1/models，需要 x-api-key 和 anthropic-version header
           try {
             const headers: Record<string, string> = {
-              'x-api-key': keyToUse || '',
+              'x-api-key': keyToUse,
+              'anthropic-version': '2023-06-01',
               'Content-Type': 'application/json',
             };
             const response = await fetch(`${model.apiUrl}/models`, { headers });
