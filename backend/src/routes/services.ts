@@ -6,6 +6,7 @@ import axios from 'axios';
 import db, { Integration, ModelConfig, Notification, PromptTemplate, ReportTask, ReportTaskHistory, ReportTaskRange, Robot } from '../database';
 import { getLogs } from '../serviceLogger';
 import logger from '../logger';
+import taskQueueManager from '../taskQueue';
 
 const router = Router();
 
@@ -429,7 +430,7 @@ async function callLLMAPI(
           'Content-Type': 'application/json',
           Authorization: `Bearer ${model.apiKey}`,
         },
-        timeout: 60000, // 60秒超时
+        timeout: 30 * 60 * 1000, // 【修改】30分钟超时（从60秒改为30分钟系统级超时）
       }
     );
 
@@ -616,6 +617,37 @@ async function runReportTask(task: ReportTask): Promise<ReportTaskHistory> {
     const maxNotifications = task.maxNotifications || 50;
     const formattedData = formatNotificationsAsJSON(relatedNotifications, maxNotifications);
 
+    // 【新增】当筛选后的消息为0条时，不发送给模型
+    if (formattedData.total === 0) {
+      logger.info(
+        { taskName: task.name, timeRange: `${start} ~ ${end}` },
+        '没有筛选到符合条件的通知，跳过报告生成'
+      );
+
+      // 记录为成功但无数据的状态
+      historyStatus = 'success';
+      summary = `任务「${task.name}」完成：在指定时间范围内没有获取到符合条件的通知消息，无需生成报告。`;
+
+      const history: ReportTaskHistory = {
+        id: crypto.randomUUID(),
+        taskId: task.id,
+        taskName: task.name,
+        periodLabel: formatPeriodLabel(start, end),
+        notificationCount: 0,
+        summary,
+        status: historyStatus,
+        modelName: model?.name || '未知模型',
+        promptName: prompt?.name || '未知提示词',
+        createdAt,
+      };
+
+      await db.saveReportTaskHistory(history);
+      task.lastSentAt = createdAt;
+      await db.saveReportTask(task);
+
+      return history;
+    }
+
     // 记录收集和选择情况
     logger.info(
       {
@@ -734,6 +766,9 @@ router.get('/', verifyToken, checkAdminRole, async (_req: AuthRequest, res: Resp
       .filter(Boolean)
       .sort()[0];
 
+    // 【新增】获取任务队列统计信息
+    const queueStats = taskQueueManager.getStats();
+
     const services = [
       {
         id: 'mcp-service',
@@ -755,6 +790,13 @@ router.get('/', verifyToken, checkAdminRole, async (_req: AuthRequest, res: Resp
         isScheduled: Boolean(nextRunAt),
         nextRunTime: nextRunAt,
         uptime: formatUptime(),
+        // 【新增】队列状态信息
+        queueStats: {
+          queued: queueStats.queued,
+          processing: queueStats.processing,
+          maxConcurrency: queueStats.maxConcurrency,
+          timeoutMinutes: queueStats.timeoutMinutes,
+        },
       },
     ];
 
@@ -771,6 +813,25 @@ router.get('/logs', verifyToken, checkAdminRole, async (_req: AuthRequest, res: 
   } catch (error) {
     console.error('Error fetching service logs:', error);
     res.status(500).json({ success: false, error: '获取日志失败' });
+  }
+});
+
+// 【新增】获取任务队列状态
+router.get('/queue/stats', verifyToken, checkAdminRole, async (_req: AuthRequest, res: Response) => {
+  try {
+    const stats = taskQueueManager.getStats();
+    const recentTasks = taskQueueManager.getRecentCompletedTasks(20);
+
+    res.json({
+      success: true,
+      data: {
+        stats,
+        recentCompletedTasks: recentTasks,
+      },
+    });
+  } catch (error) {
+    console.error('Error fetching queue stats:', error);
+    res.status(500).json({ success: false, error: '获取队列状态失败' });
   }
 });
 
@@ -864,8 +925,15 @@ router.post('/report-tasks/:taskId/run', verifyToken, checkAdminRole, async (req
       return res.status(404).json({ success: false, error: '任务不存在' });
     }
 
-    const history = await runReportTask(task);
-    res.json({ success: true, data: history, message: history.status === 'success' ? '任务已手动发送' : '任务执行失败' });
+    // 【新增】使用任务队列管理器处理任务
+    // 立即返回响应，任务在后台通过队列处理
+    taskQueueManager.enqueue(task.id, 0);
+
+    res.json({
+      success: true,
+      message: '任务已加入处理队列',
+      queueStats: taskQueueManager.getStats(),
+    });
   } catch (error) {
     res.status(500).json({ success: false, error: error instanceof Error ? error.message : '手动发送失败' });
   }
@@ -904,3 +972,4 @@ router.post('/:serviceId/action', verifyToken, checkAdminRole, async (req: AuthR
 });
 
 export default router;
+export { runReportTask };

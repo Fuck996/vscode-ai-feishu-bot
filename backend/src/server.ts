@@ -24,6 +24,8 @@ import mcpLogsRouter from './routes/mcp-logs';
 import servicesRouter from './routes/services';
 import auditRouter from './routes/audit';
 import databaseService from './database';
+import taskQueueManager from './taskQueue';
+import { runReportTask } from './routes/services';
 
 // 设置时区为北京时间
 process.env.TZ = process.env.TZ || 'Asia/Shanghai';
@@ -247,6 +249,25 @@ async function start() {
     // 初始化数据库
     await databaseService.initialize();
     logger.info('数据库已初始化');
+
+    // 【新增】初始化任务队列管理器
+    // 为队列设置任务处理器
+    taskQueueManager.setTaskHandler(async (taskId: string) => {
+      try {
+        const task = await databaseService.getReportTask(taskId);
+        if (!task) {
+          logger.error({ taskId }, '任务不存在');
+          return;
+        }
+
+        logger.info({ taskId: task.id, taskName: task.name }, '任务队列：开始处理任务');
+        await runReportTask(task);
+      } catch (error) {
+        logger.error({ taskId, error }, '任务队列：处理任务失败');
+        throw error; // 让队列管理器处理重试
+      }
+    });
+    logger.info('任务队列管理器已初始化（最多并行10个任务，30分钟超时）');
 
     // 检查 Feishu Webhook URL
     if (!config.feishu.webhookUrl) {
