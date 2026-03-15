@@ -139,7 +139,7 @@ const Services: React.FC = () => {
   const [customPromptContent, setCustomPromptContent] = useState('');
   // 提示词预览弹窗状态
   const [promptPreviewModalOpen, setPromptPreviewModalOpen] = useState(false);
-  const [selectedPromptTemplate, setSelectedPromptTemplate] = useState<{ id: string; name: string; desc: string; refs: number } | null>(null);
+  const [selectedPromptTemplate, setSelectedPromptTemplate] = useState<any | null>(null);
   // 内置模型配置弹窗状态
   const [builtInModelModalOpen, setBuiltInModelModalOpen] = useState(false);
   const [selectedBuiltInModel, setSelectedBuiltInModel] = useState<{ id?: string; name: string; desc: string; apiUrl: string; status: string } | null>(null);
@@ -1528,12 +1528,12 @@ const Services: React.FC = () => {
                 ) : builtInModelsList.length > 0 ? (
                   builtInModelsList.map((model) => {
                     const modelDescriptions: Record<string, {desc: string; pricing: string}> = {
-                      'ollama': { desc: '本地运行的开源模型', pricing: '💚 完全免费（本地运行）' },
-                      'lm-studio': { desc: '桌面端本地模型运行工具', pricing: '💚 完全免费（本地运行）' },
-                      'deepseek': { desc: '国内超低成本模型', pricing: '💛 $0.00008/1K input tokens（业界最便宜）' },
-                      'openai': { desc: '业界标准模型系列', pricing: '💰 GPT-4o: $2.50/1M in | GPT-4o mini: $0.15/1M in' },
-                      'claude': { desc: '高智能推理能力', pricing: '💰 Claude 3.5 Haiku: $0.80/1M in（商用最便宜）' },
-                      'moonshot': { desc: '国内高端推理模型', pricing: '💛 ¥0.008/1K tokens（约 $0.001）' },
+                      'ollama': { desc: '本地运行的开源模型', pricing: '完全免费（本地运行）' },
+                      'lm-studio': { desc: '桌面端本地模型运行工具', pricing: '完全免费（本地运行）' },
+                      'deepseek': { desc: '国内超低成本模型', pricing: '$0.00008/1K input tokens（业界最便宜）' },
+                      'openai': { desc: '业界标准模型系列', pricing: 'GPT-4o: $2.50/1M in | GPT-4o mini: $0.15/1M in' },
+                      'claude': { desc: '高智能推理能力', pricing: 'Claude 3.5 Haiku: $0.80/1M in（商用最便宜）' },
+                      'moonshot': { desc: '国内高端推理模型', pricing: '¥0.008/1K tokens（约 $0.001）' },
                     };
                     const info = modelDescriptions[model.id] || { desc: '', pricing: '' };
                     const statusMap: Record<string, {text: string; color: string}> = {
@@ -1688,7 +1688,7 @@ const Services: React.FC = () => {
                           {template.name}
                         </div>
                         <div style={{ fontSize: '0.75rem', color: '#6b7280', marginTop: '0.25rem' }}>
-                          {template.desc} · 被 {template.refs} 个任务使用
+                          被 {template.usageCount || 0} 个任务使用
                         </div>
                       </div>
                       <button
@@ -1968,7 +1968,7 @@ const Services: React.FC = () => {
                   fontWeight: 500,
                 }}
               >
-                {builtInModelTestingConnection ? '测试中...' : '🔗 测试连接'}
+                {builtInModelTestingConnection ? '测试中...' : '测试连接'}
               </button>
             </div>
 
@@ -2504,7 +2504,12 @@ const Services: React.FC = () => {
                   {selectedPromptTemplate.name}
                 </div>
                 <div style={{ fontSize: '0.8125rem', color: '#6b7280', marginTop: '0.25rem' }}>
-                  {selectedPromptTemplate.desc}
+                  {selectedPromptTemplate.purpose === 'vscode-chat' && '任务完成汇报'}
+                  {selectedPromptTemplate.purpose === 'daily' && '日报编辑'}
+                  {selectedPromptTemplate.purpose === 'weekly' && '周报撰写'}
+                  {selectedPromptTemplate.purpose === 'incident' && '事件管理'}
+                  {selectedPromptTemplate.purpose === 'optimization' && '产品优化'}
+                  {selectedPromptTemplate.purpose === 'custom' && '自定义模板'}
                 </div>
               </div>
               <button 
@@ -2669,10 +2674,10 @@ const Services: React.FC = () => {
                 padding: '1rem',
               }}>
                 <div style={{ fontSize: '0.8125rem', color: '#166534', fontWeight: 600, marginBottom: '0.5rem' }}>
-                  ℹ️ 使用情况
+                  使用情况
                 </div>
                 <div style={{ fontSize: '0.8125rem', color: '#166534' }}>
-                  已被 <span style={{ fontWeight: 700 }}>{selectedPromptTemplate.refs}</span> 个任务使用
+                  已被 <span style={{ fontWeight: 700 }}>{selectedPromptTemplate.usageCount || 0}</span> 个任务使用
                 </div>
               </div>
             </div>

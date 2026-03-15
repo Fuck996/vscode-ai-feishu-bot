@@ -184,23 +184,106 @@ router.post('/:id/test', async (req: Request, res: Response) => {
     model.status = 'testing';
     await database.saveModelConfig(model);
     
-    // 这里可以实现实际的连接测试逻辑
-    // 例如调用模型的 health check 端点
-    // 为了简化，这里假设测试成功
-    const testResult = true; // 实际应该是真实的连接测试
+    // 实现真实的连接测试逻辑
+    let testResult = false;
+    let errorMessage = '';
+    
+    try {
+      switch (id) {
+        case 'ollama':
+          // Ollama: GET /api/tags
+          try {
+            const response = await fetch(`${model.apiUrl.replace('/v1', '')}/api/tags`);
+            if (response.ok) {
+              const data = await response.json();
+              testResult = data.models && Array.isArray(data.models) && data.models.length > 0;
+            }
+          } catch (err) {
+            errorMessage = 'Ollama 连接失败，请确保本地服务运行在正确地址';
+          }
+          break;
+          
+        case 'lm-studio':
+          // LM Studio: GET /api/models 或 /v1/models
+          try {
+            let response = await fetch(`${model.apiUrl}/models`);
+            if (!response.ok) {
+              response = await fetch(model.apiUrl.includes('/v1') 
+                ? `${model.apiUrl}/models` 
+                : `${model.apiUrl}/v1/models`);
+            }
+            if (response.ok) {
+              const data = await response.json();
+              testResult = (data.data && Array.isArray(data.data)) || (data.models && Array.isArray(data.models));
+            }
+          } catch (err) {
+            errorMessage = 'LM Studio 连接失败，请确保本地服务运行在正确地址';
+          }
+          break;
+          
+        case 'openai':
+        case 'deepseek':
+        case 'moonshot':
+          // OpenAI/Deepseek/Moonshot: GET /v1/models，需要 Authorization header
+          try {
+            const headers: Record<string, string> = {
+              'Authorization': `Bearer ${keyToUse}`,
+              'Content-Type': 'application/json',
+            };
+            const response = await fetch(`${model.apiUrl}/models`, { headers });
+            if (response.status === 401 || response.status === 403) {
+              errorMessage = 'API Key 无效或无权限';
+            } else if (response.ok) {
+              const data = await response.json();
+              testResult = data.data && Array.isArray(data.data) && data.data.length > 0;
+            } else {
+              errorMessage = `API 返回错误: ${response.status}`;
+            }
+          } catch (err) {
+            errorMessage = `连接到 ${model.apiUrl} 失败`;
+          }
+          break;
+          
+        case 'claude':
+          // Claude: GET /v1/models，需要 x-api-key header
+          try {
+            const headers: Record<string, string> = {
+              'x-api-key': keyToUse || '',
+              'Content-Type': 'application/json',
+            };
+            const response = await fetch(`${model.apiUrl}/models`, { headers });
+            if (response.status === 401 || response.status === 403) {
+              errorMessage = 'API Key 无效';
+            } else if (response.ok) {
+              const data = await response.json();
+              testResult = data.data && Array.isArray(data.data);
+            } else {
+              errorMessage = `API 返回错误: ${response.status}`;
+            }
+          } catch (err) {
+            errorMessage = `连接失败: ${err instanceof Error ? err.message : '未知错误'}`;
+          }
+          break;
+      }
+    } catch (err) {
+      errorMessage = err instanceof Error ? err.message : '未知错误';
+    }
     
     if (testResult) {
       model.status = 'connected';
       model.lastTestedAt = new Date().toISOString();
     } else {
       model.status = 'disconnected';
+      if (!errorMessage) {
+        errorMessage = '连接测试失败';
+      }
     }
     
     const updated = await database.saveModelConfig(model);
     res.json({ 
-      success: true, 
+      success: testResult,
       data: updated,
-      message: testResult ? '连接测试成功' : '连接测试失败'
+      message: testResult ? '连接测试成功' : errorMessage || '连接测试失败'
     });
   } catch (error) {
     logger.error({ error }, '测试模型连接失败');
