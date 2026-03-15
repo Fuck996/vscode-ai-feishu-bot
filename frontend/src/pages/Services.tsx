@@ -751,7 +751,7 @@ const Services: React.FC = () => {
           status: 'running',
           associatedIntegrations: 1,
           stats: [
-            { label: '关联集成', value: '1' },
+            { label: '关联任务', value: '1' },
             { label: '今日调用', value: '24' },
             { label: '运行时间', value: '服务中' },
           ],

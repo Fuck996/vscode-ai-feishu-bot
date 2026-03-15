@@ -46,19 +46,19 @@ const NAVIGATION_ITEMS: NavigationItem[] = [
     icon: 'robot',
   },
   {
-    path: '/history',
-    matchPaths: ['/history'],
-    label: '历史',
-    title: '历史',
-    icon: 'history',
-  },
-  {
     path: '/services',
     matchPaths: ['/services'],
     label: '服务',
     title: '服务管理',
     icon: 'service',
     adminOnly: true,
+  },
+  {
+    path: '/history',
+    matchPaths: ['/history'],
+    label: '历史',
+    title: '历史',
+    icon: 'history',
   },
   {
     path: '/settings',

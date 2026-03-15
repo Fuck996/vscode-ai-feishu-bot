@@ -262,7 +262,7 @@ async function validateTaskPayload(payload: any, existingTask?: ReportTask): Pro
     ? payload.weekdays.map((item: unknown) => Number(item)).filter((item: number) => item >= 1 && item <= 7)
     : [];
   const sendTime = typeof payload.sendTime === 'string' ? payload.sendTime.trim() : '';
-  const rangeType = ['7d', '14d', '30d', 'week', 'month'].includes(payload.rangeType) ? payload.rangeType as ReportTaskRange : '7d';
+  const rangeType = ['1d', '7d', '14d', '30d', 'today', 'week', 'month'].includes(payload.rangeType) ? payload.rangeType as ReportTaskRange : '7d';
   const robotId = typeof payload.robotId === 'string' ? payload.robotId : '';
   const integrationIds = Array.isArray(payload.integrationIds)
     ? payload.integrationIds.filter((item: unknown): item is string => typeof item === 'string' && item.trim() !== '')
@@ -695,8 +695,12 @@ router.get('/', verifyToken, checkAdminRole, async (_req: AuthRequest, res: Resp
         status: 'running',
         associatedIntegrations: mcpIntegrations.length,
         stats: [
-          { label: '周报任务', value: String(tasks.length) },
-          { label: '本周发送', value: String(histories.filter(item => new Date(item.createdAt) >= getRangeStart('week')).length) },
+          { label: '关联任务', value: String(tasks.length) },
+          { label: '今日调用', value: String(histories.filter(item => {
+            const itemDate = new Date(item.createdAt);
+            const today = new Date();
+            return itemDate.toDateString() === today.toDateString();
+          }).length) },
           { label: '运行时间', value: formatUptime() },
         ],
         isScheduled: Boolean(nextRunAt),
