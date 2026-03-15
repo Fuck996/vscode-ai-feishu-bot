@@ -489,6 +489,53 @@ function rebuildFormattedData(
   };
 }
 
+function removeShortestSentenceByTimeBucket(
+  events: OptimizableEvent[],
+  bucketResolver: (timestamp: string) => string
+): number {
+  const entriesByBucket = new Map<string, Array<{ eventIndex: number; sentenceIndex: number; length: number }>>();
+
+  events.forEach((event, eventIndex) => {
+    const bucketKey = bucketResolver(event.timestamp);
+    const entries = event.sentences.map((sentence, sentenceIndex) => ({
+      eventIndex,
+      sentenceIndex,
+      length: sentence.length,
+    }));
+
+    entriesByBucket.set(bucketKey, [...(entriesByBucket.get(bucketKey) || []), ...entries]);
+  });
+
+  const removals: Array<{ eventIndex: number; sentenceIndex: number }> = [];
+  for (const sentenceEntries of entriesByBucket.values()) {
+    sentenceEntries.sort((a, b) => a.length - b.length);
+    const target = sentenceEntries[0];
+    if (target) {
+      removals.push({ eventIndex: target.eventIndex, sentenceIndex: target.sentenceIndex });
+    }
+  }
+
+  removals.sort((a, b) => {
+    if (a.eventIndex !== b.eventIndex) {
+      return b.eventIndex - a.eventIndex;
+    }
+    return b.sentenceIndex - a.sentenceIndex;
+  });
+
+  let removedCount = 0;
+  removals.forEach(removal => {
+    const event = events[removal.eventIndex];
+    if (!event || !event.sentences[removal.sentenceIndex]) {
+      return;
+    }
+
+    event.sentences.splice(removal.sentenceIndex, 1);
+    removedCount += 1;
+  });
+
+  return removedCount;
+}
+
 function optimizeNotificationDataForContext(
   data: ReturnType<typeof formatNotificationsAsJSON>,
   rangeType: ReportTaskRange,
@@ -613,44 +660,56 @@ function optimizeNotificationDataForContext(
     return { data: currentData, optimized: true, log: logs };
   }
 
-  const isMultiDayRange = rangeType !== 'today' && rangeType !== '1d';
-  if (isMultiDayRange && workingEvents.length > 0) {
+  const isSingleDayRange = rangeType === 'today' || rangeType === '1d';
+  const isMultiDayRange = !isSingleDayRange;
+
+  if (isSingleDayRange && workingEvents.length > 0) {
     let removed4 = 0;
 
     while (currentSize > DEEPSEEK_SAFE_CONTEXT_CHARS && workingEvents.length > 0) {
-      const eventsByDay = new Map<string, Array<{ eventIndex: number; sentenceIndex: number; length: number }>>();
-
-      workingEvents.forEach((event, eventIndex) => {
-        const dayKey = event.timestamp.slice(0, 10);
-        const sentenceEntries = event.sentences.map((sentence, sentenceIndex) => ({
-          eventIndex,
-          sentenceIndex,
-          length: sentence.length,
-        }));
-        eventsByDay.set(dayKey, [...(eventsByDay.get(dayKey) || []), ...sentenceEntries]);
-      });
-
-      let removedThisRound = 0;
-      for (const sentenceEntries of eventsByDay.values()) {
-        sentenceEntries.sort((a, b) => a.length - b.length);
-        const target = sentenceEntries[0];
-        if (!target) {
-          continue;
-        }
-
-        const event = workingEvents[target.eventIndex];
-        if (!event || !event.sentences[target.sentenceIndex]) {
-          continue;
-        }
-
-        event.sentences.splice(target.sentenceIndex, 1);
-        removed4 += 1;
-        removedThisRound += 1;
-      }
+      const removedThisRound = removeShortestSentenceByTimeBucket(
+        workingEvents,
+        timestamp => timestamp.slice(0, 13)
+      );
 
       workingEvents = pruneEmptyEvents(workingEvents);
       currentData = rebuildFormattedData(data, workingEvents);
       currentSize = JSON.stringify(currentData).length;
+      removed4 += removedThisRound;
+
+      if (removedThisRound === 0) {
+        break;
+      }
+
+      if (removed4 % 20 === 0) {
+        logger.debug({ taskName, removedCount: removed4, currentSize }, '【上下文优化】按小时移除最短句进行中');
+      }
+
+      if (removed4 > 2000) {
+        logger.warn({ taskName }, '按小时优化过程中移除了超过2000句，可能数据量过大');
+        break;
+      }
+    }
+
+    if (removed4 > 0) {
+      logs.push(`第4步：单日范围按小时各移除最短句，共 ${removed4} 句，当前大小 ${currentSize}`);
+      logger.info({ taskName, removed: removed4, newSize: currentSize }, '【上下文优化】按小时移除最短句完成');
+    }
+  }
+
+  if (isMultiDayRange && workingEvents.length > 0) {
+    let removed4 = 0;
+
+    while (currentSize > DEEPSEEK_SAFE_CONTEXT_CHARS && workingEvents.length > 0) {
+      const removedThisRound = removeShortestSentenceByTimeBucket(
+        workingEvents,
+        timestamp => timestamp.slice(0, 10)
+      );
+
+      workingEvents = pruneEmptyEvents(workingEvents);
+      currentData = rebuildFormattedData(data, workingEvents);
+      currentSize = JSON.stringify(currentData).length;
+      removed4 += removedThisRound;
 
       if (removedThisRound === 0) {
         break;
@@ -675,9 +734,9 @@ function optimizeNotificationDataForContext(
   if (currentSize > DEEPSEEK_SAFE_CONTEXT_CHARS) {
     logger.warn(
       { taskName, finalSize: currentSize, safetyLimit: DEEPSEEK_SAFE_CONTEXT_CHARS },
-      '数据优化后仍然超过上下文限制，可能导致信息丢失'
+      '数据优化后仍然超过上下文限制，将直接继续发送，不再进一步筛除'
     );
-    logs.push(`警告：优化后数据仍然超限 (${currentSize} / ${DEEPSEEK_SAFE_CONTEXT_CHARS})，建议缩小统计范围或降低消息上限`);
+    logs.push(`保底规则：优化后仍然超限 (${currentSize} / ${DEEPSEEK_SAFE_CONTEXT_CHARS})，将直接继续发送，不再进一步筛除`);
   } else {
     logs.push(`优化成功：数据已压缩至 ${currentSize} 字符（限制: ${DEEPSEEK_SAFE_CONTEXT_CHARS}）`);
   }

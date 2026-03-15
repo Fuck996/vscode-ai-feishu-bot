@@ -55,6 +55,32 @@ interface TimeCountdown {
   seconds: number;
 }
 
+function normalizeBalanceValue(balance: unknown): number | null {
+  if (typeof balance === 'number' && Number.isFinite(balance)) {
+    return balance;
+  }
+
+  if (typeof balance === 'string') {
+    const parsed = Number(balance.trim());
+    return Number.isFinite(parsed) ? parsed : null;
+  }
+
+  return null;
+}
+
+function formatModelBalance(balanceState?: { balance: number | null; message?: string }): string {
+  if (!balanceState) {
+    return '获取余额中...';
+  }
+
+  const normalizedBalance = normalizeBalanceValue(balanceState.balance);
+  if (normalizedBalance !== null) {
+    return `余额：¥${normalizedBalance.toFixed(2)}`;
+  }
+
+  return balanceState.message || '获取余额中...';
+}
+
 function getServiceIconName(service: Service): SceneIconName {
   const fingerprint = `${service.id} ${service.name} ${service.type}`.toLowerCase();
 
@@ -318,7 +344,7 @@ const Services: React.FC = () => {
               setModelBalances(prev => ({
                 ...prev,
                 [model.id]: {
-                  balance: result.data.balance,
+                  balance: normalizeBalanceValue(result.data.balance),
                   message: result.data.message,
                 },
               }));
@@ -336,7 +362,7 @@ const Services: React.FC = () => {
               setModelBalances(prev => ({
                 ...prev,
                 [model.id]: {
-                  balance: result.data.balance,
+                  balance: normalizeBalanceValue(result.data.balance),
                   message: result.data.message,
                 },
               }));
@@ -1993,9 +2019,7 @@ const Services: React.FC = () => {
                           当前模型：{model.modelId || '未选择'}
                         </div>
                         <div style={{ fontSize: '0.75rem', color: '#6b7280', marginTop: '0.375rem', padding: '0.375rem 0.5rem', backgroundColor: '#f3f4f6', borderRadius: '0.25rem' }}>
-                          {modelBalances[model.id]?.balance !== undefined && modelBalances[model.id]?.balance !== null
-                            ? `余额：¥${(modelBalances[model.id].balance || 0).toFixed(2)}`
-                            : modelBalances[model.id]?.message || '获取余额中...'}
+                          {formatModelBalance(modelBalances[model.id])}
                         </div>
                       </div>
                     );
@@ -2053,9 +2077,7 @@ const Services: React.FC = () => {
                               {model.apiUrl}
                             </div>
                             <div style={{ fontSize: '0.75rem', color: '#6b7280', marginTop: '0.375rem', padding: '0.375rem 0.5rem', backgroundColor: '#f3f4f6', borderRadius: '0.25rem', display: 'inline-block' }}>
-                              {modelBalances[model.id]?.balance !== undefined && modelBalances[model.id]?.balance !== null
-                                ? `余额：¥${(modelBalances[model.id].balance || 0).toFixed(2)}`
-                                : modelBalances[model.id]?.message || '获取余额中...'}
+                              {formatModelBalance(modelBalances[model.id])}
                             </div>
                           </div>
                           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexShrink: 0 }}>
