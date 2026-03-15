@@ -396,23 +396,209 @@ function formatNotificationsAsJSON(
 }
 
 /**
- * 调用 LLM API 生成报告
- * 支持 DeepSeek、OpenAI、Google 等模型
+ * 优化通知数据以适应 DeepSeek 的上下文限制
+ * - DeepSeek 最大上下文：128K tokens
+ * - 估算方式：1 token ≈ 3-4 个字符（考虑中英文混合）
+ * - 设定安全限制：100K tokens ≈ 350KB 字符
  */
+function optimizeNotificationDataForContext(
+  data: ReturnType<typeof formatNotificationsAsJSON>,
+  rangeType: ReportTaskRange, // 用于判断是否超过1天
+  taskName: string
+): {
+  data: ReturnType<typeof formatNotificationsAsJSON>;
+  optimized: boolean;
+  log: string[];
+} {
+  const SAFETY_LIMIT = 350000; // 350K 字符 ≈ 100K tokens
+  const logs: string[] = [];
+
+  // 计算当前数据大小
+  let currentSize = JSON.stringify(data).length;
+
+  if (currentSize <= SAFETY_LIMIT) {
+    logger.debug(
+      { taskName, currentSize, safetyLimit: SAFETY_LIMIT },
+      '数据大小在安全范围内，无需优化'
+    );
+    return { data, optimized: false, log: logs };
+  }
+
+  logger.info(
+    { taskName, currentSize, safetyLimit: SAFETY_LIMIT, exceeded: currentSize - SAFETY_LIMIT },
+    `数据超过上下文限制，开始多层次优化（超出 ${currentSize - SAFETY_LIMIT} 字符）`
+  );
+
+  const workingData = JSON.parse(JSON.stringify(data)); // 深拷贝
+
+  // ================== 第1层：筛除完全一致的信息（去重） ==================
+  const step1Log = `【Step 1】筛除重复信息...`;
+  const seenTitles = new Set<string>();
+  const deduplicatedEvents = workingData.events.filter((event: any) => {
+    if (seenTitles.has(event.title)) {
+      return false;
+    }
+    seenTitles.add(event.title);
+    return true;
+  });
+
+  const removed1 = workingData.events.length - deduplicatedEvents.length;
+  workingData.events = deduplicatedEvents;
+
+  currentSize = JSON.stringify(workingData).length;
+  if (removed1 > 0) {
+    logs.push(`${step1Log} 移除了 ${removed1} 条重复项，当前大小: ${currentSize}`);
+    logger.info({ taskName, removed: removed1, newSize: currentSize }, step1Log);
+  }
+
+  if (currentSize <= SAFETY_LIMIT) {
+    logs.push(`优化完成：数据已满足上下文限制`);
+    return { data: workingData, optimized: true, log: logs };
+  }
+
+  // ================== 第2层：筛除与总结内容无关的数据 ==================
+  const step2Log = `【Step 2】筛除无关的低优先级数据...`;
+  const relevantKeywords = ['error', 'warning', 'fail', 'problem', 'issue', '错误', '警告', '失败', '问题'];
+  const filteredEvents = workingData.events.filter((event: any) => {
+    // 保留 error 和 warning 状态的所有事件
+    if (event.status === 'error' || event.status === 'warning') {
+      return true;
+    }
+
+    // 对于 success 和 info，检查是否包含相关关键词
+    const content = `${event.title} ${event.summary}`.toLowerCase();
+    return relevantKeywords.some(keyword => content.includes(keyword));
+  });
+
+  const removed2 = workingData.events.length - filteredEvents.length;
+  workingData.events = filteredEvents;
+
+  currentSize = JSON.stringify(workingData).length;
+  if (removed2 > 0) {
+    logs.push(`${step2Log} 移除了 ${removed2} 条无关项，当前大小: ${currentSize}`);
+    logger.info({ taskName, removed: removed2, newSize: currentSize }, step2Log);
+  }
+
+  if (currentSize <= SAFETY_LIMIT) {
+    logs.push(`优化完成：数据已满足上下文限制`);
+    return { data: workingData, optimized: true, log: logs };
+  }
+
+  // ================== 第3层：筛除特定关键词的数据 ==================
+  const step3Log = `【Step 3】筛除系统操作相关的消息...`;
+  const systemKeywords = ['启动', '重启', '提交', '构建', '编译', 'start', 'restart', 'deploy', 'build', 'compile', 'commit'];
+  const reducedEvents = workingData.events.filter((event: any) => {
+    // 保留高优先级事件（error/warning）
+    if (event.status === 'error' || event.status === 'warning') {
+      return true;
+    }
+
+    // 对于其他事件，检查是否包含系统关键词
+    const content = `${event.title} ${event.summary}`.toLowerCase();
+    return !systemKeywords.some(keyword => content.includes(keyword.toLowerCase()));
+  });
+
+  const removed3 = workingData.events.length - reducedEvents.length;
+  workingData.events = reducedEvents;
+
+  currentSize = JSON.stringify(workingData).length;
+  if (removed3 > 0) {
+    logs.push(`${step3Log} 移除了 ${removed3} 条系统操作消息，当前大小: ${currentSize}`);
+    logger.info({ taskName, removed: removed3, newSize: currentSize }, step3Log);
+  }
+
+  if (currentSize <= SAFETY_LIMIT) {
+    logs.push(`优化完成：数据已满足上下文限制`);
+    return { data: workingData, optimized: true, log: logs };
+  }
+
+  // ================== 第4层：逐条筛除最短的数据（仅限多天范围） ==================
+  const isMultiDayRange = rangeType !== 'today' && rangeType !== '1d';
+
+  if (isMultiDayRange && workingData.events.length > 0) {
+    const step4Log = `【Step 4】逐条筛除最短的消息（多日范围模式）...`;
+    let removed4 = 0;
+
+    while (currentSize > SAFETY_LIMIT && workingData.events.length > 0) {
+      // 找到最短的事件
+      let minIndex = 0;
+      let minLength = Infinity;
+
+      workingData.events.forEach((event: any, index: number) => {
+        const length = `${event.title}${event.summary}`.length;
+        if (length < minLength) {
+          minLength = length;
+          minIndex = index;
+        }
+      });
+
+      // 移除最短的事件
+      workingData.events.splice(minIndex, 1);
+      removed4++;
+      currentSize = JSON.stringify(workingData).length;
+
+      // 每移除10条就记录一次
+      if (removed4 % 10 === 0) {
+        logger.debug(
+          { taskName, removedCount: removed4, currentSize },
+          `${step4Log} 已移除 ${removed4} 条消息`
+        );
+      }
+
+      // 防止移除过多
+      if (removed4 > 1000) {
+        logger.warn({ taskName }, '优化过程中移除了超过1000条消息，可能数据量过大');
+        break;
+      }
+    }
+
+    if (removed4 > 0) {
+      logs.push(`${step4Log} 移除了 ${removed4} 条最短消息，当前大小: ${currentSize}`);
+      logger.info({ taskName, removed: removed4, newSize: currentSize }, step4Log);
+    }
+  }
+
+  // 最终检查
+  if (currentSize > SAFETY_LIMIT) {
+    logger.warn(
+      { taskName, finalSize: currentSize, safetyLimit: SAFETY_LIMIT },
+      `数据优化后仍然超过上下文限制，可能导致信息丢失`
+    );
+    logs.push(
+      `⚠️ 警告：优化后数据仍然超限 (${currentSize} / ${SAFETY_LIMIT})，建议减少筛选范围或调整任务配置`
+    );
+  } else {
+    logs.push(`✅ 优化成功：数据已压缩至 ${currentSize} 字符（限制: ${SAFETY_LIMIT}）`);
+  }
+
+  return { data: workingData, optimized: true, log: logs };
+}
 async function callLLMAPI(
   model: ModelConfig,
   promptTemplate: PromptTemplate,
   notificationData: ReturnType<typeof formatNotificationsAsJSON>,
-  taskName: string
+  taskName: string,
+  rangeType: ReportTaskRange = 'today' // 【新增】用于判断优化策略
 ): Promise<string> {
   if (!model.apiKey || !model.apiUrl || !model.modelId) {
     throw new Error(`模型 ${model.name} 配置不完整`);
   }
 
+  // 【新增】优化数据以适应上下文限制
+  const optimizationResult = optimizeNotificationDataForContext(notificationData, rangeType, taskName);
+  const optimizedData = optimizationResult.data;
+
+  if (optimizationResult.optimized) {
+    logger.info(
+      { taskName, optimizationSteps: optimizationResult.log.length },
+      `数据已优化：${optimizationResult.log.join(' → ')}`
+    );
+  }
+
   const conversationHistory = [
     {
       role: 'user',
-      content: `${promptTemplate.content}\n\n【当前数据】\n${JSON.stringify(notificationData, null, 2)}\n\n请生成关于"${taskName}"的汇报。`,
+      content: `${promptTemplate.content}\n\n【当前数据】\n${JSON.stringify(optimizedData, null, 2)}\n\n请生成关于"${taskName}"的汇报。`,
     },
   ];
 
@@ -669,8 +855,8 @@ async function runReportTask(task: ReportTask): Promise<ReportTaskHistory> {
       '开始调用 LLM 生成报告'
     );
 
-    // 【优化3】调用 LLM API 生成报告
-    generatedReport = await callLLMAPI(model, prompt, formattedData, task.name);
+    // 【优化3】调用 LLM API 生成报告（包含上下文优化）
+    generatedReport = await callLLMAPI(model, prompt, formattedData, task.name, task.rangeType);
 
     logger.info(
       { taskName: task.name, reportLength: generatedReport.length },
