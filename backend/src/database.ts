@@ -73,12 +73,16 @@ export interface AuditLog {
   createdAt?: string;
 }
 
+export type ModelProvider = 'deepseek' | 'google' | 'openai' | 'custom';
+
 export interface ModelConfig {
   id: string;
-  name: string;                          // 模型名称（如 'OpenAI', 'Deepseek' 等）
-  apiUrl: string;                        // API 地址
-  apiKey?: string;                       // API Key（可选，内置模型可能不需要）
-  isBuiltIn: boolean;                    // 是否内置模型
+  name: string;                          // 配置名称
+  provider: ModelProvider;               // 模型服务商
+  apiUrl: string;                        // API 基础地址
+  apiKey?: string;                       // API Key
+  modelId?: string;                      // 已选择的模型 ID
+  isBuiltIn: boolean;                    // 是否推荐模型
   status: 'connected' | 'testing' | 'disconnected' | 'unconfigured';  // 连接状态
   lastTestedAt?: string;                 // 最后测试时间
   createdAt: string;
@@ -109,6 +113,90 @@ class DatabaseService {
 
   constructor() {
     this.dbPath = config.database.path;
+  }
+
+  private getProviderLabel(provider: ModelProvider): string {
+    const labels: Record<ModelProvider, string> = {
+      deepseek: 'DeepSeek',
+      google: 'Google',
+      openai: 'OpenAI',
+      custom: '自定义',
+    };
+
+    return labels[provider];
+  }
+
+  private normalizeModelApiUrl(provider: ModelProvider, apiUrl: string | undefined): string {
+    const trimmed = (apiUrl || '').trim().replace(/\/+$/, '');
+
+    if (!trimmed) {
+      return '';
+    }
+
+    if (provider === 'deepseek' && trimmed === 'https://api.deepseek.com/v1') {
+      return 'https://api.deepseek.com';
+    }
+
+    if (provider === 'openai' && trimmed === 'https://api.openai.com/v1') {
+      return 'https://api.openai.com';
+    }
+
+    if (provider === 'google') {
+      return trimmed.replace(/\/v1beta(?:\/openai)?$/i, '');
+    }
+
+    return trimmed;
+  }
+
+  private inferModelProvider(model: Partial<ModelConfig> & { apiUrl?: string; id?: string; name?: string }): ModelProvider {
+    const fingerprint = `${model.id || ''} ${model.name || ''} ${model.apiUrl || ''}`.toLowerCase();
+
+    if (fingerprint.includes('deepseek')) {
+      return 'deepseek';
+    }
+
+    if (fingerprint.includes('google') || fingerprint.includes('gemini') || fingerprint.includes('generativelanguage.googleapis.com')) {
+      return 'google';
+    }
+
+    if (fingerprint.includes('openai')) {
+      return 'openai';
+    }
+
+    return 'custom';
+  }
+
+  private normalizeExistingModelConfig(rawModel: any): ModelConfig {
+    const provider = (typeof rawModel.provider === 'string' ? rawModel.provider : this.inferModelProvider(rawModel)) as ModelProvider;
+    const apiKey = typeof rawModel.apiKey === 'string' && rawModel.apiKey.trim() !== ''
+      ? rawModel.apiKey.trim()
+      : undefined;
+    const modelId = typeof rawModel.modelId === 'string' && rawModel.modelId.trim() !== ''
+      ? rawModel.modelId.trim()
+      : undefined;
+    const apiUrl = this.normalizeModelApiUrl(provider, rawModel.apiUrl);
+    const hasCompleteConfig = Boolean(apiUrl && apiKey && modelId);
+    const nextStatus = hasCompleteConfig
+      ? (rawModel.status === 'testing' || rawModel.status === 'disconnected' || rawModel.status === 'connected'
+        ? rawModel.status
+        : 'connected')
+      : 'unconfigured';
+
+    return {
+      id: String(rawModel.id || crypto.randomUUID()),
+      name: rawModel.isBuiltIn
+        ? 'DeepSeek 推荐模型'
+        : String(rawModel.name || `${this.getProviderLabel(provider)} / ${modelId || '未选择模型'}`),
+      provider,
+      apiUrl,
+      apiKey,
+      modelId,
+      isBuiltIn: Boolean(rawModel.isBuiltIn),
+      status: nextStatus,
+      lastTestedAt: rawModel.lastTestedAt,
+      createdAt: String(rawModel.createdAt || new Date().toISOString()),
+      updatedAt: String(rawModel.updatedAt || new Date().toISOString()),
+    };
   }
 
   async initialize(): Promise<void> {
@@ -335,83 +423,48 @@ class DatabaseService {
       }
     }
 
-    // ─── 数据迁移：删除不再支持的本地模型 ───
-    const localModelsToRemove = ['ollama', 'lm-studio'];
-    this.modelConfigs = this.modelConfigs.filter(m => !localModelsToRemove.includes(m.id));
+    // ─── 数据迁移：删除旧方案中的错误内置模型，仅保留新的推荐模型方案 ───
+    const legacyBuiltInIds = new Set(['deepseek', 'openai', 'claude', 'moonshot', 'ollama', 'lm-studio']);
+    this.modelConfigs = this.modelConfigs
+      .filter(model => !legacyBuiltInIds.has(model.id))
+      .map(model => this.normalizeExistingModelConfig(model));
 
-    // ─── 数据迁移：更新 DeepSeek 名称 ───
-    const existingDeepseek = this.modelConfigs.find(m => m.id === 'deepseek');
-    if (existingDeepseek && existingDeepseek.name !== 'DeepSeek (deepseek-chat / V3.2)') {
-      existingDeepseek.name = 'DeepSeek (deepseek-chat / V3.2)';
-      existingDeepseek.updatedAt = new Date().toISOString();
-    }
-
-    // ─── 数据迁移：修正 Moonshot API URL ───
-    const existingMoonshot = this.modelConfigs.find(m => m.id === 'moonshot');
-    if (existingMoonshot && existingMoonshot.apiUrl !== 'https://api.moonshot.cn/v1') {
-      existingMoonshot.apiUrl = 'https://api.moonshot.cn/v1';
-      existingMoonshot.updatedAt = new Date().toISOString();
-    }
-
-    // ─── 数据完整性检查：无 apiKey（或空 apiKey）的模型不应处于 connected 状态 ───
+    // ─── 数据完整性检查：缺少基础 URL、Key 或模型 ID 的配置一律视为未完成 ───
     for (const model of this.modelConfigs) {
-      if (!model.apiKey || model.apiKey.trim() === '') {
-        if (model.status === 'connected' || model.status === 'testing') {
+      if (!model.apiUrl || !model.apiKey || !model.modelId) {
+        if (model.status !== 'unconfigured') {
           model.status = 'unconfigured';
           model.updatedAt = new Date().toISOString();
         }
       }
     }
 
-    // 定义预置内置模型（仅云端 API）
-    const builtInModels = [
-      {
-        id: 'deepseek',
-        name: 'DeepSeek (deepseek-chat / V3.2)',
-        apiUrl: 'https://api.deepseek.com/v1',
-        apiKey: undefined,
-        isBuiltIn: true,
-        status: 'unconfigured' as const,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      },
-      {
-        id: 'openai',
-        name: 'OpenAI (GPT-4o)',
-        apiUrl: 'https://api.openai.com/v1',
-        apiKey: undefined,
-        isBuiltIn: true,
-        status: 'unconfigured' as const,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      },
-      {
-        id: 'claude',
-        name: 'Anthropic Claude (claude-3-5-sonnet)',
-        apiUrl: 'https://api.anthropic.com/v1',
-        apiKey: undefined,
-        isBuiltIn: true,
-        status: 'unconfigured' as const,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      },
-      {
-        id: 'moonshot',
-        name: 'Moonshot Kimi (kimi-k2-turbo)',
-        apiUrl: 'https://api.moonshot.cn/v1',
-        apiKey: undefined,
-        isBuiltIn: true,
-        status: 'unconfigured' as const,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      },
-    ];
+    // 定义推荐模型：当前仅保留 DeepSeek
+    const recommendedModel: ModelConfig = {
+      id: 'recommended-deepseek',
+      name: 'DeepSeek 推荐模型',
+      provider: 'deepseek',
+      apiUrl: 'https://api.deepseek.com',
+      apiKey: undefined,
+      modelId: undefined,
+      isBuiltIn: true,
+      status: 'unconfigured',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
 
-    // 为每个预置模型检查是否存在，不存在则添加（兼容旧数据库）
-    for (const model of builtInModels) {
-      if (!this.modelConfigs.find(m => m.id === model.id)) {
-        this.modelConfigs.push(model);
+    const existingRecommendedModel = this.modelConfigs.find(model => model.id === recommendedModel.id);
+    if (existingRecommendedModel) {
+      existingRecommendedModel.name = recommendedModel.name;
+      existingRecommendedModel.provider = 'deepseek';
+      existingRecommendedModel.apiUrl = recommendedModel.apiUrl;
+      existingRecommendedModel.isBuiltIn = true;
+      if (!existingRecommendedModel.apiKey || !existingRecommendedModel.modelId) {
+        existingRecommendedModel.status = 'unconfigured';
       }
+      existingRecommendedModel.updatedAt = new Date().toISOString();
+    } else {
+      this.modelConfigs.unshift(recommendedModel);
     }
 
     // 保存到文件（如果有新增数据）

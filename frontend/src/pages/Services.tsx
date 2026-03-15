@@ -1,8 +1,8 @@
 import React, { useEffect, useState, useCallback, useRef } from 'react';
-import { CalendarDays, Clock3, MoreHorizontal, ChevronDown, ChevronLeft, ChevronRight, Search } from 'lucide-react';
+import { CalendarDays, Clock3, MoreHorizontal, ChevronDown, ChevronLeft, ChevronRight, RotateCw, Search } from 'lucide-react';
 import SceneIcon, { SceneIconName } from '../components/SceneIcon';
 import authService from '../services/auth';
-import mcpModelsService from '../services/mcpModels';
+import mcpModelsService, { ModelConfig as McpModelConfig, ModelProvider } from '../services/mcpModels';
 import mcpPromptsService from '../services/mcpPrompts';
 import mcpLogsService from '../services/mcpLogs';
 import toastService from '../services/toastService';
@@ -102,6 +102,34 @@ function getLogBadges(log: Log): Array<{ key: string; text: string; color: strin
   return badges;
 }
 
+const MODEL_PROVIDER_OPTIONS: Array<{ value: ModelProvider; label: string }> = [
+  { value: 'deepseek', label: 'DeepSeek' },
+  { value: 'google', label: 'Google' },
+  { value: 'openai', label: 'OpenAI' },
+  { value: 'custom', label: '自定义' },
+];
+
+const MODEL_PROVIDER_LABELS: Record<ModelProvider, string> = {
+  deepseek: 'DeepSeek',
+  google: 'Google',
+  openai: 'OpenAI',
+  custom: '自定义',
+};
+
+const MODEL_PROVIDER_HINTS: Record<ModelProvider, string> = {
+  deepseek: 'https://api.deepseek.com',
+  google: 'https://generativelanguage.googleapis.com',
+  openai: 'https://api.openai.com',
+  custom: 'https://your-llm-provider.example.com/v1',
+};
+
+const MODEL_STATUS_MAP: Record<string, { text: string; color: string }> = {
+  connected: { text: '已连接', color: '#10b981' },
+  testing: { text: '连接中', color: '#f59e0b' },
+  disconnected: { text: '连接失败', color: '#ef4444' },
+  unconfigured: { text: '未配置', color: '#9ca3af' },
+};
+
 const Services: React.FC = () => {
   const [activeMenu, setActiveMenu] = useState<'overview' | 'ai-report' | 'mcp-service'>('overview');
   const [services, setServices] = useState<Service[]>([]);
@@ -132,9 +160,14 @@ const Services: React.FC = () => {
   // MCP 服务弹窗状态
   const [mcpModelModalOpen, setMcpModelModalOpen] = useState(false);
   const [mcpPromptModalOpen, setMcpPromptModalOpen] = useState(false);
-  const [customModelName, setCustomModelName] = useState('');
+  const [editingCustomModelId, setEditingCustomModelId] = useState<string | null>(null);
+  const [customModelProvider, setCustomModelProvider] = useState<ModelProvider>('custom');
   const [customModelApiUrl, setCustomModelApiUrl] = useState('');
   const [customModelApiKey, setCustomModelApiKey] = useState('');
+  const [customModelId, setCustomModelId] = useState('');
+  const [customModelOptions, setCustomModelOptions] = useState<string[]>([]);
+  const [customModelLoading, setCustomModelLoading] = useState(false);
+  const [customModelDiscovering, setCustomModelDiscovering] = useState(false);
   const [customPromptName, setCustomPromptName] = useState('');
   const [customPromptPurpose, setCustomPromptPurpose] = useState('custom');
   const [customPromptContent, setCustomPromptContent] = useState('');
@@ -143,10 +176,12 @@ const Services: React.FC = () => {
   const [selectedPromptTemplate, setSelectedPromptTemplate] = useState<any | null>(null);
   // 内置模型配置弹窗状态
   const [builtInModelModalOpen, setBuiltInModelModalOpen] = useState(false);
-  const [selectedBuiltInModel, setSelectedBuiltInModel] = useState<{ id?: string; name: string; desc: string; apiUrl: string; status: string } | null>(null);
+  const [selectedBuiltInModel, setSelectedBuiltInModel] = useState<McpModelConfig | null>(null);
   const [builtInModelApiKey, setBuiltInModelApiKey] = useState('');
+  const [builtInModelId, setBuiltInModelId] = useState('');
+  const [builtInModelOptions, setBuiltInModelOptions] = useState<string[]>([]);
   const [builtInModelLoading, setBuiltInModelLoading] = useState(false);
-  const [builtInModelTestingConnection, setBuiltInModelTestingConnection] = useState(false);
+  const [builtInModelDiscovering, setBuiltInModelDiscovering] = useState(false);
   // 提示词编辑弹窗状态
   const [promptFormModalOpen, setPromptFormModalOpen] = useState(false);
   const [editingPromptId, setEditingPromptId] = useState<string | null>(null);
@@ -159,8 +194,10 @@ const Services: React.FC = () => {
   const [customPromptsList, setCustomPromptsList] = useState<any[]>([]);
   const [customPromptsLoading, setCustomPromptsLoading] = useState(false);
   // 模型列表（从数据库读取）
-  const [builtInModelsList, setBuiltInModelsList] = useState<any[]>([]);
+  const [builtInModelsList, setBuiltInModelsList] = useState<McpModelConfig[]>([]);
   const [builtInModelsLoading, setBuiltInModelsLoading] = useState(false);
+  const [customModelsList, setCustomModelsList] = useState<McpModelConfig[]>([]);
+  const [customModelsLoading, setCustomModelsLoading] = useState(false);
   // 内置提示词列表（从数据库读取）
   const [builtInPromptsList, setBuiltInPromptsList] = useState<any[]>([]);
   const [builtInPromptsLoading, setBuiltInPromptsLoading] = useState(false);
@@ -244,6 +281,55 @@ const Services: React.FC = () => {
     updateCountdowns();
   }, [services, updateCountdowns]);
 
+  const loadModelConfigs = useCallback(async () => {
+    try {
+      setBuiltInModelsLoading(true);
+      setCustomModelsLoading(true);
+
+      const [builtInResult, customResult] = await Promise.all([
+        mcpModelsService.getBuiltInModels(),
+        mcpModelsService.getCustomModels(),
+      ]);
+
+      if (builtInResult.success && builtInResult.data) {
+        setBuiltInModelsList(builtInResult.data);
+      }
+
+      if (customResult.success && customResult.data) {
+        setCustomModelsList(customResult.data);
+      }
+    } catch (error) {
+      console.error('加载模型配置失败:', error);
+    } finally {
+      setBuiltInModelsLoading(false);
+      setCustomModelsLoading(false);
+    }
+  }, []);
+
+  const resetCustomModelForm = useCallback(() => {
+    setEditingCustomModelId(null);
+    setCustomModelProvider('custom');
+    setCustomModelApiUrl('');
+    setCustomModelApiKey('');
+    setCustomModelId('');
+    setCustomModelOptions([]);
+  }, []);
+
+  const openCustomModelCreateModal = useCallback(() => {
+    resetCustomModelForm();
+    setMcpModelModalOpen(true);
+  }, [resetCustomModelForm]);
+
+  const openCustomModelEditModal = useCallback((model: McpModelConfig) => {
+    setEditingCustomModelId(model.id);
+    setCustomModelProvider(model.provider);
+    setCustomModelApiUrl(model.apiUrl);
+    setCustomModelApiKey(model.apiKey || '');
+    setCustomModelId(model.modelId || '');
+    setCustomModelOptions(model.modelId ? [model.modelId] : []);
+    setMcpModelModalOpen(true);
+  }, []);
+
   // 加载自定义提示词列表
   useEffect(() => {
     const loadCustomPrompts = async () => {
@@ -263,21 +349,8 @@ const Services: React.FC = () => {
   }, [promptFormModalOpen]); // 当弹窗打开时重新加载
 
   useEffect(() => {
-    const loadBuiltInModels = async () => {
-      try {
-        setBuiltInModelsLoading(true);
-        const result = await mcpModelsService.getBuiltInModels();
-        if (result.success && result.data) {
-          setBuiltInModelsList(result.data);
-        }
-      } catch (error) {
-        console.error('加载内置模型失败:', error);
-      } finally {
-        setBuiltInModelsLoading(false);
-      }
-    };
-    loadBuiltInModels();
-  }, []); // 组件挂载时加载一次
+    loadModelConfigs();
+  }, [loadModelConfigs]); // 组件挂载时加载一次
 
   useEffect(() => {
     const loadBuiltInPrompts = async () => {
@@ -323,20 +396,7 @@ const Services: React.FC = () => {
   // 当切换到MCP标签页（模型或提示词）时重新加载数据
   useEffect(() => {
     if (activeMCPTab === 'models') {
-      const loadModels = async () => {
-        try {
-          setBuiltInModelsLoading(true);
-          const result = await mcpModelsService.getBuiltInModels();
-          if (result.success && result.data) {
-            setBuiltInModelsList(result.data);
-          }
-        } catch (error) {
-          console.error('加载内置模型失败:', error);
-        } finally {
-          setBuiltInModelsLoading(false);
-        }
-      };
-      loadModels();
+      loadModelConfigs();
     } else if (activeMCPTab === 'prompts') {
       const loadPrompts = async () => {
         try {
@@ -353,7 +413,7 @@ const Services: React.FC = () => {
       };
       loadPrompts();
     }
-  }, [activeMCPTab]);
+  }, [activeMCPTab, loadModelConfigs]);
 
   const fetchServices = async () => {
     try {
@@ -1522,26 +1582,13 @@ const Services: React.FC = () => {
           {/* 模型配置标签页 */}
           {activeMCPTab === 'models' && (
             <div style={{ background: 'white', borderRadius: '0.5rem', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', padding: '1.5rem' }}>
-              <h3 style={{ fontSize: '1rem', fontWeight: 600, color: '#1f2937', marginTop: 0, marginBottom: '1rem' }}>内置模型</h3>
+              <h3 style={{ fontSize: '1rem', fontWeight: 600, color: '#1f2937', marginTop: 0, marginBottom: '1rem' }}>推荐模型</h3>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginBottom: '2rem' }}>
                 {builtInModelsLoading ? (
                   <div style={{ textAlign: 'center', color: '#9ca3af', padding: '1.5rem' }}>加载中...</div>
                 ) : builtInModelsList.length > 0 ? (
                   builtInModelsList.map((model) => {
-                    const modelDescriptions: Record<string, {desc: string; pricing: string}> = {
-                      'deepseek': { desc: '深度求索 DeepSeek-V3 超低成本模型', pricing: '$0.27/1M input tokens（约 ¥2/百万 token）' },
-                      'openai': { desc: '业界标准模型系列', pricing: 'GPT-4o: $2.50/1M in | GPT-4o mini: $0.15/1M in' },
-                      'claude': { desc: '高智能推理能力', pricing: 'Claude 3.5 Haiku: $0.80/1M in（商用最便宜）' },
-                      'moonshot': { desc: '月之暗面 Kimi 高端推理模型', pricing: '¥0.012/1K tokens（约 $0.0017）' },
-                    };
-                    const info = modelDescriptions[model.id] || { desc: '', pricing: '' };
-                    const statusMap: Record<string, {text: string; color: string}> = {
-                      'connected': { text: '✓ 已连接', color: '#10b981' },
-                      'testing': { text: '测试中', color: '#f59e0b' },
-                      'disconnected': { text: '未连接', color: '#9ca3af' },
-                      'unconfigured': { text: '未配置', color: '#ef4444' },
-                    };
-                    const status = statusMap[model.status] || { text: model.status, color: '#9ca3af' };
+                    const status = MODEL_STATUS_MAP[model.status] || { text: model.status, color: '#9ca3af' };
                     return (
                       <div
                         key={model.id}
@@ -1558,13 +1605,15 @@ const Services: React.FC = () => {
                               {model.name}
                             </div>
                             <div style={{ fontSize: '0.75rem', color: '#6b7280', marginTop: '0.25rem' }}>
-                              {info.desc}
+                              固定推荐 DeepSeek 服务商，配置 API Key 后从官方接口拉取可用模型列表。
                             </div>
                           </div>
                           <button
                             onClick={() => {
                               setSelectedBuiltInModel(model);
                               setBuiltInModelApiKey('');
+                              setBuiltInModelId(model.modelId || '');
+                              setBuiltInModelOptions(model.modelId ? [model.modelId] : []);
                               setBuiltInModelModalOpen(true);
                             }}
                             style={{
@@ -1584,7 +1633,11 @@ const Services: React.FC = () => {
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '0.75rem' }}>
                           <div style={{ display: 'flex', gap: '1rem', fontSize: '0.75rem' }}>
                             <div>
-                              <span style={{ color: '#6b7280' }}>API URL: </span>
+                              <span style={{ color: '#6b7280' }}>提供商: </span>
+                              <span style={{ color: '#1f2937', fontWeight: 500 }}>{MODEL_PROVIDER_LABELS[model.provider]}</span>
+                            </div>
+                            <div>
+                              <span style={{ color: '#6b7280' }}>基础 URL: </span>
                               <span style={{ color: '#1f2937', fontFamily: "'Monaco', monospace" }}>{model.apiUrl}</span>
                             </div>
                             <div>
@@ -1594,36 +1647,116 @@ const Services: React.FC = () => {
                           </div>
                         </div>
                         <div style={{ fontSize: '0.75rem', color: '#6b7280', marginTop: '0.5rem' }}>
-                          {info.pricing}
+                          当前模型：{model.modelId || '未选择'}
                         </div>
                       </div>
                     );
                   })
                 ) : (
-                  <div style={{ textAlign: 'center', color: '#9ca3af' }}>暂无内置模型</div>
+                  <div style={{ textAlign: 'center', color: '#9ca3af' }}>暂无推荐模型</div>
                 )}
               </div>
 
               <h3 style={{ fontSize: '1rem', fontWeight: 600, color: '#1f2937', marginTop: '1.5rem', marginBottom: '1rem' }}>自定义模型</h3>
-              <div style={{ border: '2px dashed #d1d5db', borderRadius: '0.5rem', padding: '2rem', textAlign: 'center' }}>
-                <div style={{ fontSize: '0.875rem', color: '#6b7280', marginBottom: '1rem' }}>
-                  💡 支持任何兼容 OpenAI API 的模型服务
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.875rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div style={{ fontSize: '0.8125rem', color: '#6b7280' }}>
+                    支持 DeepSeek、Google、OpenAI 以及任意自定义兼容服务商。
+                  </div>
+                  <button
+                    onClick={openCustomModelCreateModal}
+                    style={{
+                      padding: '0.5rem 1.25rem',
+                      backgroundColor: '#1f883d',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '0.375rem',
+                      cursor: 'pointer',
+                      fontSize: '0.8125rem',
+                      fontWeight: 500,
+                    }}
+                  >
+                    + 添加自定义模型
+                  </button>
                 </div>
-                <button
-                  onClick={() => setMcpModelModalOpen(true)}
-                  style={{
-                    padding: '0.5rem 1.25rem',
-                    backgroundColor: '#1f883d',
-                    color: 'white',
-                    border: 'none',
-                    borderRadius: '0.375rem',
-                    cursor: 'pointer',
-                    fontSize: '0.8125rem',
-                    fontWeight: 500,
-                  }}
-                >
-                  + 添加自定义模型
-                </button>
+
+                {customModelsLoading ? (
+                  <div style={{ textAlign: 'center', color: '#9ca3af', padding: '1.5rem' }}>加载中...</div>
+                ) : customModelsList.length > 0 ? (
+                  customModelsList.map((model) => {
+                    const status = MODEL_STATUS_MAP[model.status] || { text: model.status, color: '#9ca3af' };
+                    return (
+                      <div
+                        key={model.id}
+                        style={{
+                          border: '1px solid #d1d5db',
+                          borderRadius: '0.5rem',
+                          padding: '1rem',
+                          backgroundColor: '#ffffff',
+                        }}
+                      >
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '1rem' }}>
+                          <div style={{ minWidth: 0 }}>
+                            <div style={{ fontSize: '0.9375rem', fontWeight: 600, color: '#1f2937' }}>{model.name}</div>
+                            <div style={{ fontSize: '0.75rem', color: '#6b7280', marginTop: '0.25rem' }}>
+                              提供商：{MODEL_PROVIDER_LABELS[model.provider]} | 模型：{model.modelId || '未选择'}
+                            </div>
+                            <div style={{ fontSize: '0.75rem', color: '#6b7280', marginTop: '0.35rem', fontFamily: "'Monaco', monospace" }}>
+                              {model.apiUrl}
+                            </div>
+                          </div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexShrink: 0 }}>
+                            <span style={{ color: status.color, fontSize: '0.75rem', fontWeight: 600 }}>{status.text}</span>
+                            <button
+                              onClick={() => openCustomModelEditModal(model)}
+                              style={{
+                                padding: '0.35rem 0.75rem',
+                                backgroundColor: '#2563eb',
+                                color: 'white',
+                                border: 'none',
+                                borderRadius: '0.375rem',
+                                cursor: 'pointer',
+                                fontSize: '0.75rem',
+                              }}
+                            >
+                              编辑
+                            </button>
+                            <button
+                              onClick={async () => {
+                                if (!window.confirm('确认删除该自定义模型配置吗？')) {
+                                  return;
+                                }
+
+                                const result = await mcpModelsService.deleteModel(model.id);
+                                if (result.success) {
+                                  toastService.success('自定义模型已删除');
+                                  await loadModelConfigs();
+                                } else {
+                                  toastService.error(result.error || '删除失败');
+                                }
+                              }}
+                              style={{
+                                padding: '0.35rem 0.75rem',
+                                backgroundColor: '#fee2e2',
+                                color: '#b91c1c',
+                                border: '1px solid #fecaca',
+                                borderRadius: '0.375rem',
+                                cursor: 'pointer',
+                                fontSize: '0.75rem',
+                              }}
+                            >
+                              删除
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })
+                ) : (
+                  <div style={{ border: '2px dashed #d1d5db', borderRadius: '0.5rem', padding: '2rem', textAlign: 'center', color: '#9ca3af' }}>
+                    暂无自定义模型，点击右上角按钮添加。
+                  </div>
+                )}
               </div>
             </div>
           )}
@@ -1875,10 +2008,10 @@ const Services: React.FC = () => {
             }}>
               <div>
                 <div style={{ fontSize: '1.125rem', fontWeight: 700, color: '#1f2937' }}>
-                  配置 {selectedBuiltInModel.name}
+                  配置推荐模型
                 </div>
                 <div style={{ fontSize: '0.8125rem', color: '#6b7280', marginTop: '0.25rem' }}>
-                  {selectedBuiltInModel.desc}
+                  推荐模型当前仅保留 DeepSeek，提供商和基础 URL 固定，需填写 Key 并拉取模型列表后保存。
                 </div>
               </div>
               <button 
@@ -1904,7 +2037,22 @@ const Services: React.FC = () => {
             <div style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
               <div>
                 <label style={{ display: 'block', fontSize: '0.8125rem', fontWeight: 500, color: '#374151', marginBottom: '0.35rem' }}>
-                  API 地址
+                  LLM 提供商
+                </label>
+                <div style={{ 
+                  padding: '0.5rem 0.75rem', 
+                  background: '#f3f4f6', 
+                  border: '1px solid #d1d5db', 
+                  borderRadius: '0.375rem', 
+                  fontSize: '0.875rem', 
+                  color: '#1f2937'
+                }}>
+                  DeepSeek
+                </div>
+              </div>
+              <div>
+                <label style={{ display: 'block', fontSize: '0.8125rem', fontWeight: 500, color: '#374151', marginBottom: '0.35rem' }}>
+                  LLM 基础 URL
                 </label>
                 <div style={{ 
                   padding: '0.5rem 0.75rem', 
@@ -1932,45 +2080,69 @@ const Services: React.FC = () => {
                   style={{ width: '100%', padding: '0.5rem 0.75rem', border: '1px solid #d1d5db', borderRadius: '0.375rem', fontSize: '0.875rem', fontFamily: 'inherit', boxSizing: 'border-box' }}
                 />
               </div>
-              <button
-                onClick={async () => {
-                  if (!selectedBuiltInModel || !builtInModelApiKey.trim()) {
-                    toastService.warning('请输入 API Key');
-                    return;
-                  }
-                  setBuiltInModelTestingConnection(true);
-                  try {
-                    const modelId = (selectedBuiltInModel as any).id;
-                    if (!modelId) {
-                      toastService.error('无法确定模型ID');
-                      return;
-                    }
-                    const result = await mcpModelsService.testModel(modelId, builtInModelApiKey);
-                    if (result.success) {
-                      toastService.success('测试连接成功');
-                    } else {
-                      toastService.error('连接失败：' + (result.message || result.error || '未知错误'));
-                    }
-                  } catch (error) {
-                    toastService.error('测试连接出错：' + (error instanceof Error ? error.message : '未知错误'));
-                  } finally {
-                    setBuiltInModelTestingConnection(false);
-                  }
-                }}
-                disabled={builtInModelTestingConnection}
-                style={{
-                  padding: '0.5rem 1rem',
-                  backgroundColor: builtInModelTestingConnection ? '#9ca3af' : '#3b82f6',
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: '0.375rem',
-                  cursor: builtInModelTestingConnection ? 'not-allowed' : 'pointer',
-                  fontSize: '0.8125rem',
-                  fontWeight: 500,
-                }}
-              >
-                {builtInModelTestingConnection ? '测试中...' : '测试连接'}
-              </button>
+              <div>
+                <label style={{ display: 'block', fontSize: '0.8125rem', fontWeight: 500, color: '#374151', marginBottom: '0.35rem' }}>
+                  LLM 模型名称 <span style={{ color: '#ef4444' }}>*</span>
+                </label>
+                <div style={{ display: 'flex', gap: '0.5rem' }}>
+                  <select
+                    value={builtInModelId}
+                    onChange={(e) => setBuiltInModelId(e.target.value)}
+                    style={{ width: '100%', padding: '0.5rem 0.75rem', border: '1px solid #d1d5db', borderRadius: '0.375rem', fontSize: '0.875rem', backgroundColor: 'white' }}
+                  >
+                    <option value="">请选择模型</option>
+                    {builtInModelOptions.map(modelId => (
+                      <option key={modelId} value={modelId}>{modelId}</option>
+                    ))}
+                  </select>
+                  <button
+                    onClick={async () => {
+                      if (!builtInModelApiKey.trim()) {
+                        toastService.warning('请先输入 API Key');
+                        return;
+                      }
+
+                      setBuiltInModelDiscovering(true);
+                      try {
+                        const result = await mcpModelsService.discoverModels({
+                          provider: 'deepseek',
+                          apiUrl: selectedBuiltInModel.apiUrl,
+                          apiKey: builtInModelApiKey,
+                        });
+
+                        if (result.success && result.data) {
+                          setBuiltInModelOptions(result.data);
+                          if (!result.data.includes(builtInModelId)) {
+                            setBuiltInModelId('');
+                          }
+                          toastService.success(result.message || '模型列表获取成功');
+                        } else {
+                          toastService.error(result.error || result.message || '获取模型列表失败');
+                        }
+                      } catch (error) {
+                        toastService.error('获取模型列表失败：' + (error instanceof Error ? error.message : '未知错误'));
+                      } finally {
+                        setBuiltInModelDiscovering(false);
+                      }
+                    }}
+                    disabled={builtInModelDiscovering}
+                    style={{
+                      width: '44px',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      backgroundColor: builtInModelDiscovering ? '#9ca3af' : '#2563eb',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '0.375rem',
+                      cursor: builtInModelDiscovering ? 'not-allowed' : 'pointer',
+                    }}
+                    title="拉取模型列表"
+                  >
+                    <RotateCw size={16} style={{ animation: builtInModelDiscovering ? 'pulse 1s linear infinite' : 'none' }} />
+                  </button>
+                </div>
+              </div>
             </div>
 
             {/* 弹窗底部按钮 */}
@@ -1998,22 +2170,27 @@ const Services: React.FC = () => {
               </button>
               <button
                 onClick={async () => {
-                  if (!selectedBuiltInModel || !builtInModelApiKey.trim()) {
-                    toastService.warning('请输入 API Key');
+                  if (!selectedBuiltInModel || !builtInModelApiKey.trim() || !builtInModelId) {
+                    toastService.warning('请先填写 API Key 并选择模型');
                     return;
                   }
                   setBuiltInModelLoading(true);
                   try {
                     const modelId = (selectedBuiltInModel as any).id;
                     if (modelId) {
-                      const result = await mcpModelsService.updateModel(modelId, { apiKey: builtInModelApiKey });
+                      const result = await mcpModelsService.updateModel(modelId, {
+                        provider: 'deepseek',
+                        apiUrl: selectedBuiltInModel.apiUrl,
+                        apiKey: builtInModelApiKey,
+                        modelId: builtInModelId,
+                      });
                       if (result.success) {
                         toastService.success('配置保存成功');
                         setBuiltInModelModalOpen(false);
                         setBuiltInModelApiKey('');
-                        // 刷新模型列表
-                        const res = await mcpModelsService.getBuiltInModels();
-                        if (res.success && res.data) setBuiltInModelsList(res.data);
+                        setBuiltInModelId('');
+                        setBuiltInModelOptions([]);
+                        await loadModelConfigs();
                       } else {
                         toastService.error('保存失败：' + (result.error || result.message || '未知错误'));
                       }
@@ -2078,11 +2255,19 @@ const Services: React.FC = () => {
               alignItems: 'center',
               justifyContent: 'space-between',
             }}>
-              <div style={{ fontSize: '1.125rem', fontWeight: 700, color: '#1f2937' }}>
-                添加自定义模型
+              <div>
+                <div style={{ fontSize: '1.125rem', fontWeight: 700, color: '#1f2937' }}>
+                  {editingCustomModelId ? '编辑自定义模型' : '添加自定义模型'}
+                </div>
+                <div style={{ fontSize: '0.8125rem', color: '#6b7280', marginTop: '0.25rem' }}>
+                  先填写服务商、基础 URL 和 API Key，再从服务商拉取模型列表并选择目标模型。
+                </div>
               </div>
               <button 
-                onClick={() => setMcpModelModalOpen(false)}
+                onClick={() => {
+                  setMcpModelModalOpen(false);
+                  resetCustomModelForm();
+                }}
                 style={{
                   background: 'none',
                   border: 'none',
@@ -2104,35 +2289,43 @@ const Services: React.FC = () => {
             <div style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
               <div>
                 <label style={{ display: 'block', fontSize: '0.8125rem', fontWeight: 500, color: '#374151', marginBottom: '0.35rem' }}>
-                  模型名称 <span style={{ color: '#ef4444' }}>*</span>
+                  LLM 提供商 <span style={{ color: '#ef4444' }}>*</span>
                 </label>
-                <input
-                  type="text"
-                  placeholder="如：My Ollama Model"
-                  value={customModelName}
-                  onChange={(e) => setCustomModelName(e.target.value)}
-                  style={{ width: '100%', padding: '0.5rem 0.75rem', border: '1px solid #d1d5db', borderRadius: '0.375rem', fontSize: '0.875rem', fontFamily: 'inherit', boxSizing: 'border-box' }}
-                />
+                <select
+                  value={customModelProvider}
+                  onChange={(e) => {
+                    setCustomModelProvider(e.target.value as ModelProvider);
+                    setCustomModelId('');
+                    setCustomModelOptions([]);
+                  }}
+                  style={{ width: '100%', padding: '0.5rem 0.75rem', border: '1px solid #d1d5db', borderRadius: '0.375rem', fontSize: '0.875rem', backgroundColor: 'white' }}
+                >
+                  {MODEL_PROVIDER_OPTIONS.map(option => (
+                    <option key={option.value} value={option.value}>{option.label}</option>
+                  ))}
+                </select>
               </div>
               <div>
                 <label style={{ display: 'block', fontSize: '0.8125rem', fontWeight: 500, color: '#374151', marginBottom: '0.35rem' }}>
-                  API 地址 <span style={{ color: '#ef4444' }}>*</span>
+                  LLM 基础 URL <span style={{ color: '#ef4444' }}>*</span>
                 </label>
                 <input
                   type="text"
-                  placeholder="如：http://localhost:11434/v1"
+                  placeholder={MODEL_PROVIDER_HINTS[customModelProvider]}
                   value={customModelApiUrl}
                   onChange={(e) => setCustomModelApiUrl(e.target.value)}
+                  autoComplete="off"
+                  spellCheck="false"
                   style={{ width: '100%', padding: '0.5rem 0.75rem', border: '1px solid #d1d5db', borderRadius: '0.375rem', fontSize: '0.875rem', fontFamily: 'inherit', boxSizing: 'border-box' }}
                 />
               </div>
               <div>
                 <label style={{ display: 'block', fontSize: '0.8125rem', fontWeight: 500, color: '#374151', marginBottom: '0.35rem' }}>
-                  API Key <span style={{ color: '#9ca3af' }}>(可选)</span>
+                  API Key <span style={{ color: '#ef4444' }}>*</span>
                 </label>
                 <input
                   type="text"
-                  placeholder="如果需要认证，输入 API Key"
+                  placeholder="输入服务商 API Key"
                   value={customModelApiKey}
                   onChange={(e) => setCustomModelApiKey(e.target.value)}
                   autoComplete="off"
@@ -2140,20 +2333,69 @@ const Services: React.FC = () => {
                   style={{ width: '100%', padding: '0.5rem 0.75rem', border: '1px solid #d1d5db', borderRadius: '0.375rem', fontSize: '0.875rem', fontFamily: 'inherit', boxSizing: 'border-box' }}
                 />
               </div>
-              <button
-                style={{
-                  padding: '0.5rem 1rem',
-                  backgroundColor: '#3b82f6',
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: '0.375rem',
-                  cursor: 'pointer',
-                  fontSize: '0.8125rem',
-                  fontWeight: 500,
-                }}
-              >
-                🔗 测试连接
-              </button>
+              <div>
+                <label style={{ display: 'block', fontSize: '0.8125rem', fontWeight: 500, color: '#374151', marginBottom: '0.35rem' }}>
+                  LLM 模型名称 <span style={{ color: '#ef4444' }}>*</span>
+                </label>
+                <div style={{ display: 'flex', gap: '0.5rem' }}>
+                  <select
+                    value={customModelId}
+                    onChange={(e) => setCustomModelId(e.target.value)}
+                    style={{ width: '100%', padding: '0.5rem 0.75rem', border: '1px solid #d1d5db', borderRadius: '0.375rem', fontSize: '0.875rem', backgroundColor: 'white' }}
+                  >
+                    <option value="">请选择模型</option>
+                    {customModelOptions.map(modelId => (
+                      <option key={modelId} value={modelId}>{modelId}</option>
+                    ))}
+                  </select>
+                  <button
+                    onClick={async () => {
+                      if (!customModelApiUrl.trim() || !customModelApiKey.trim()) {
+                        toastService.warning('请先填写基础 URL 和 API Key');
+                        return;
+                      }
+
+                      setCustomModelDiscovering(true);
+                      try {
+                        const result = await mcpModelsService.discoverModels({
+                          provider: customModelProvider,
+                          apiUrl: customModelApiUrl,
+                          apiKey: customModelApiKey,
+                        });
+
+                        if (result.success && result.data) {
+                          setCustomModelOptions(result.data);
+                          if (!result.data.includes(customModelId)) {
+                            setCustomModelId('');
+                          }
+                          toastService.success(result.message || '模型列表获取成功');
+                        } else {
+                          toastService.error(result.error || result.message || '获取模型列表失败');
+                        }
+                      } catch (error) {
+                        toastService.error('获取模型列表失败：' + (error instanceof Error ? error.message : '未知错误'));
+                      } finally {
+                        setCustomModelDiscovering(false);
+                      }
+                    }}
+                    disabled={customModelDiscovering}
+                    style={{
+                      width: '44px',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      backgroundColor: customModelDiscovering ? '#9ca3af' : '#2563eb',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '0.375rem',
+                      cursor: customModelDiscovering ? 'not-allowed' : 'pointer',
+                    }}
+                    title="拉取模型列表"
+                  >
+                    <RotateCw size={16} style={{ animation: customModelDiscovering ? 'pulse 1s linear infinite' : 'none' }} />
+                  </button>
+                </div>
+              </div>
             </div>
 
             {/* 弹窗底部按钮 */}
@@ -2165,7 +2407,10 @@ const Services: React.FC = () => {
               justifyContent: 'flex-end',
             }}>
               <button
-                onClick={() => setMcpModelModalOpen(false)}
+                onClick={() => {
+                  setMcpModelModalOpen(false);
+                  resetCustomModelForm();
+                }}
                 style={{
                   padding: '0.5rem 1rem',
                   backgroundColor: '#f3f4f6',
@@ -2180,18 +2425,52 @@ const Services: React.FC = () => {
                 取消
               </button>
               <button
+                onClick={async () => {
+                  if (!customModelApiUrl.trim() || !customModelApiKey.trim() || !customModelId) {
+                    toastService.warning('请先填写完整信息并选择模型');
+                    return;
+                  }
+
+                  setCustomModelLoading(true);
+                  try {
+                    const payload = {
+                      provider: customModelProvider,
+                      apiUrl: customModelApiUrl,
+                      apiKey: customModelApiKey,
+                      modelId: customModelId,
+                    };
+
+                    const result = editingCustomModelId
+                      ? await mcpModelsService.updateModel(editingCustomModelId, payload)
+                      : await mcpModelsService.saveModel(payload);
+
+                    if (result.success) {
+                      toastService.success(editingCustomModelId ? '模型配置已更新' : '模型配置已保存');
+                      setMcpModelModalOpen(false);
+                      resetCustomModelForm();
+                      await loadModelConfigs();
+                    } else {
+                      toastService.error(result.error || result.message || '保存失败');
+                    }
+                  } catch (error) {
+                    toastService.error('保存配置失败：' + (error instanceof Error ? error.message : '未知错误'));
+                  } finally {
+                    setCustomModelLoading(false);
+                  }
+                }}
+                disabled={customModelLoading}
                 style={{
                   padding: '0.5rem 1rem',
-                  backgroundColor: '#1f883d',
+                  backgroundColor: customModelLoading ? '#9ca3af' : '#1f883d',
                   color: 'white',
                   border: 'none',
                   borderRadius: '0.375rem',
-                  cursor: 'pointer',
+                  cursor: customModelLoading ? 'not-allowed' : 'pointer',
                   fontSize: '0.8125rem',
                   fontWeight: 500,
                 }}
               >
-                确认添加
+                {customModelLoading ? '保存中...' : (editingCustomModelId ? '保存修改' : '确认添加')}
               </button>
             </div>
           </div>

@@ -1,6 +1,6 @@
 # 需求与BUG跟踪文档
 
-![alt text](image.png)**版本：** v1.4.9 | **更新时间：** 2026-03-15 | **内容：** 还原清除API Key功能、修复内置模型验证逻辑、精确模型名称
+![alt text](image.png)**版本：** v1.4.12 | **更新时间：** 2026-03-15 | **内容：** 推荐模型重构、按提供商拉取模型列表、清理旧内置模型数据
 
 
 ## 📌 使用说明
@@ -92,6 +92,7 @@
 
 | 版本 | 发布日期 | 主要变更 |
 |------|----------|----------|
+| v1.4.12 | 2026-03-15 | 模型配置方案重构：删除旧方案中的错误内置模型数据并迁移到新结构（provider/apiUrl/apiKey/modelId）；内置模型改为“推荐模型”，当前仅保留固定服务商和基础 URL 的 DeepSeek；自定义模型改为先选择提供商（DeepSeek、Google、OpenAI、自定义）、填写基础 URL 与 API Key，再通过刷新按钮从服务商拉取模型列表并选择模型后保存；前后端模型配置接口、服务页弹窗与列表展示全部同步到新方案 ✅ 已完成 |
 | v1.4.9 | 2026-03-15 | 数据库清理与模型验证修复：从数据库移除 Ollama/LM Studio 条目；修复后端 isBuiltIn 绕过 API Key 校验的漏洞（去掉 `&& !model.isBuiltIn` 判断，所有模型一律要求提供有效 Key 才能测试）；Claude 测试请求补充必需的 `anthropic-version: 2023-06-01` 头；精确更新内置模型名称（DeepSeek (deepseek-chat / V3.2)、OpenAI (GPT-4o)、Anthropic Claude (claude-3-5-sonnet)、Moonshot Kimi (kimi-k2-turbo)）以及对应 API URL；还原"清除 API Key"UI 功能（恢复简单输入框，保存/测试均强制要求非空 Key） ✅ 已完成 |
 | v1.4.8 | 2026-03-15 | 内置模型重构：移除本地模型（Ollama/LM Studio），修复 DeepSeek 命名为 V3，修正 Moonshot API 地址（/openai/v1 → /v1），数据库自动迁移清理旧数据；新增 API Key 清除功能（配置弹窗显示已配置 Key 状态并支持清除，清除后自动重置状态为未配置）；修复后端测试结果错误消息字段（message→正确传递）；修复前端测试时已有 Key 无法测试的问题；saveModel 保存后刷新列表 ✅ 已完成 |
 | v1.4.7 | 2026-03-15 | 完善 MCP 模型连接测试验证：后端优化 Ollama/LM Studio/OpenAI/Claude 的验证逻辑，确保 HTTP 错误、无模型列表等情况都设置明确的错误信息；前端所有模型测试通知（成功/失败）改用 Toast 通知替代 alert()，包括测试连接、保存配置等操作全部接入 toastService ✅ 已完成 |
