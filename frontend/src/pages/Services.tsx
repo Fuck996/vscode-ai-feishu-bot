@@ -702,7 +702,7 @@ const Services: React.FC = () => {
         robotId: modalRobot,
         integrationIds: modalIntegrationIds,
         notificationStatuses: modalNotificationStatus,
-        maxNotifications: modalMaxNotifications,  // 【新增】传递最大条数
+        maxNotifications: Math.max(1, modalMaxNotifications) || 50,  // 确保至少为1，或使用默认50
         modelConfigId: modalModel,
         promptTemplateId: modalTemplate,
       };
@@ -3965,15 +3965,25 @@ const Services: React.FC = () => {
                     <label style={{ display: 'block', fontSize: '0.8125rem', fontWeight: 500, color: '#374151', marginBottom: '0.5rem' }}>
                       发送给AI模型的最多条数（默认50）
                       <span style={{ marginLeft: '0.5rem', fontSize: '0.75rem', color: '#6b7280' }}>
-                        预估 Token：{Math.round(1500 + modalMaxNotifications * 10)} | 预估成本：￥{((1500 + modalMaxNotifications * 10) * 0.0014 + 800 * 0.0028 * 7).toFixed(2)}
+                        预估 Token：{Math.round(1500 + Math.max(1, modalMaxNotifications) * 10)} | 预估成本：￥{(((1500 + Math.max(1, modalMaxNotifications) * 10) / 1000 * 0.0014) + (800 / 1000 * 0.0028)).toFixed(4)}
                       </span>
                     </label>
                     <input
                       type="number"
-                      min="1"
+                      min="0"
                       max="1000"
                       value={modalMaxNotifications}
-                      onChange={(e) => setModalMaxNotifications(Math.max(1, Math.min(1000, Number(e.target.value) || 50)))}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        if (val === '') {
+                          setModalMaxNotifications(0);
+                        } else {
+                          const num = Number(val);
+                          if (!isNaN(num)) {
+                            setModalMaxNotifications(Math.max(0, Math.min(1000, num)));
+                          }
+                        }
+                      }}
                       style={{
                         display: 'block',
                         width: '100%',

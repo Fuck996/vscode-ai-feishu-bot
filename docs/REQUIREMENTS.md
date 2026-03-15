@@ -1,6 +1,6 @@
 # 需求与BUG跟踪文档
 
-![alt text](image.png)**版本：** v1.4.17 | **更新时间：** 2026-03-15 | **内容：** AI 汇报统计范围选项优化，新增最近1天和本日选项，时间筛选规则调整
+![alt text](image.png)**版本：** v1.4.18 | **更新时间：** 2026-03-15 | **内容：** 汇报功能优化：修复成本估算、数字输入改进、MCP日志记录
 
 
 ## 📌 使用说明
@@ -97,6 +97,7 @@
 | v1.4.13 | 2026-03-15 | 服务页继续完善：LLM 服务商选择去掉默认首项；推荐模型名称统一为 DeepSeek；模型配置弹窗在已保存 API Key 后显示 `********` 掩码提示并支持保留旧 Key；AI 汇报管理接入真实后端任务/历史/元数据接口，移除任务列表与新增弹窗中的硬编码内容，支持机器人、集成、模型、提示词的真实联动以及任务新增、编辑、启停、手动执行、删除 ✅ 已完成 |
 | v1.4.12 | 2026-03-15 | 模型配置方案重构：删除旧方案中的错误内置模型数据并迁移到新结构（provider/apiUrl/apiKey/modelId）；内置模型改为“推荐模型”，当前仅保留固定服务商和基础 URL 的 DeepSeek；自定义模型改为先选择提供商（DeepSeek、Google、OpenAI、自定义）、填写基础 URL 与 API Key，再通过刷新按钮从服务商拉取模型列表并选择模型后保存；前后端模型配置接口、服务页弹窗与列表展示全部同步到新方案 ✅ 已完成 |
 | v1.4.9 | 2026-03-15 | 数据库清理与模型验证修复：从数据库移除 Ollama/LM Studio 条目；修复后端 isBuiltIn 绕过 API Key 校验的漏洞（去掉 `&& !model.isBuiltIn` 判断，所有模型一律要求提供有效 Key 才能测试）；Claude 测试请求补充必需的 `anthropic-version: 2023-06-01` 头；精确更新内置模型名称（DeepSeek (deepseek-chat / V3.2)、OpenAI (GPT-4o)、Anthropic Claude (claude-3-5-sonnet)、Moonshot Kimi (kimi-k2-turbo)）以及对应 API URL；还原"清除 API Key"UI 功能（恢复简单输入框，保存/测试均强制要求非空 Key） ✅ 已完成 |
+| v1.4.18 | 2026-03-15 | 汇报功能优化：修复成本预估计算公式（改用分段计价方式）；maxNotifications 数字输入框支持完全删除重新输入；后端任务发送通知时添加详细日志记录（包含任务名称、机器人、通知数量、统计信息）；确保任务执行后的菜单自动关闭和 Toast 通知提示 ✅ 已完成 |
 | v1.4.17 | 2026-03-15 | AI 汇报统计范围选项优化：新增"最近 1 天"和"本日"选项；时间筛选规则调整为用户要求的精确模式（最近X天以触发当日为起点往前推X天不含当日，本日/本周/本月包含当日数据）；maxNotifications 输入框添加 Token 和成本预估显示（￥符号）；前后端类型定义同步更新 ✅ 已完成 |
 | v1.4.16 | 2026-03-15 | AI 汇报功能增强：任务配置新增 maxNotifications 字段，默认 50；前后端验证范围 1-1000；Settings.tsx 新增"消息限制"输入框放置在消息过滤与模型配置之间；backend formatNotificationsAsJSON() 接收 maxNotifications 参数并替代硬编码 50；runReportTask() 从任务读取限制值并传递；frontend/src/services/reportTasks.ts ReportTaskItem 接口补充 maxNotifications 字段；用户自定义选择发送给 AI 模型的最大通知条数 ✅ 已完成 |
 | v1.4.15 | 2026-03-15 | AI 汇报通知智能选择优化：超过 50 条时按优先级（error > warning > success > info）+ 时间（新→旧）排序，精确选择最重要的通知；formatNotificationsAsJSON() 返回 originalCount 和 truncated 标记；舍弃低优先级通知以节省 token ✅ 已完成 |

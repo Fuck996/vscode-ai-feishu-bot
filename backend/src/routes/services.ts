@@ -599,6 +599,25 @@ async function runReportTask(task: ReportTask): Promise<ReportTaskHistory> {
     // 【优化4】发送报告到汇报机器人
     await sendReportToRobot(robot, generatedReport, task.name, formattedData.statistics);
 
+    // 【新增】记录任务发送日志
+    logger.info(
+      { 
+        taskId: task.id,
+        taskName: task.name,
+        robotId: robot.id,
+        robotName: robot.name,
+        notificationCount: formattedData.total,
+        reportLength: generatedReport.length,
+        statistics: {
+          success: formattedData.statistics?.success || 0,
+          error: formattedData.statistics?.error || 0,
+          warning: formattedData.statistics?.warning || 0,
+          info: formattedData.statistics?.info || 0
+        }
+      },
+      '汇报通知已发送至机器人'
+    );
+
     // 设置成功状态
     historyStatus = 'success';
     const truncationHint = formattedData.truncated
