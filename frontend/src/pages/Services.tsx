@@ -99,7 +99,7 @@ function getLogBadges(log: Log): Array<{ key: string; text: string; color: strin
 }
 
 const Services: React.FC = () => {
-  const [activeMenu, setActiveMenu] = useState<'overview' | 'ai-report'>('overview');
+  const [activeMenu, setActiveMenu] = useState<'overview' | 'ai-report' | 'mcp-service'>('overview');
   const [services, setServices] = useState<Service[]>([]);
   const [logs, setLogs] = useState<Log[]>([]);
   const [loading, setLoading] = useState(true);
@@ -119,10 +119,12 @@ const Services: React.FC = () => {
   const [taskModalMode, setTaskModalMode] = useState<'add' | 'edit'>('add');
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
   const [activeReportTab, setActiveReportTab] = useState<'tasks' | 'history'>('tasks');
+  const [activeMCPTab, setActiveMCPTab] = useState<'models' | 'prompts' | 'logs'>('models');
   const [modalWeekdays, setModalWeekdays] = useState<number[]>([1]);
   const [modalModel, setModalModel] = useState<string>('GPT-4o');
-  const [modalStyle, setModalStyle] = useState<string>('总结汇报');
+  const [modalTemplate, setModalTemplate] = useState<string>('report-summary');
   const [modalRobot, setModalRobot] = useState<string>('');
+  const [modalNotificationStatus, setModalNotificationStatus] = useState<string[]>(['success', 'error', 'warning', 'info']);
   // 发送历史分页 & 搜索状态
   const [historySearch, setHistorySearch] = useState<string>('');
   const [historyStatusFilter, setHistoryStatusFilter] = useState<string>('all');
@@ -417,6 +419,17 @@ const Services: React.FC = () => {
             >
               <SceneIcon name="history" size={16} title="AI汇报管理" inheritColor />
               AI汇报管理
+            </div>
+
+            {/* 菜单项：MCP 服务管理 */}
+            <div
+              style={menuItemStyle('mcp-service')}
+              onClick={() => setActiveMenu('mcp-service')}
+              onMouseEnter={() => setHoveredMenu('mcp-service')}
+              onMouseLeave={() => setHoveredMenu(null)}
+            >
+              <SceneIcon name="notification" size={16} title="MCP 服务管理" inheritColor />
+              MCP 服务管理
             </div>
           </aside>
 
@@ -1169,9 +1182,9 @@ const Services: React.FC = () => {
                 <tbody>
                   {(() => {
                     const allRecords = [
-                      { id: '1', date: '2026-03-10', clock: '09:02', task: '飞书 AI 系统周报', period: '2026-03-03 ~ 2026-03-09', count: 47, summary: '「上周共收到 47 条通知，其中 GitHub CI/CD 构建成功率 96%，飞书群消息活跃度上升 12%」', status: 'success' as const },
-                      { id: '2', date: '2026-03-07', clock: '18:01', task: 'GitHub CI/CD 周报', period: '2026-02-28 ~ 2026-03-06', count: 23, summary: '「本周 CI 流水线共触发 23 次，其中 deploy-prod 成功 21 次，失败 2 次，需关注」', status: 'success' as const },
-                      { id: '3', date: '2026-03-03', clock: '09:03', task: '飞书 AI 系统周报', period: '2026-02-24 ~ 2026-03-02', count: 35, summary: '「上周系统运行稳定，共处理 35 条消息，无异常告警事件，MCP 推送成功率 100%」', status: 'success' as const },
+                      { id: '1', date: '2026-03-10', clock: '09:02:14', task: '飞书 AI 系统周报', period: '2026-03-03 ~ 2026-03-09', count: 47, summary: '「上周共收到 47 条通知，其中 GitHub CI/CD 构建成功率 96%，飞书群消息活跃度上升 12%」', status: 'success' as const },
+                      { id: '2', date: '2026-03-07', clock: '18:01:47', task: 'GitHub CI/CD 周报', period: '2026-02-28 ~ 2026-03-06', count: 23, summary: '「本周 CI 流水线共触发 23 次，其中 deploy-prod 成功 21 次，失败 2 次，需关注」', status: 'success' as const },
+                      { id: '3', date: '2026-03-03', clock: '09:03:32', task: '飞书 AI 系统周报', period: '2026-02-24 ~ 2026-03-02', count: 35, summary: '「上周系统运行稳定，共处理 35 条消息，无异常告警事件，MCP 推送成功率 100%」', status: 'success' as const },
                     ];
                     const filtered = allRecords.filter(r =>
                       (historyStatusFilter === 'all' || r.status === historyStatusFilter) &&
@@ -1306,6 +1319,217 @@ const Services: React.FC = () => {
           </div>
           )}
 
+        </div>
+      )}
+
+      {/* MCP 服务管理内容 */}
+      {activeMenu === 'mcp-service' && (
+        <div>
+          {/* Tab 切换 */}
+          <div style={{ borderBottom: '1px solid #e5e7eb', marginBottom: '1.5rem', display: 'flex', gap: '0' }}>
+            {(['models', 'prompts', 'logs'] as const).map(tab => {
+              const labels = {
+                models: '模型配置',
+                prompts: '提示词管理',
+                logs: 'MCP 日志',
+              };
+              const isActive = activeMCPTab === tab;
+              return (
+                <button
+                  key={tab}
+                  onClick={() => setActiveMCPTab(tab)}
+                  style={{
+                    padding: '0.625rem 1.25rem',
+                    background: 'none',
+                    border: 'none',
+                    fontSize: '0.875rem',
+                    fontWeight: isActive ? 600 : 500,
+                    color: isActive ? '#0969da' : '#6b7280',
+                    cursor: 'pointer',
+                    borderBottom: isActive ? '3px solid #0969da' : '3px solid transparent',
+                    marginBottom: '-1px',
+                    borderRadius: '0.375rem 0.375rem 0 0',
+                    transition: 'background 0.15s, color 0.15s',
+                  }}
+                  onMouseEnter={e => {
+                    e.currentTarget.style.backgroundColor = '#ddf4ff';
+                    if (!isActive) e.currentTarget.style.color = '#0969da';
+                  }}
+                  onMouseLeave={e => {
+                    e.currentTarget.style.backgroundColor = 'transparent';
+                    if (!isActive) e.currentTarget.style.color = '#6b7280';
+                  }}
+                >
+                  {labels[tab]}
+                </button>
+              );
+            })}
+          </div>
+
+          {/* 模型配置标签页 */}
+          {activeMCPTab === 'models' && (
+            <div style={{ background: 'white', borderRadius: '0.5rem', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', padding: '1.5rem' }}>
+              <h3 style={{ fontSize: '1rem', fontWeight: 600, color: '#1f2937', marginTop: 0, marginBottom: '1rem' }}>内置模型</h3>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginBottom: '2rem' }}>
+                {[
+                  { name: 'OpenAI', models: ['GPT-4o', 'GPT-4o mini'] },
+                  { name: 'Anthropic Claude', models: ['Claude 3.5 Sonnet'] },
+                  { name: 'DeepSeek', models: ['DeepSeek-V3'] },
+                ].map((provider, idx) => (
+                  <div
+                    key={idx}
+                    style={{
+                      border: '1px solid #d1d5db',
+                      borderRadius: '0.5rem',
+                      padding: '1rem',
+                      backgroundColor: '#f9fafb',
+                    }}
+                  >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
+                      <div style={{ fontSize: '0.9375rem', fontWeight: 600, color: '#1f2937' }}>
+                        {provider.name}
+                      </div>
+                      <button
+                        style={{
+                          padding: '0.375rem 0.75rem',
+                          border: '1px solid #3b82f6',
+                          background: 'white',
+                          color: '#3b82f6',
+                          borderRadius: '0.375rem',
+                          cursor: 'pointer',
+                          fontSize: '0.8125rem',
+                          fontWeight: 500,
+                        }}
+                      >
+                        配置
+                      </button>
+                    </div>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem', fontSize: '0.8125rem', color: '#6b7280' }}>
+                      <div>API 地址：<span style={{ color: '#1f2937', fontFamily: 'monospace' }}>https://api.openai.com/v1</span></div>
+                      <div>API Key：<span style={{ color: '#ef4444' }}>未配置</span></div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <h3 style={{ fontSize: '1rem', fontWeight: 600, color: '#1f2937', marginTop: 0, marginBottom: '1rem' }}>自定义模型</h3>
+              <div style={{ border: '2px dashed #d1d5db', borderRadius: '0.5rem', padding: '2rem', textAlign: 'center' }}>
+                <div style={{ fontSize: '0.875rem', color: '#6b7280', marginBottom: '1rem' }}>
+                  💡 支持任何兼容 OpenAI API 的模型（如 Ollama、LM Studio 等）
+                </div>
+                <button
+                  style={{
+                    padding: '0.5rem 1.25rem',
+                    backgroundColor: '#1f883d',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '0.375rem',
+                    cursor: 'pointer',
+                    fontSize: '0.8125rem',
+                    fontWeight: 500,
+                  }}
+                >
+                  + 添加自定义模型
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* 提示词管理标签页 */}
+          {activeMCPTab === 'prompts' && (
+            <div style={{ background: 'white', borderRadius: '0.5rem', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', overflow: 'hidden' }}>
+              <div style={{ padding: '1rem 1.5rem', borderBottom: '1px solid #e5e7eb', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <div>
+                  <h3 style={{ fontSize: '1rem', fontWeight: 600, color: '#1f2937', margin: 0 }}>提示词库</h3>
+                  <p style={{ fontSize: '0.8125rem', color: '#6b7280', margin: '0.25rem 0 0 0' }}>
+                    管理 AI 汇报的提示词模板
+                  </p>
+                </div>
+                <button
+                  style={{
+                    padding: '0.375rem 0.875rem',
+                    backgroundColor: '#1f883d',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '0.375rem',
+                    cursor: 'pointer',
+                    fontSize: '0.8125rem',
+                    fontWeight: 500,
+                  }}
+                >
+                  + 新增
+                </button>
+              </div>
+
+              {/* 内置提示词列表 */}
+              <div style={{ padding: '1.5rem' }}>
+                <h4 style={{ fontSize: '0.875rem', fontWeight: 600, color: '#374151', marginBottom: '1rem', textTransform: 'uppercase' }}>
+                  内置模板
+                </h4>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginBottom: '2rem' }}>
+                  {[
+                    { id: 'report-summary', name: '周报总结', desc: '用于生成周期性汇总报告', refs: 2 },
+                    { id: 'daily-digest', name: '日报快报', desc: '用于生成日常简明摘要', refs: 1 },
+                    { id: 'incident-report', name: '事件报告', desc: '用于记录重要事件和问题', refs: 0 },
+                  ].map(template => (
+                    <div
+                      key={template.id}
+                      style={{
+                        border: '1px solid #d1d5db',
+                        borderRadius: '0.375rem',
+                        padding: '0.75rem',
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                      }}
+                    >
+                      <div>
+                        <div style={{ fontSize: '0.875rem', fontWeight: 500, color: '#1f2937' }}>
+                          {template.name}
+                        </div>
+                        <div style={{ fontSize: '0.75rem', color: '#6b7280', marginTop: '0.25rem' }}>
+                          {template.desc} · 被 {template.refs} 个任务使用
+                        </div>
+                      </div>
+                      <button
+                        style={{
+                          padding: '0.25rem 0.75rem',
+                          border: '1px solid #d1d5db',
+                          background: 'white',
+                          color: '#57606a',
+                          borderRadius: '0.375rem',
+                          cursor: 'pointer',
+                          fontSize: '0.75rem',
+                          fontWeight: 500,
+                        }}
+                      >
+                        预览
+                      </button>
+                    </div>
+                  ))}
+                </div>
+
+                <h4 style={{ fontSize: '0.875rem', fontWeight: 600, color: '#374151', marginBottom: '1rem', textTransform: 'uppercase' }}>
+                  自定义模板
+                </h4>
+                <div style={{ border: '2px dashed #d1d5db', borderRadius: '0.375rem', padding: '1.5rem', textAlign: 'center', color: '#6b7280', fontSize: '0.875rem' }}>
+                  暂无自定义模板
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* MCP 日志标签页 */}
+          {activeMCPTab === 'logs' && (
+            <div style={{ background: '#1f2937', borderRadius: '0.5rem', padding: '1.5rem' }}>
+              <div style={{ color: '#10b981', fontFamily: "'Monaco', 'Menlo', 'Ubuntu Mono', monospace", fontSize: '0.75rem', lineHeight: 1.6 }}>
+                <div style={{ color: '#9ca3af' }}>[2026-03-15 14:32:15] <span style={{ color: '#60a5fa' }}>[INFO]</span> MCP 服务启动成功</div>
+                <div style={{ color: '#9ca3af' }}>[2026-03-15 14:32:16] <span style={{ color: '#60a5fa' }}>[INFO]</span> 加载 3 个内置提示词</div>
+                <div style={{ color: '#9ca3af' }}>[2026-03-15 14:32:17] <span style={{ color: '#60a5fa' }}>[INFO]</span> OpenAI API 已连接</div>
+                <div style={{ color: '#9ca3af' }}>[2026-03-15 14:33:01] <span style={{ color: '#fbbf24' }}>[WARN]</span> DeepSeek API 连接超时，将在 30 秒后重试</div>
+              </div>
+            </div>
+          )}
         </div>
       )}
           </main>
@@ -1555,6 +1779,57 @@ const Services: React.FC = () => {
                 </div>
               </div>
 
+              {/* ── 第3区：消息过滤规则 ── */}
+              <div>
+                <div style={{ fontSize: '0.8125rem', fontWeight: 600, color: '#374151', marginBottom: '0.875rem', paddingBottom: '0.5rem', borderBottom: '1px solid #f3f4f6' }}>
+                  消息过滤规则
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.875rem' }}>
+                  {/* 通知状态筛选 */}
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.8125rem', fontWeight: 500, color: '#374151', marginBottom: '0.5rem' }}>
+                      通知状态 <span style={{ color: '#6b7280', fontWeight: 400 }}>（选择要包含的通知状态）</span>
+                    </label>
+                    <div style={{ border: '1px solid #d1d5db', borderRadius: '0.5rem', overflow: 'hidden' }}>
+                      {[
+                        { value: 'success', label: '成功', color: '#1a7f37' },
+                        { value: 'error', label: '失败', color: '#cf222e' },
+                        { value: 'warning', label: '警告', color: '#9a6700' },
+                        { value: 'info', label: '信息', color: '#0969da' },
+                      ].map((status, idx, arr) => (
+                        <label
+                          key={status.value}
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            padding: '0.625rem 0.875rem',
+                            gap: '0.75rem',
+                            borderBottom: idx < arr.length - 1 ? '1px solid #f3f4f6' : 'none',
+                            cursor: 'pointer',
+                            backgroundColor: 'white',
+                          }}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={modalNotificationStatus.includes(status.value)}
+                            onChange={(e) => {
+                              if (e.target.checked) {
+                                setModalNotificationStatus([...modalNotificationStatus, status.value]);
+                              } else {
+                                setModalNotificationStatus(modalNotificationStatus.filter(s => s !== status.value));
+                              }
+                            }}
+                            style={{ width: '15px', height: '15px', cursor: 'pointer', accentColor: '#3b82f6' }}
+                          />
+                          <span style={{ width: '12px', height: '12px', borderRadius: '50%', backgroundColor: status.color, flexShrink: 0 }} />
+                          <span style={{ flex: 1, fontSize: '0.875rem', color: '#1f2937', fontWeight: 500 }}>{status.label}</span>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
               {/* ── 第4区：模型配置 ── */}
               <div>
                 <div style={{ fontSize: '0.8125rem', fontWeight: 600, color: '#374151', marginBottom: '0.875rem', paddingBottom: '0.5rem', borderBottom: '1px solid #f3f4f6' }}>
@@ -1609,47 +1884,26 @@ const Services: React.FC = () => {
                       style={{ width: '100%', padding: '0.5rem 0.75rem', border: '1px solid #d1d5db', borderRadius: '0.375rem', fontSize: '0.875rem', fontFamily: 'inherit', boxSizing: 'border-box' }}
                     />
                   </div>
-                  {/* 汇报方向 pills */}
+                  {/* 汇报模板选择 */}
                   <div>
                     <label style={{ display: 'block', fontSize: '0.8125rem', fontWeight: 500, color: '#374151', marginBottom: '0.5rem' }}>
-                      汇报方向
+                      提示词模板 <span style={{ color: '#6b7280', fontWeight: 400 }}>（从 MCP 服务管理配置）</span>
                     </label>
-                    <div style={{ display: 'flex', gap: '0.5rem' }}>
-                      {['总结汇报', '数据统计', '主要成果', '问题聚焦'].map(s => {
-                        const isSelected = modalStyle === s;
-                        return (
-                          <button
-                            key={s}
-                            onClick={() => setModalStyle(s)}
-                            style={{
-                              flex: 1,
-                              padding: '0.375rem 0',
-                              border: `1.5px solid ${isSelected ? '#3b82f6' : '#d1d5db'}`,
-                              borderRadius: '1rem',
-                              fontSize: '0.8125rem',
-                              fontWeight: 500,
-                              cursor: 'pointer',
-                              backgroundColor: isSelected ? '#eff6ff' : 'white',
-                              color: isSelected ? '#1d4ed8' : '#374151',
-                              transition: 'all 0.15s',
-                            }}
-                          >
-                            {s}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
-                  {/* 自定义提示词 */}
-                  <div>
-                    <label style={{ display: 'block', fontSize: '0.8125rem', fontWeight: 500, color: '#374151', marginBottom: '0.35rem' }}>
-                      自定义提示词
-                    </label>
-                    <textarea
-                      placeholder="可选：补充 AI 生成时的额外指令，如强调某类数据或语气要求…"
-                      rows={3}
-                      style={{ width: '100%', padding: '0.5rem 0.75rem', border: '1px solid #d1d5db', borderRadius: '0.375rem', fontSize: '0.875rem', fontFamily: 'inherit', resize: 'vertical', boxSizing: 'border-box' }}
-                    />
+                    <select
+                      value={modalTemplate}
+                      onChange={(e) => setModalTemplate(e.target.value)}
+                      style={{ width: '100%', padding: '0.5rem 0.75rem', border: '1px solid #d1d5db', borderRadius: '0.375rem', fontSize: '0.875rem', fontFamily: 'inherit', backgroundColor: 'white', boxSizing: 'border-box' }}
+                    >
+                      <option value="">-- 选择提示词模板 --</option>
+                      <optgroup label="内置模板">
+                        <option value="report-summary">周报总结</option>
+                        <option value="daily-digest">日报快报</option>
+                        <option value="incident-report">事件报告</option>
+                      </optgroup>
+                      <optgroup label="自定义模板">
+                        <option value="custom-1">我的自定义模板</option>
+                      </optgroup>
+                    </select>
                   </div>
                 </div>
               </div>
