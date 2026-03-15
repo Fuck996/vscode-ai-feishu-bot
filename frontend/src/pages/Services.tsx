@@ -1482,6 +1482,7 @@ const Services: React.FC = () => {
                     { id: 'report-summary', name: '周报总结', desc: '用于生成周期性汇总报告', refs: 2 },
                     { id: 'daily-digest', name: '日报快报', desc: '用于生成日常简明摘要', refs: 1 },
                     { id: 'incident-report', name: '事件报告', desc: '用于记录重要事件和问题', refs: 0 },
+                    { id: 'vscode-chat-report', name: 'VS Code Chat汇报', desc: '用于AI任务完成后自动生成飞书通知摘要', refs: 0 },
                   ].map(template => (
                     <div
                       key={template.id}
@@ -2194,6 +2195,7 @@ const Services: React.FC = () => {
                         <option value="report-summary">周报总结</option>
                         <option value="daily-digest">日报快报</option>
                         <option value="incident-report">事件报告</option>
+                        <option value="vscode-chat-report">VS Code Chat汇报</option>
                       </optgroup>
                       <optgroup label="自定义模板">
                         <option value="custom-1">我的自定义模板</option>
