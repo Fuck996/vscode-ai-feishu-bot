@@ -1924,10 +1924,12 @@ const Services: React.FC = () => {
                   API Key <span style={{ color: '#ef4444' }}>*</span>
                 </label>
                 <input
-                  type="password"
+                  type="text"
                   placeholder="输入该模型的 API Key"
                   value={builtInModelApiKey}
                   onChange={(e) => setBuiltInModelApiKey(e.target.value)}
+                  autoComplete="off"
+                  spellCheck="false"
                   style={{ width: '100%', padding: '0.5rem 0.75rem', border: '1px solid #d1d5db', borderRadius: '0.375rem', fontSize: '0.875rem', fontFamily: 'inherit', boxSizing: 'border-box' }}
                 />
               </div>
@@ -2131,10 +2133,12 @@ const Services: React.FC = () => {
                   API Key <span style={{ color: '#9ca3af' }}>(可选)</span>
                 </label>
                 <input
-                  type="password"
+                  type="text"
                   placeholder="如果需要认证，输入 API Key"
                   value={customModelApiKey}
                   onChange={(e) => setCustomModelApiKey(e.target.value)}
+                  autoComplete="off"
+                  spellCheck="false"
                   style={{ width: '100%', padding: '0.5rem 0.75rem', border: '1px solid #d1d5db', borderRadius: '0.375rem', fontSize: '0.875rem', fontFamily: 'inherit', boxSizing: 'border-box' }}
                 />
               </div>
