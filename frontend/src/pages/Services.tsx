@@ -137,6 +137,10 @@ const Services: React.FC = () => {
   // 提示词预览弹窗状态
   const [promptPreviewModalOpen, setPromptPreviewModalOpen] = useState(false);
   const [selectedPromptTemplate, setSelectedPromptTemplate] = useState<{ id: string; name: string; desc: string; refs: number } | null>(null);
+  // 内置模型配置弹窗状态
+  const [builtInModelModalOpen, setBuiltInModelModalOpen] = useState(false);
+  const [selectedBuiltInModel, setSelectedBuiltInModel] = useState<{ name: string; desc: string; apiUrl: string; status: string } | null>(null);
+  const [builtInModelApiKey, setBuiltInModelApiKey] = useState('');
   // 发送历史分页 & 搜索状态
   const [historySearch, setHistorySearch] = useState<string>('');
   const [historyStatusFilter, setHistoryStatusFilter] = useState<string>('all');
@@ -1452,6 +1456,11 @@ const Services: React.FC = () => {
                         </div>
                       </div>
                       <button
+                        onClick={() => {
+                          setSelectedBuiltInModel(model);
+                          setBuiltInModelApiKey('');
+                          setBuiltInModelModalOpen(true);
+                        }}
                         style={{
                           padding: '0.375rem 0.75rem',
                           border: '1px solid #3b82f6',
@@ -1535,10 +1544,11 @@ const Services: React.FC = () => {
                 </h4>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginBottom: '2rem' }}>
                   {[
-                    { id: 'report-summary', name: '周报总结', desc: '用于生成周期性汇总报告', refs: 2 },
-                    { id: 'daily-digest', name: '日报快报', desc: '用于生成日常简明摘要', refs: 1 },
-                    { id: 'incident-report', name: '事件报告', desc: '用于记录重要事件和问题', refs: 0 },
                     { id: 'vscode-chat-report', name: 'VS Code Chat汇报', desc: '用于AI任务完成后自动生成飞书通知摘要', refs: 0 },
+                    { id: 'daily-digest', name: '日报快报', desc: '用于生成日常简明摘要', refs: 1 },
+                    { id: 'report-summary', name: '周报总结', desc: '用于生成周期性汇总报告', refs: 2 },
+                    { id: 'incident-report', name: '事件报告', desc: '用于记录重要事件和问题', refs: 0 },
+                    { id: 'optimization-suggestion', name: '优化建议', desc: '用于分析和生成系统改进建议', refs: 0 },
                   ].map(template => (
                     <div
                       key={template.id}
@@ -1619,6 +1629,154 @@ const Services: React.FC = () => {
           box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
         }
       `}</style>
+
+      {/* 内置模型配置弹窗 */}
+      {builtInModelModalOpen && selectedBuiltInModel && (
+        <div 
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(0,0,0,0.4)',
+            zIndex: 300,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+        >
+          <div 
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              background: 'white',
+              borderRadius: '1rem',
+              boxShadow: '0 20px 60px rgba(0,0,0,0.25)',
+              width: '600px',
+              maxWidth: '95vw',
+              maxHeight: '90vh',
+              overflowY: 'auto',
+            }}
+          >
+            {/* 弹窗头 */}
+            <div style={{
+              padding: '1.5rem',
+              borderBottom: '1px solid #f3f4f6',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+            }}>
+              <div>
+                <div style={{ fontSize: '1.125rem', fontWeight: 700, color: '#1f2937' }}>
+                  配置 {selectedBuiltInModel.name}
+                </div>
+                <div style={{ fontSize: '0.8125rem', color: '#6b7280', marginTop: '0.25rem' }}>
+                  {selectedBuiltInModel.desc}
+                </div>
+              </div>
+              <button 
+                onClick={() => setBuiltInModelModalOpen(false)}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  fontSize: '1.25rem',
+                  cursor: 'pointer',
+                  color: '#9ca3af',
+                  lineHeight: 1,
+                  padding: '0.25rem',
+                  borderRadius: '0.25rem',
+                }}
+                onMouseEnter={(e) => { e.currentTarget.style.color = '#374151'; e.currentTarget.style.backgroundColor = '#f3f4f6'; }}
+                onMouseLeave={(e) => { e.currentTarget.style.color = '#9ca3af'; e.currentTarget.style.backgroundColor = 'transparent'; }}
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* 弹窗体 */}
+            <div style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+              <div>
+                <label style={{ display: 'block', fontSize: '0.8125rem', fontWeight: 500, color: '#374151', marginBottom: '0.35rem' }}>
+                  API 地址
+                </label>
+                <div style={{ 
+                  padding: '0.5rem 0.75rem', 
+                  background: '#f3f4f6', 
+                  border: '1px solid #d1d5db', 
+                  borderRadius: '0.375rem', 
+                  fontSize: '0.875rem', 
+                  fontFamily: 'monospace',
+                  color: '#1f2937'
+                }}>
+                  {selectedBuiltInModel.apiUrl}
+                </div>
+              </div>
+              <div>
+                <label style={{ display: 'block', fontSize: '0.8125rem', fontWeight: 500, color: '#374151', marginBottom: '0.35rem' }}>
+                  API Key <span style={{ color: '#ef4444' }}>*</span>
+                </label>
+                <input
+                  type="password"
+                  placeholder="输入该模型的 API Key"
+                  value={builtInModelApiKey}
+                  onChange={(e) => setBuiltInModelApiKey(e.target.value)}
+                  style={{ width: '100%', padding: '0.5rem 0.75rem', border: '1px solid #d1d5db', borderRadius: '0.375rem', fontSize: '0.875rem', fontFamily: 'inherit', boxSizing: 'border-box' }}
+                />
+              </div>
+              <button
+                style={{
+                  padding: '0.5rem 1rem',
+                  backgroundColor: '#3b82f6',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '0.375rem',
+                  cursor: 'pointer',
+                  fontSize: '0.8125rem',
+                  fontWeight: 500,
+                }}
+              >
+                🔗 测试连接
+              </button>
+            </div>
+
+            {/* 弹窗底部按钮 */}
+            <div style={{
+              padding: '1.5rem',
+              borderTop: '1px solid #f3f4f6',
+              display: 'flex',
+              gap: '0.875rem',
+              justifyContent: 'flex-end',
+            }}>
+              <button
+                onClick={() => setBuiltInModelModalOpen(false)}
+                style={{
+                  padding: '0.5rem 1rem',
+                  backgroundColor: '#f3f4f6',
+                  color: '#374151',
+                  border: 'none',
+                  borderRadius: '0.375rem',
+                  cursor: 'pointer',
+                  fontSize: '0.8125rem',
+                  fontWeight: 500,
+                }}
+              >
+                取消
+              </button>
+              <button
+                style={{
+                  padding: '0.5rem 1rem',
+                  backgroundColor: '#1f883d',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '0.375rem',
+                  cursor: 'pointer',
+                  fontSize: '0.8125rem',
+                  fontWeight: 500,
+                }}
+              >
+                保存配置
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* 自定义模型弹窗 */}
       {mcpModelModalOpen && (
@@ -2192,6 +2350,27 @@ const Services: React.FC = () => {
 - 后续需要的操作或跟进
 
 严格要求：每一行必须以符号开头，确保飞书卡片显示正确。`}
+                  {selectedPromptTemplate.id === 'optimization-suggestion' && `分析并生成系统改进建议。
+
+根据提供的系统数据和问题反馈，生成优化建议。
+
+格式规范：
+
+✅ 已实现的优化
+- 已解决的瓶颈问题
+- 已优化的性能指标
+
+🔧 建议立即改进的方面
+- 关键性能问题
+- 用户反馈最多的问题
+- 实施难度较低的优化
+
+📝 长期改进规划
+- 架构优化方向
+- 功能完善计划
+- 技术债清偿方案
+
+每项建议应包含：问题描述、改进方案、预期效果。`}
                 </div>
               </div>
 
@@ -2590,10 +2769,11 @@ const Services: React.FC = () => {
                     >
                       <option value="">-- 选择提示词模板 --</option>
                       <optgroup label="内置模板">
-                        <option value="report-summary">周报总结</option>
-                        <option value="daily-digest">日报快报</option>
-                        <option value="incident-report">事件报告</option>
                         <option value="vscode-chat-report">VS Code Chat汇报</option>
+                        <option value="daily-digest">日报快报</option>
+                        <option value="report-summary">周报总结</option>
+                        <option value="incident-report">事件报告</option>
+                        <option value="optimization-suggestion">优化建议</option>
                       </optgroup>
                       <optgroup label="自定义模板">
                         <option value="custom-1">我的自定义模板</option>
