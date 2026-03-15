@@ -1,6 +1,6 @@
-# AI 汇报功能完整实现指南 - v1.4.14
+# AI 汇报功能完整实现指南 - v1.4.15
 
-**版本：** v1.4.14 | **更新时间：** 2026-03-15 | **内容：** LLM 报告生成、通知格式化、机器人发送完整实现
+**版本：** v1.4.15 | **更新时间：** 2026-03-15 | **内容：** LLM 报告生成、通知格式化、机器人发送完整实现、智能通知选择算法优化
 
 ---
 
@@ -37,46 +37,59 @@
 
 ### 1. 通知格式化函数 - `formatNotificationsAsJSON()`
 
-**位置**：`backend/src/routes/services.ts:310-360`
+**位置**：`backend/src/routes/services.ts:268-340`
 
-**功能**：将收集的通知转换为 JSON 方案A 格式
+**功能**：将收集的通知转换为 JSON 方案A 格式，**当超过50条时智能选择最重要的通知**
 
 ```typescript
 function formatNotificationsAsJSON(
   notifications: Array<Notification & { id?: number; createdAt?: string }>
 ): {
   total: number;
+  originalCount: number;  // 过滤后的原始总数
   statistics: Record<string, number>;
-  events: Array<{ status: string; title: string; summary: string; timestamp: string }>;
+  events: Array<{
+    status: string;
+    title: string;
+    summary: string;
+    timestamp: string;
+  }>;
+  truncated: boolean;  // 是否因超过50条而被截断
 }
 ```
 
 **处理步骤**：
 1. **过滤有效通知**：仅保留有 `createdAt` 和 `id` 的记录
-2. **限制为50条**：`slice(0, 50)` 防止 token 溢出
-3. **统计分类**：计算 success/error/warning/info 各占比
-4. **优先级排序**：error(0) > warning(1) > success(2) > info(3)
-5. **提取关键事件**：取排序后前20条作为事件摘要
+2. **智能排序**（**关键优化**）：
+   - 第一级：按优先级排序（error > warning > success > info）
+   - 第二级：相同优先级内按时间倒序（最新的优先）
+   - 这确保所有关键错误和最新消息不会被遗漏
+3. **限制为50条**：从排序后的列表中取前50条
+4. **标记截断**：记录原始数量和是否被截断
+5. **统计分类**：计算选中50条的 success/error/warning/info 各占比
+6. **提取关键事件**：取排序后前20条作为事件摘要
 
-**输出示例**：
-```json
+**新增返回字段说明**：
+- `originalCount`：过滤后的总数，用于判断是否被截断
+- `truncated`：是否因超过50条而被截断（true/false）
+
+**智能选择示例**（假设收集了100条通知）：
+```
+原始100条通知
+   ↓
+【按优先级+时间排序】
+├─ error(10条) - 全部保留
+├─ warning(20条) - 全部保留  
+├─ success(50条) - 取其中20条（最新的）
+└─ info(20条) - 取其中0条
+   ↓
+【结果】50条精选通知，包含：
 {
-  "total": 45,
-  "statistics": {
-    "success": 30,
-    "error": 10,
-    "warning": 4,
-    "info": 1
-  },
-  "events": [
-    {
-      "status": "error",
-      "title": "部署失败",
-      "summary": "Docker 构建超时",
-      "timestamp": "2026-03-15T13:30:00Z"
-    },
-    ...
-  ]
+  total: 50,
+  originalCount: 100,
+  truncated: true,
+  statistics: { error: 10, warning: 20, success: 20, info: 0 },
+  events: [前20条关键项]
 }
 ```
 
@@ -248,7 +261,12 @@ const history: ReportTaskHistory = {
 | 3 | **状态过滤** | 通知状态必须在 `task.notificationStatuses` 中（精确匹配） |
 | 4 | **机器人过滤** | 如果有机器人指定，通知 `robotName` 必须匹配 |
 | 5 | **集成过滤** | 如果指定了集成，通知来源（source）必须包含任一集成的 ID 或名称 |
-| 6 | **数量限制** | 最终结果限制为50条（按时间倒序） |
+| 6 | **智能选择**（新增） | 若超过50条，按优先级(error>warning>success>info)+时间(最新优先)智能排序，最终留下50条 |
+
+**智能选择的核心逻辑**：
+- 直接按**优先级+时间**排序，而不是简单的时间顺序截断
+- 这确保所有重要的错误和警告不会被丢弃，即使原始通知数 > 50 条
+- 日志会记录 `originalCount` 和 `truncated` 标志，让运维可以看到有没有截断
 
 ### 典型场景
 

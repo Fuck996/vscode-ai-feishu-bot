@@ -1,6 +1,6 @@
 {
   "name": "feishu-bot-frontend",
-  "version": "1.4.14",
+  "version": "1.4.15",
   "description": "Feishu notification system management dashboard with UI improvements",
   "type": "module",
   "scripts": {

@@ -270,13 +270,14 @@ async function validateTaskPayload(payload: any, existingTask?: ReportTask): Pro
 /**
  * 格式化通知为 JSON 方案A（结构化数据）
  * - 包含统计信息和关键事件
- * - 按状态分类整理
- * - 最多包含50条通知的摘要
+ * - 按优先级+时间智能选择最重要的50条通知
+ * - 确保不会遗漏关键的错误和警告
  */
 function formatNotificationsAsJSON(
   notifications: Array<Notification & { id?: number; createdAt?: string }>
 ): {
   total: number;
+  originalCount: number;  // 过滤前的总数（用于判断是否被截断）
   statistics: Record<string, number>;
   events: Array<{
     status: string;
@@ -284,11 +285,29 @@ function formatNotificationsAsJSON(
     summary: string;
     timestamp: string;
   }>;
+  truncated: boolean;  // 是否因为超过50条而被截断
 } {
-  // 过滤有效通知并限制最多50条
-  const validNotifications = notifications
-    .filter(n => n.createdAt && n.id)
-    .slice(0, 50);
+  // 过滤有效通知
+  const validNotifications = notifications.filter(n => n.createdAt && n.id);
+  const originalCount = validNotifications.length;
+
+  // 智能排序：优先级 > 时间（相同优先级内按时间倒序）
+  // 这样能确保重要的错误和最新的消息优先被包含
+  const priorityMap = { error: 0, warning: 1, success: 2, info: 3 };
+  const sorted = validNotifications.sort((a, b) => {
+    // 第一步：按优先级排序（error 最高）
+    const priorityDiff = (priorityMap[a.status] ?? 99) - (priorityMap[b.status] ?? 99);
+    if (priorityDiff !== 0) return priorityDiff;
+
+    // 第二步：相同优先级内按时间倒序（最新的优先）
+    const timeA = new Date(a.createdAt || 0).getTime();
+    const timeB = new Date(b.createdAt || 0).getTime();
+    return timeB - timeA;
+  });
+
+  // 限制最多50条，并标记是否被截断
+  const selected = sorted.slice(0, 50);
+  const truncated = originalCount > 50;
 
   // 统计各类型
   const statistics: Record<string, number> = {
@@ -298,15 +317,13 @@ function formatNotificationsAsJSON(
     info: 0,
   };
 
-  validNotifications.forEach(n => {
+  selected.forEach(n => {
     statistics[n.status] = (statistics[n.status] || 0) + 1;
   });
 
-  // 构建事件列表（优先级：error > warning > success > info）
-  const priorityMap = { error: 0, warning: 1, success: 2, info: 3 };
-  const events = validNotifications
-    .sort((a, b) => (priorityMap[a.status] ?? 99) - (priorityMap[b.status] ?? 99))
-    .slice(0, 20) // 只取关键事件前20条
+  // 构建事件列表（已按优先级+时间排序）
+  const events = selected
+    .slice(0, 20) // 只取前20条关键事件作为摘要
     .map(n => ({
       status: n.status,
       title: n.title,
@@ -315,9 +332,11 @@ function formatNotificationsAsJSON(
     }));
 
   return {
-    total: validNotifications.length,
+    total: selected.length,
+    originalCount,
     statistics,
     events,
+    truncated,
   };
 }
 
@@ -474,16 +493,13 @@ async function runReportTask(task: ReportTask): Promise<ReportTaskHistory> {
     });
   });
 
-  // 【优化1】限制最多50条通知
-  relatedNotifications = relatedNotifications.slice(0, 50);
-
   const createdAt = new Date().toISOString();
   let historyStatus: 'success' | 'failed' = 'failed';
   let summary = '';
   let generatedReport = '';
 
   try {
-    // 【优化2】配置有效性检查
+    // 【优化1】配置有效性检查
     if (!model || !prompt || model.status === 'unconfigured') {
       throw new Error('模型或提示词配置不可用');
     }
@@ -492,15 +508,31 @@ async function runReportTask(task: ReportTask): Promise<ReportTaskHistory> {
       throw new Error('汇报机器人未配置');
     }
 
-    // 【优化3】格式化通知数据为 JSON 方案A
+    // 【优化2】格式化通知数据为 JSON 方案A（智能选择最重要的50条）
     const formattedData = formatNotificationsAsJSON(relatedNotifications);
 
+    // 记录收集和选择情况
     logger.info(
-      { taskName: task.name, notificationCount: formattedData.total },
+      {
+        taskName: task.name,
+        collectedCount: relatedNotifications.length,
+        selectedCount: formattedData.total,
+        originalCount: formattedData.originalCount,
+        truncated: formattedData.truncated,
+      },
+      `通知收集完成${formattedData.truncated ? '（已超50条限制，按优先级智能选择）' : ''}`
+    );
+
+    logger.info(
+      {
+        taskName: task.name,
+        selectedCount: formattedData.total,
+        statistics: formattedData.statistics,
+      },
       '开始调用 LLM 生成报告'
     );
 
-    // 【优化4】调用 LLM API 生成报告
+    // 【优化3】调用 LLM API 生成报告
     generatedReport = await callLLMAPI(model, prompt, formattedData, task.name);
 
     logger.info(
@@ -508,12 +540,15 @@ async function runReportTask(task: ReportTask): Promise<ReportTaskHistory> {
       'LLM 报告生成成功'
     );
 
-    // 【优化5】发送报告到汇报机器人
+    // 【优化4】发送报告到汇报机器人
     await sendReportToRobot(robot, generatedReport, task.name, formattedData.statistics);
 
     // 设置成功状态
     historyStatus = 'success';
-    summary = `任务「${task.name}」成功执行：通过模型 ${model.name} 汇总了 ${formattedData.total} 条通知，并已发送给汇报机器人。`;
+    const truncationHint = formattedData.truncated
+      ? `（原始 ${formattedData.originalCount} 条，按优先级选择 ${formattedData.total} 条）`
+      : '';
+    summary = `任务「${task.name}」成功执行：通过模型 ${model.name} 汇总了 ${formattedData.total} 条通知${truncationHint}，并已发送给汇报机器人。`;
   } catch (error) {
     const errorMsg = error instanceof Error ? error.message : String(error);
     logger.error(
