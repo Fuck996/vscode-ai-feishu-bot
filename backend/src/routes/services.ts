@@ -1,9 +1,11 @@
 import { Router, Request, Response } from 'express';
 import * as crypto from 'crypto';
 import * as jwt from 'jsonwebtoken';
+import axios from 'axios';
 
 import db, { Integration, ModelConfig, Notification, PromptTemplate, ReportTask, ReportTaskHistory, ReportTaskRange, Robot } from '../database';
 import { getLogs } from '../serviceLogger';
+import logger from '../logger';
 
 const router = Router();
 
@@ -265,6 +267,173 @@ async function validateTaskPayload(payload: any, existingTask?: ReportTask): Pro
   };
 }
 
+/**
+ * 格式化通知为 JSON 方案A（结构化数据）
+ * - 包含统计信息和关键事件
+ * - 按状态分类整理
+ * - 最多包含50条通知的摘要
+ */
+function formatNotificationsAsJSON(
+  notifications: Array<Notification & { id?: number; createdAt?: string }>
+): {
+  total: number;
+  statistics: Record<string, number>;
+  events: Array<{
+    status: string;
+    title: string;
+    summary: string;
+    timestamp: string;
+  }>;
+} {
+  // 过滤有效通知并限制最多50条
+  const validNotifications = notifications
+    .filter(n => n.createdAt && n.id)
+    .slice(0, 50);
+
+  // 统计各类型
+  const statistics: Record<string, number> = {
+    success: 0,
+    error: 0,
+    warning: 0,
+    info: 0,
+  };
+
+  validNotifications.forEach(n => {
+    statistics[n.status] = (statistics[n.status] || 0) + 1;
+  });
+
+  // 构建事件列表（优先级：error > warning > success > info）
+  const priorityMap = { error: 0, warning: 1, success: 2, info: 3 };
+  const events = validNotifications
+    .sort((a, b) => (priorityMap[a.status] ?? 99) - (priorityMap[b.status] ?? 99))
+    .slice(0, 20) // 只取关键事件前20条
+    .map(n => ({
+      status: n.status,
+      title: n.title,
+      summary: n.summary,
+      timestamp: n.createdAt || new Date().toISOString(),
+    }));
+
+  return {
+    total: validNotifications.length,
+    statistics,
+    events,
+  };
+}
+
+/**
+ * 调用 LLM API 生成报告
+ * 支持 DeepSeek、OpenAI、Google 等模型
+ */
+async function callLLMAPI(
+  model: ModelConfig,
+  promptTemplate: PromptTemplate,
+  notificationData: ReturnType<typeof formatNotificationsAsJSON>,
+  taskName: string
+): Promise<string> {
+  if (!model.apiKey || !model.apiUrl || !model.modelId) {
+    throw new Error(`模型 ${model.name} 配置不完整`);
+  }
+
+  const conversationHistory = [
+    {
+      role: 'user',
+      content: `${promptTemplate.content}\n\n【当前数据】\n${JSON.stringify(notificationData, null, 2)}\n\n请生成关于"${taskName}"的汇报。`,
+    },
+  ];
+
+  try {
+    const response = await axios.post(
+      `${model.apiUrl}/v1/chat/completions`,
+      {
+        model: model.modelId,
+        messages: conversationHistory,
+        temperature: 0.7,
+        max_tokens: 2000,
+      },
+      {
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${model.apiKey}`,
+        },
+        timeout: 60000, // 60秒超时
+      }
+    );
+
+    const choices = response.data?.choices || [];
+    if (!choices.length) {
+      throw new Error('模型返回空结果');
+    }
+
+    return choices[0]?.message?.content || '无法生成报告';
+  } catch (error) {
+    const errorMsg = error instanceof Error ? error.message : String(error);
+    logger.error({ modelName: model.name, error: errorMsg }, 'LLM API 调用失败');
+    throw new Error(`调用模型 ${model.name} 失败: ${errorMsg}`);
+  }
+}
+
+/**
+ * 发送报告到汇报机器人的 Webhook
+ */
+async function sendReportToRobot(
+  robot: Robot | null,
+  report: string,
+  taskName: string,
+  statisticsData: any
+): Promise<void> {
+  if (!robot || !robot.webhookUrl) {
+    throw new Error('汇报机器人未配置或 Webhook URL 为空');
+  }
+
+  try {
+    // 构建飞书消息卡片
+    const message = {
+      msg_type: 'interactive',
+      card: {
+        config: { wide_screen_mode: true },
+        header: {
+          title: { content: `📊 ${taskName} - AI 周报`, tag: 'plain_text' },
+          template: 'blue',
+        },
+        elements: [
+          {
+            tag: 'markdown',
+            content: report,
+          },
+          {
+            tag: 'hr',
+          },
+          {
+            tag: 'note',
+            elements: [
+              {
+                tag: 'plain_text',
+                content: `📈 统计: 成功 ${statisticsData.success || 0} | 警告 ${statisticsData.warning || 0} | 错误 ${statisticsData.error || 0} | 信息 ${statisticsData.info || 0}`,
+              },
+              {
+                tag: 'plain_text',
+                content: `⏰ 生成时间: ${new Date().toISOString()}`,
+              },
+            ],
+          },
+        ],
+      },
+    };
+
+    await axios.post(robot.webhookUrl, message, {
+      headers: { 'Content-Type': 'application/json' },
+      timeout: 10000,
+    });
+
+    logger.info({ robotId: robot.id, taskName }, '报告已发送到汇报机器人');
+  } catch (error) {
+    const errorMsg = error instanceof Error ? error.message : String(error);
+    logger.error({ robotName: robot?.name, error: errorMsg }, '发送报告到机器人失败');
+    throw new Error(`发送报告失败: ${errorMsg}`);
+  }
+}
+
 async function runReportTask(task: ReportTask): Promise<ReportTaskHistory> {
   const robot = await db.getRobotById(task.robotId);
   const model = await db.getModelConfig(task.modelConfigId);
@@ -275,7 +444,9 @@ async function runReportTask(task: ReportTask): Promise<ReportTaskHistory> {
   const start = getRangeStart(task.rangeType);
   const end = new Date();
   const allNotifications = await db.getNotifications(10000, 0);
-  const relatedNotifications = allNotifications.filter(notification => {
+  
+  // 过滤通知：时间 + 状态 + 机器人 + 集成
+  let relatedNotifications = allNotifications.filter(notification => {
     if (!notification.createdAt) {
       return false;
     }
@@ -303,19 +474,63 @@ async function runReportTask(task: ReportTask): Promise<ReportTaskHistory> {
     });
   });
 
-  const historyStatus = model && prompt && model.status !== 'unconfigured' ? 'success' : 'failed';
-  const summary = historyStatus === 'success'
-    ? `任务「${task.name}」使用模型 ${model?.name || '未知模型'} 与提示词 ${prompt?.name || '未知提示词'}，汇总了 ${relatedNotifications.length} 条通知。`
-    : `任务「${task.name}」执行失败：模型或提示词配置不可用。`;
+  // 【优化1】限制最多50条通知
+  relatedNotifications = relatedNotifications.slice(0, 50);
 
   const createdAt = new Date().toISOString();
+  let historyStatus: 'success' | 'failed' = 'failed';
+  let summary = '';
+  let generatedReport = '';
+
+  try {
+    // 【优化2】配置有效性检查
+    if (!model || !prompt || model.status === 'unconfigured') {
+      throw new Error('模型或提示词配置不可用');
+    }
+
+    if (!robot || !robot.webhookUrl) {
+      throw new Error('汇报机器人未配置');
+    }
+
+    // 【优化3】格式化通知数据为 JSON 方案A
+    const formattedData = formatNotificationsAsJSON(relatedNotifications);
+
+    logger.info(
+      { taskName: task.name, notificationCount: formattedData.total },
+      '开始调用 LLM 生成报告'
+    );
+
+    // 【优化4】调用 LLM API 生成报告
+    generatedReport = await callLLMAPI(model, prompt, formattedData, task.name);
+
+    logger.info(
+      { taskName: task.name, reportLength: generatedReport.length },
+      'LLM 报告生成成功'
+    );
+
+    // 【优化5】发送报告到汇报机器人
+    await sendReportToRobot(robot, generatedReport, task.name, formattedData.statistics);
+
+    // 设置成功状态
+    historyStatus = 'success';
+    summary = `任务「${task.name}」成功执行：通过模型 ${model.name} 汇总了 ${formattedData.total} 条通知，并已发送给汇报机器人。`;
+  } catch (error) {
+    const errorMsg = error instanceof Error ? error.message : String(error);
+    logger.error(
+      { taskName: task.name, error: errorMsg },
+      '汇报任务执行失败'
+    );
+    summary = `任务「${task.name}」执行失败：${errorMsg}`;
+  }
+
+  // 保存历史记录
   const history: ReportTaskHistory = {
     id: crypto.randomUUID(),
     taskId: task.id,
     taskName: task.name,
     periodLabel: formatPeriodLabel(start, end),
     notificationCount: relatedNotifications.length,
-    summary,
+    summary: `${summary}${generatedReport ? `\n\n【生成内容】\n${generatedReport.substring(0, 300)}...` : ''}`,
     status: historyStatus,
     modelName: model?.name || '未知模型',
     promptName: prompt?.name || '未知提示词',
@@ -326,6 +541,7 @@ async function runReportTask(task: ReportTask): Promise<ReportTaskHistory> {
   task.lastSentAt = createdAt;
   await db.saveReportTask(task);
 
+  // 保存执行事件到通知系统
   await db.saveNotification({
     title: `AI 汇报任务执行${historyStatus === 'success' ? '成功' : '失败'}: ${task.name}`,
     summary,
@@ -338,11 +554,13 @@ async function runReportTask(task: ReportTask): Promise<ReportTaskHistory> {
       modelName: history.modelName,
       promptName: history.promptName,
       notificationCount: history.notificationCount,
+      sentToRobot: historyStatus === 'success',
     }),
   });
 
   return history;
 }
+
 
 router.get('/', verifyToken, checkAdminRole, async (_req: AuthRequest, res: Response) => {
   try {
