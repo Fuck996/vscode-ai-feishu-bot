@@ -134,6 +134,9 @@ const Services: React.FC = () => {
   const [customPromptName, setCustomPromptName] = useState('');
   const [customPromptPurpose, setCustomPromptPurpose] = useState('custom');
   const [customPromptContent, setCustomPromptContent] = useState('');
+  // 提示词预览弹窗状态
+  const [promptPreviewModalOpen, setPromptPreviewModalOpen] = useState(false);
+  const [selectedPromptTemplate, setSelectedPromptTemplate] = useState<{ id: string; name: string; desc: string; refs: number } | null>(null);
   // 发送历史分页 & 搜索状态
   const [historySearch, setHistorySearch] = useState<string>('');
   const [historyStatusFilter, setHistoryStatusFilter] = useState<string>('all');
@@ -1401,7 +1404,7 @@ const Services: React.FC = () => {
                     name: 'Deepseek', 
                     desc: '国内超低成本模型',
                     apiUrl: 'https://api.deepseek.com/v1',
-                    status: '配置中',
+                    status: '待测试',
                     statusColor: '#f59e0b',
                     pricing: '💛 $0.00008/1K input tokens（业界最便宜）'
                   },
@@ -1472,25 +1475,6 @@ const Services: React.FC = () => {
                     </div>
                   </div>
                 ))}
-              </div>
-
-              {/* 状态说明 */}
-              <div style={{
-                background: '#f0f9ff',
-                border: '1px solid #bfdbfe',
-                borderRadius: '0.5rem',
-                padding: '1rem',
-                marginBottom: '1.5rem',
-                fontSize: '0.8125rem',
-                color: '#1e40af',
-              }}>
-                <div style={{ fontWeight: 600, marginBottom: '0.5rem' }}>📌 状态说明</div>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', lineHeight: 1.6 }}>
-                  <div><span style={{ color: '#10b981', fontWeight: 600 }}>✓ 已连接</span>：API 可用，已通过连接测试</div>
-                  <div><span style={{ color: '#f59e0b', fontWeight: 600 }}>⚙ 配置中</span>：已填写 API 信息，等待测试连接</div>
-                  <div><span style={{ color: '#9ca3af', fontWeight: 600 }}>❌ 未连接</span>：连接测试失败（API 错误、无网络）</div>
-                  <div><span style={{ color: '#ef4444', fontWeight: 600 }}>⊘ 未配置</span>：未提供必要的 API 信息</div>
-                </div>
               </div>
 
               <h3 style={{ fontSize: '1rem', fontWeight: 600, color: '#1f2937', marginTop: '1.5rem', marginBottom: '1rem' }}>自定义模型</h3>
@@ -1576,6 +1560,10 @@ const Services: React.FC = () => {
                         </div>
                       </div>
                       <button
+                        onClick={() => {
+                          setSelectedPromptTemplate(template);
+                          setPromptPreviewModalOpen(true);
+                        }}
                         style={{
                           padding: '0.25rem 0.75rem',
                           border: '1px solid #d1d5db',
@@ -2047,6 +2035,218 @@ const Services: React.FC = () => {
                 }}
               >
                 确认添加
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 提示词预览弹窗 */}
+      {promptPreviewModalOpen && selectedPromptTemplate && (
+        <div 
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(0,0,0,0.4)',
+            zIndex: 300,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+        >
+          <div 
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              background: 'white',
+              borderRadius: '1rem',
+              boxShadow: '0 20px 60px rgba(0,0,0,0.25)',
+              width: '700px',
+              maxWidth: '95vw',
+              maxHeight: '90vh',
+              overflowY: 'auto',
+            }}
+          >
+            {/* 弹窗头 */}
+            <div style={{
+              padding: '1.5rem',
+              borderBottom: '1px solid #f3f4f6',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+            }}>
+              <div>
+                <div style={{ fontSize: '1.125rem', fontWeight: 700, color: '#1f2937' }}>
+                  {selectedPromptTemplate.name}
+                </div>
+                <div style={{ fontSize: '0.8125rem', color: '#6b7280', marginTop: '0.25rem' }}>
+                  {selectedPromptTemplate.desc}
+                </div>
+              </div>
+              <button 
+                onClick={() => setPromptPreviewModalOpen(false)}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  fontSize: '1.25rem',
+                  cursor: 'pointer',
+                  color: '#9ca3af',
+                  lineHeight: 1,
+                  padding: '0.25rem',
+                  borderRadius: '0.25rem',
+                }}
+                onMouseEnter={(e) => { e.currentTarget.style.color = '#374151'; e.currentTarget.style.backgroundColor = '#f3f4f6'; }}
+                onMouseLeave={(e) => { e.currentTarget.style.color = '#9ca3af'; e.currentTarget.style.backgroundColor = 'transparent'; }}
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* 弹窗体 */}
+            <div style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+              {/* 提示词内容展示 */}
+              <div>
+                <label style={{ display: 'block', fontSize: '0.8125rem', fontWeight: 600, color: '#374151', marginBottom: '0.75rem' }}>
+                  提示词内容
+                </label>
+                <div style={{
+                  background: '#f9fafb',
+                  border: '1px solid #d1d5db',
+                  borderRadius: '0.5rem',
+                  padding: '1rem',
+                  fontFamily: "'Monaco', 'Menlo', 'Ubuntu Mono', monospace",
+                  fontSize: '0.8125rem',
+                  color: '#1f2937',
+                  lineHeight: 1.7,
+                  minHeight: '200px',
+                  maxHeight: '400px',
+                  overflowY: 'auto',
+                  whiteSpace: 'pre-wrap',
+                  wordBreak: 'break-word',
+                }}>
+                  {selectedPromptTemplate.id === 'report-summary' && `生成系统周期性工作汇总。
+
+请分析提供的工作日志数据，按照以下格式生成周报汇总：
+
+✅ 本周已完成的主要任务
+- 列举所有完成的功能、目标或交付物
+- 每项包含简要成果描述
+
+🔧 本周发现并修复的问题
+- 列举所有已解决的 Bug、性能优化、代码改进
+- 每项包含修复内容和影响范围
+
+📝 下周计划和风险提示
+- 下周的主要计划任务
+- 当前存在的风险或阻碍因素
+
+注意：每个要点必须以对应符号开头。`}
+                  {selectedPromptTemplate.id === 'daily-digest' && `生成每日工作快报。
+
+请分析今日工作内容，按照以下格式生成简洁日报：
+
+✅ 今日完成
+- 列出 3-5 项已完成的具体工作
+
+🔧 问题与改进
+- 列出发现的问题或做出的改进
+
+📝 明日计划
+- 明日的主要工作计划（1-3 项）
+
+要求：内容简洁，重点突出，符号必须包含。`}
+                  {selectedPromptTemplate.id === 'incident-report' && `记录和跟进重要事件。
+
+请根据事件信息生成事件报告，遵循以下格式：
+
+✅ 事件已解决的方面
+- 已采取的措施
+- 已恢复的功能或服务
+
+🔧 事件的根本原因
+- 问题分析
+- 技术细节
+
+📝 后续跟进计划
+- 改进措施
+- 预防性方案
+- 相关任务跟进
+
+注意事项：报告需清晰、准确、专业。`}
+                  {selectedPromptTemplate.id === 'vscode-chat-report' && `AI 任务完成后的飞书汇报。
+
+根据 AI 任务的执行结果，生成符合飞书汇报规范的内容。
+
+格式规范（严格遵守）：
+
+✅ 已完成的任务
+- 列举所有成功完成的工作项
+- 一项一行，前缀必须为 ✅
+
+🔧 改进或修复的内容
+- 列举所有改进、修复、优化的项目
+- 一项一行，前缀必须为 🔧
+
+📝 说明或后续
+- 包含必要的说明信息
+- 潜在的问题或建议
+- 后续需要的操作或跟进
+
+严格要求：每一行必须以符号开头，确保飞书卡片显示正确。`}
+                </div>
+              </div>
+
+              {/* 使用情况 */}
+              <div style={{
+                background: '#f0fdf4',
+                border: '1px solid #bbf7d0',
+                borderRadius: '0.5rem',
+                padding: '1rem',
+              }}>
+                <div style={{ fontSize: '0.8125rem', color: '#166534', fontWeight: 600, marginBottom: '0.5rem' }}>
+                  ℹ️ 使用情况
+                </div>
+                <div style={{ fontSize: '0.8125rem', color: '#166534' }}>
+                  已被 <span style={{ fontWeight: 700 }}>{selectedPromptTemplate.refs}</span> 个任务使用
+                </div>
+              </div>
+            </div>
+
+            {/* 弹窗底部按钮 */}
+            <div style={{
+              padding: '1.5rem',
+              borderTop: '1px solid #f3f4f6',
+              display: 'flex',
+              gap: '0.875rem',
+              justifyContent: 'flex-end',
+            }}>
+              <button
+                onClick={() => setPromptPreviewModalOpen(false)}
+                style={{
+                  padding: '0.5rem 1rem',
+                  backgroundColor: '#f3f4f6',
+                  color: '#374151',
+                  border: 'none',
+                  borderRadius: '0.375rem',
+                  cursor: 'pointer',
+                  fontSize: '0.8125rem',
+                  fontWeight: 500,
+                }}
+              >
+                关闭
+              </button>
+              <button
+                style={{
+                  padding: '0.5rem 1rem',
+                  backgroundColor: '#3b82f6',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '0.375rem',
+                  cursor: 'pointer',
+                  fontSize: '0.8125rem',
+                  fontWeight: 500,
+                }}
+              >
+                复制到剪贴板
               </button>
             </div>
           </div>
