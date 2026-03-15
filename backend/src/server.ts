@@ -19,6 +19,7 @@ import mcpConfigRouter from './routes/mcp-config';
 import mcpEndpointRouter from './routes/mcp-endpoint';
 import mcpModelsRouter from './routes/mcp-models';
 import mcpPromptsRouter from './routes/mcp-prompts';
+import mcpLogsRouter from './routes/mcp-logs';
 import servicesRouter from './routes/services';
 import auditRouter from './routes/audit';
 import databaseService from './database';
@@ -165,6 +166,7 @@ app.use('/api/mcp', mcpEndpointRouter);  // MCP HTTP SSE 服务器（远端连�
 app.use('/api/mcp', mcpConfigRouter);    // MCP 配置读取
 app.use('/api/mcp/models', mcpModelsRouter);  // MCP 模型配置管理
 app.use('/api/mcp/prompts', mcpPromptsRouter);  // MCP 提示词模板管理
+app.use('/api/mcp/logs', mcpLogsRouter);  // MCP 日志获取
 app.use('/api', webhookRouter);
 
 // 版本端点

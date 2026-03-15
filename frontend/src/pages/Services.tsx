@@ -4,6 +4,7 @@ import SceneIcon, { SceneIconName } from '../components/SceneIcon';
 import authService from '../services/auth';
 import mcpModelsService from '../services/mcpModels';
 import mcpPromptsService from '../services/mcpPrompts';
+import mcpLogsService from '../services/mcpLogs';
 
 interface Service {
   id: string;
@@ -292,6 +293,30 @@ const Services: React.FC = () => {
       }
     };
     loadBuiltInPrompts();
+  }, [activeMCPTab]); // 当标签页切换时重新加载
+
+  useEffect(() => {
+    const loadMcpLogs = async () => {
+      try {
+        setMcpLogsLoading(true);
+        const result = await mcpLogsService.getAllLogs(100, 0);
+        if (result.success && result.data) {
+          setMcpLogs(result.data);
+        }
+      } catch (error) {
+        console.error('加载 MCP 日志失败:', error);
+      } finally {
+        setMcpLogsLoading(false);
+      }
+    };
+    
+    // 当切换到日志标签页时加载
+    if (activeMCPTab === 'logs') {
+      loadMcpLogs();
+      // 每 5 秒自动刷新一次日志
+      const interval = setInterval(loadMcpLogs, 5000);
+      return () => clearInterval(interval);
+    }
   }, [activeMCPTab]); // 当标签页切换时重新加载
 
   const fetchServices = async () => {
