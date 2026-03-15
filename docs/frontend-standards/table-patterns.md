@@ -523,17 +523,68 @@ function FilterPill({ label, activeCount, isOpen, onClick }: FilterPillProps) {
 }
 ```
 
-### 下拉菜单溢出裁切问题
+### ⚠️ 下拉菜单溢出裁切问题（强制规范）
 
-**规范：筛选器 pill（及其下拉菜单）必须放置在 header bar 中，不能放置在 `overflowX: 'auto'` 的表格容器内。**
+**🔴 强制规范：筛选器 pill（及其下拉菜单）必须放置在 header bar 中，不能放置在 `overflowX: 'auto'` 的表格容器内。**
 
-表格外层容器使用 `overflowX: 'auto'` 支持横向滚动，而 CSS `overflow` 会同时约束子元素的 `overflow: visible`，导致 `position: 'absolute'` 的下拉菜单被裁切。将筛选器放在 header bar（不含 overflow 限制的正常流容器）中，`position: 'absolute'` + `zIndex: 30` 即可正常展开。
+#### 根本原因
+表格外层容器使用 `overflowX: 'auto'` 支持横向滚动。CSS `overflow` 属性不仅影响当前元素，**还会同时约束所有子孙元素**的 `overflow: visible` 行为，导致 `position: 'absolute'` 的下拉菜单被无条件裁切，即使满足 `zIndex` 也无法逃逸。
 
-若确需在滚动容器内放置弹出层（如行内三点菜单），参见第 6 章「三点菜单浮层」——改用 `position: 'fixed'` + `getBoundingClientRect()` 动态计算坐标，完全绕开 overflow 裁切。
+#### 正确做法（只有两种）
+
+**✅ 方案 A：筛选器必须在 header bar 中（推荐）**
+```
+页面容器 ← 卡片
+  ├─ header bar（无 overflow）→ 筛选器 pill + 下拉菜单（absolute）✅
+  └─ 表格区域（overflowX: auto）→ 只放置表格行内容
+```
+- 筛选器 pill 的容器设置：`position: 'relative'`
+- 下拉菜单：`position: 'absolute'`，`top: 'calc(100% + 0.375rem)'`，`right: 0`
+- **不需要任何特殊 overflow 处理**，因为 header bar 没有 overflow 限制
+
+**✅ 方案 B：行内三点菜单必须用 fixed 定位（表格内容专用）**
+参见第 6 章「三点菜单浮层」——改用 `position: 'fixed'` + `getBoundingClientRect()` 动态计算坐标，完全绕开 overflow 裁切。
+
+#### 错误做法（所有情况禁止）
+
+❌ **禁止**在表格行内直接放置绝对定位下拉菜单
+```tsx
+// ❌ 错误示范
+<div style={{ overflowX: 'auto' }}>  {/* 这会导致绝对定位被裁切 */}
+  <table>
+    <tr>
+      <td>
+        <div style={{ position: 'relative' }}>
+          <button onClick={() => setMenuOpen(true)} />
+          {menuOpen && (
+            <div style={{ position: 'absolute', ... }}>下拉内容</div>  {/* 被裁切！ */}
+          )}
+        </div>
+      </td>
+    </tr>
+  </table>
+</div>
+```
+
+❌ **禁止**添加 `overflow: visible` 尝试救救子元素（CSS 规范不允许）
+```tsx
+// ❌ 无效的补救
+<div style={{ overflowX: 'auto', overflow: 'visible' }}>  {/* 矛盾的属性组合 */}
+```
+
+#### 检查清单
+
+在表格组件实现前自检：
+- [ ] header bar 容器是否包含 `overflow` 属性？**必须NO**
+- [ ] 筛选器 pill 是否在 header bar 中？**必须YES**
+- [ ] 下拉菜单容器是否为 `overflowX: 'auto'` 的直连子元素？**必须NO**
+- [ ] 表格区域的 `overflowX: 'auto'` 是否仅包裹 `<table>` 且不包含筛选器？**必须YES**
 
 ```
-筛选器 pill   → header bar（无 overflow 限制）→ position: absolute ✅
-三点菜单浮层  → 表格行内（祖先有 overflow: auto）→ position: fixed ✅
+✅ 筛选器 pill（header bar）   → position: absolute 下拉菜单 → 正常展开
+✅ 三点菜单（表格行内）       → position: fixed 浮层 → 正常展开
+❌ 筛选器在 overflow 容器内   → 无论如何都被裁切
+❌ 下拉菜单改为 position:fixed → 筛选器功能混乱（用 fixed 会导致位置滚动错位）
 ```
 
 ---

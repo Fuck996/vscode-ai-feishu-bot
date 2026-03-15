@@ -35,6 +35,7 @@ const History: React.FC = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [openActionMenu, setOpenActionMenu] = useState<ActionMenuState | null>(null);
   const [openFilterMenu, setOpenFilterMenu] = useState<'status' | 'robot' | null>(null);
+  const [filterMenuPos, setFilterMenuPos] = useState<{ top: number; left: number } | null>(null);
   const [filterSearch, setFilterSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<string[]>([]);
   const [robotFilter, setRobotFilter] = useState<string[]>([]);
@@ -131,11 +132,24 @@ const History: React.FC = () => {
     });
     const hasActive = activeFilters.length > 0;
 
+    const handleButtonClick = (e: React.MouseEvent<HTMLButtonElement>) => {
+      e.stopPropagation();
+      if (openFilterMenu === type) {
+        setOpenFilterMenu(null);
+        setFilterMenuPos(null);
+      } else {
+        const rect = e.currentTarget.getBoundingClientRect();
+        setOpenFilterMenu(type);
+        setFilterMenuPos({ top: rect.bottom + 6, left: rect.left });
+        setFilterSearch('');
+      }
+    };
+
     return (
-      <div key={type} style={{ position: 'relative', display: 'inline-block' }} onClick={e => e.stopPropagation()}>
+      <div key={type}>
         <button
           type="button"
-          onClick={() => { setOpenFilterMenu(openFilterMenu === type ? null : type); setFilterSearch(''); }}
+          onClick={handleButtonClick}
           style={{ display: 'inline-flex', alignItems: 'center', gap: '0.375rem', padding: '0.375rem 0.75rem', fontSize: '0.8125rem', fontWeight: 500, color: hasActive ? '#0969da' : '#57606a', backgroundColor: hasActive ? '#dbeafe' : '#f6f8fa', border: `1px solid ${hasActive ? '#0969da' : '#d0d7de'}`, borderRadius: '0.375rem', cursor: 'pointer' }}
         >
           {label}
@@ -146,8 +160,8 @@ const History: React.FC = () => {
           )}
           <ChevronDown size={13} />
         </button>
-        {openFilterMenu === type && (
-          <div style={{ position: 'absolute', top: 'calc(100% + 0.375rem)', right: 0, minWidth: '200px', backgroundColor: '#ffffff', border: '1px solid #d0d7de', borderRadius: '0.75rem', boxShadow: '0 16px 32px rgba(31, 35, 40, 0.15)', zIndex: 30, overflow: 'hidden' }}>
+        {openFilterMenu === type && filterMenuPos && (
+          <div style={{ position: 'fixed', top: filterMenuPos.top, left: filterMenuPos.left, minWidth: '200px', backgroundColor: '#ffffff', border: '1px solid #d0d7de', borderRadius: '0.75rem', boxShadow: '0 16px 32px rgba(31, 35, 40, 0.15)', zIndex: 30, overflow: 'hidden' }} onClick={e => e.stopPropagation()}>
             <div style={{ padding: '0.625rem 1rem', borderBottom: '1px solid #e5e7eb', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <span style={{ fontSize: '0.8125rem', fontWeight: 600, color: '#1f2328' }}>{isStatus ? '按状态筛选' : '按机器人筛选'}</span>
               {hasActive && (

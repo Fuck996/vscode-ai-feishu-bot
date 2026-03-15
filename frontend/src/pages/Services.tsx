@@ -276,7 +276,7 @@ const Services: React.FC = () => {
       }
     };
     loadBuiltInModels();
-  }, [activeMCPTab]); // 当标签页切换时重新加载
+  }, []); // 组件挂载时加载一次
 
   useEffect(() => {
     const loadBuiltInPrompts = async () => {
@@ -293,7 +293,7 @@ const Services: React.FC = () => {
       }
     };
     loadBuiltInPrompts();
-  }, [activeMCPTab]); // 当标签页切换时重新加载
+  }, []); // 组件挂载时加载一次
 
   useEffect(() => {
     const loadMcpLogs = async () => {
@@ -318,6 +318,41 @@ const Services: React.FC = () => {
       return () => clearInterval(interval);
     }
   }, [activeMCPTab]); // 当标签页切换时重新加载
+
+  // 当切换到MCP标签页（模型或提示词）时重新加载数据
+  useEffect(() => {
+    if (activeMCPTab === 'models') {
+      const loadModels = async () => {
+        try {
+          setBuiltInModelsLoading(true);
+          const result = await mcpModelsService.getBuiltInModels();
+          if (result.success && result.data) {
+            setBuiltInModelsList(result.data);
+          }
+        } catch (error) {
+          console.error('加载内置模型失败:', error);
+        } finally {
+          setBuiltInModelsLoading(false);
+        }
+      };
+      loadModels();
+    } else if (activeMCPTab === 'prompts') {
+      const loadPrompts = async () => {
+        try {
+          setBuiltInPromptsLoading(true);
+          const result = await mcpPromptsService.getBuiltInPrompts();
+          if (result.success && result.data) {
+            setBuiltInPromptsList(result.data);
+          }
+        } catch (error) {
+          console.error('加载内置提示词失败:', error);
+        } finally {
+          setBuiltInPromptsLoading(false);
+        }
+      };
+      loadPrompts();
+    }
+  }, [activeMCPTab]);
 
   const fetchServices = async () => {
     try {
