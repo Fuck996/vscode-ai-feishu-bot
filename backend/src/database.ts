@@ -81,12 +81,46 @@ export interface ModelConfig {
   provider: ModelProvider;               // 模型服务商
   apiUrl: string;                        // API 基础地址
   apiKey?: string;                       // API Key
+  hasApiKey?: boolean;                   // 返回前端时的脱敏标记
   modelId?: string;                      // 已选择的模型 ID
   isBuiltIn: boolean;                    // 是否推荐模型
   status: 'connected' | 'testing' | 'disconnected' | 'unconfigured';  // 连接状态
   lastTestedAt?: string;                 // 最后测试时间
   createdAt: string;
   updatedAt: string;
+}
+
+export type ReportTaskRange = '7d' | '14d' | '30d' | 'week' | 'month';
+
+export interface ReportTask {
+  id: string;
+  name: string;
+  description: string;
+  weekdays: number[];
+  sendTime: string;
+  rangeType: ReportTaskRange;
+  robotId: string;
+  integrationIds: string[];
+  notificationStatuses: Array<Notification['status']>;
+  modelConfigId: string;
+  promptTemplateId: string;
+  status: 'active' | 'inactive';
+  lastSentAt?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ReportTaskHistory {
+  id: string;
+  taskId: string;
+  taskName: string;
+  periodLabel: string;
+  notificationCount: number;
+  summary: string;
+  status: 'success' | 'failed';
+  modelName: string;
+  promptName: string;
+  createdAt: string;
 }
 
 export interface PromptTemplate {
@@ -109,6 +143,8 @@ class DatabaseService {
   private auditLogs: AuditLog[] = [];
   private modelConfigs: ModelConfig[] = [];
   private promptTemplates: PromptTemplate[] = [];
+  private reportTasks: ReportTask[] = [];
+  private reportTaskHistories: ReportTaskHistory[] = [];
   private nextId: number = 1;
 
   constructor() {
@@ -185,7 +221,7 @@ class DatabaseService {
     return {
       id: String(rawModel.id || crypto.randomUUID()),
       name: rawModel.isBuiltIn
-        ? 'DeepSeek 推荐模型'
+        ? 'DeepSeek'
         : String(rawModel.name || `${this.getProviderLabel(provider)} / ${modelId || '未选择模型'}`),
       provider,
       apiUrl,
@@ -219,6 +255,8 @@ class DatabaseService {
         this.auditLogs = parsed.auditLogs || [];
         this.modelConfigs = parsed.modelConfigs || [];
         this.promptTemplates = parsed.promptTemplates || [];
+        this.reportTasks = parsed.reportTasks || [];
+        this.reportTaskHistories = parsed.reportTaskHistories || [];
         this.nextId = parsed.nextId || 1;
         
         // 找到最大的ID
@@ -442,7 +480,7 @@ class DatabaseService {
     // 定义推荐模型：当前仅保留 DeepSeek
     const recommendedModel: ModelConfig = {
       id: 'recommended-deepseek',
-      name: 'DeepSeek 推荐模型',
+      name: 'DeepSeek',
       provider: 'deepseek',
       apiUrl: 'https://api.deepseek.com',
       apiKey: undefined,
@@ -519,6 +557,8 @@ class DatabaseService {
       auditLogs: this.auditLogs,
       modelConfigs: this.modelConfigs,
       promptTemplates: this.promptTemplates,
+      reportTasks: this.reportTasks,
+      reportTaskHistories: this.reportTaskHistories,
       nextId: this.nextId,
       lastUpdated: new Date().toISOString(),
     };
@@ -636,6 +676,10 @@ class DatabaseService {
 
   async getRobots(userId: string): Promise<Robot[]> {
     return this.robots.filter(r => r.userId === userId);
+  }
+
+  async getAllRobots(): Promise<Robot[]> {
+    return this.robots;
   }
 
   async getRobotById(robotId: string): Promise<Robot | null> {
@@ -991,6 +1035,53 @@ class DatabaseService {
       return true;
     }
     return false;
+  }
+
+  // ===== AI 汇报任务管理 =====
+  async saveReportTask(task: ReportTask): Promise<ReportTask> {
+    const existingIndex = this.reportTasks.findIndex(item => item.id === task.id);
+    if (existingIndex >= 0) {
+      task.updatedAt = new Date().toISOString();
+      this.reportTasks[existingIndex] = task;
+    } else {
+      task.createdAt = task.createdAt || new Date().toISOString();
+      task.updatedAt = new Date().toISOString();
+      this.reportTasks.push(task);
+    }
+
+    await this.saveToFile();
+    return task;
+  }
+
+  async getReportTask(id: string): Promise<ReportTask | null> {
+    return this.reportTasks.find(task => task.id === id) || null;
+  }
+
+  async getAllReportTasks(): Promise<ReportTask[]> {
+    return [...this.reportTasks].sort((left, right) => left.name.localeCompare(right.name));
+  }
+
+  async deleteReportTask(id: string): Promise<boolean> {
+    const index = this.reportTasks.findIndex(task => task.id === id);
+    if (index < 0) {
+      return false;
+    }
+
+    this.reportTasks.splice(index, 1);
+    this.reportTaskHistories = this.reportTaskHistories.filter(history => history.taskId !== id);
+    await this.saveToFile();
+    return true;
+  }
+
+  async saveReportTaskHistory(history: ReportTaskHistory): Promise<ReportTaskHistory> {
+    this.reportTaskHistories.push(history);
+    this.reportTaskHistories.sort((left, right) => new Date(right.createdAt).getTime() - new Date(left.createdAt).getTime());
+    await this.saveToFile();
+    return history;
+  }
+
+  async getReportTaskHistories(): Promise<ReportTaskHistory[]> {
+    return [...this.reportTaskHistories].sort((left, right) => new Date(right.createdAt).getTime() - new Date(left.createdAt).getTime());
   }
 
   // ===== 提示词模板管理 =====

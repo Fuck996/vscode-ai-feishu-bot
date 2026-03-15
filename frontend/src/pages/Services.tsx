@@ -1,10 +1,11 @@
-import React, { useEffect, useState, useCallback, useRef } from 'react';
-import { CalendarDays, Clock3, MoreHorizontal, ChevronDown, ChevronLeft, ChevronRight, RotateCw, Search } from 'lucide-react';
+import React, { useEffect, useState, useCallback, useMemo, useRef } from 'react';
+import { CalendarDays, Clock3, MoreHorizontal, ChevronLeft, ChevronRight, ChevronDown, RotateCw, Search } from 'lucide-react';
 import SceneIcon, { SceneIconName } from '../components/SceneIcon';
 import authService from '../services/auth';
 import mcpModelsService, { ModelConfig as McpModelConfig, ModelProvider } from '../services/mcpModels';
 import mcpPromptsService from '../services/mcpPrompts';
 import mcpLogsService from '../services/mcpLogs';
+import reportTasksService, { ReportTaskHistoryItem, ReportTaskItem, ReportTaskMeta } from '../services/reportTasks';
 import toastService from '../services/toastService';
 
 interface Service {
@@ -144,26 +145,39 @@ const Services: React.FC = () => {
   const [hoveredMenu, setHoveredMenu] = useState<string | null>(null);
   const [taskMenuPos, setTaskMenuPos] = useState<{ top: number; left: number; taskId: string } | null>(null);
   const [historyMenuPos, setHistoryMenuPos] = useState<{ top: number; left: number; recordId: string } | null>(null);
-  const [filterStatus, setFilterStatus] = useState<'all' | 'active' | 'inactive'>('all');
+  const [taskStatusFilter, setTaskStatusFilter] = useState<('active' | 'inactive')[]>([]);
   const [filterRobot, setFilterRobot] = useState<string>('all');
   const [filterModel, setFilterModel] = useState<string>('all');
+  const [openTaskFilterMenu, setOpenTaskFilterMenu] = useState<string | null>(null);
   const [taskModalOpen, setTaskModalOpen] = useState(false);
   const [taskModalMode, setTaskModalMode] = useState<'add' | 'edit'>('add');
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
   const [activeReportTab, setActiveReportTab] = useState<'tasks' | 'history'>('tasks');
   const [activeMCPTab, setActiveMCPTab] = useState<'models' | 'prompts' | 'logs'>('models');
   const [modalWeekdays, setModalWeekdays] = useState<number[]>([1]);
-  const [modalModel, setModalModel] = useState<string>('GPT-4o');
-  const [modalTemplate, setModalTemplate] = useState<string>('report-summary');
+  const [modalTaskName, setModalTaskName] = useState('');
+  const [modalTaskDescription, setModalTaskDescription] = useState('');
+  const [modalSendTime, setModalSendTime] = useState('09:00');
+  const [modalRangeType, setModalRangeType] = useState<'7d' | '14d' | '30d' | 'week' | 'month'>('7d');
+  const [modalModel, setModalModel] = useState<string>('');
+  const [modalTemplate, setModalTemplate] = useState<string>('');
   const [modalRobot, setModalRobot] = useState<string>('');
   const [modalNotificationStatus, setModalNotificationStatus] = useState<string[]>(['success', 'error', 'warning', 'info']);
+  const [modalIntegrationIds, setModalIntegrationIds] = useState<string[]>([]);
+  const [taskMeta, setTaskMeta] = useState<ReportTaskMeta | null>(null);
+  const [reportTasks, setReportTasks] = useState<ReportTaskItem[]>([]);
+  const [reportTasksLoading, setReportTasksLoading] = useState(false);
+  const [reportTaskHistory, setReportTaskHistory] = useState<ReportTaskHistoryItem[]>([]);
+  const [reportTaskHistoryLoading, setReportTaskHistoryLoading] = useState(false);
+  const [taskModalLoading, setTaskModalLoading] = useState(false);
   // MCP 服务弹窗状态
   const [mcpModelModalOpen, setMcpModelModalOpen] = useState(false);
   const [mcpPromptModalOpen, setMcpPromptModalOpen] = useState(false);
   const [editingCustomModelId, setEditingCustomModelId] = useState<string | null>(null);
-  const [customModelProvider, setCustomModelProvider] = useState<ModelProvider>('custom');
+  const [customModelProvider, setCustomModelProvider] = useState<ModelProvider | ''>('');
   const [customModelApiUrl, setCustomModelApiUrl] = useState('');
   const [customModelApiKey, setCustomModelApiKey] = useState('');
+  const [customModelHasStoredApiKey, setCustomModelHasStoredApiKey] = useState(false);
   const [customModelId, setCustomModelId] = useState('');
   const [customModelOptions, setCustomModelOptions] = useState<string[]>([]);
   const [customModelLoading, setCustomModelLoading] = useState(false);
@@ -178,6 +192,7 @@ const Services: React.FC = () => {
   const [builtInModelModalOpen, setBuiltInModelModalOpen] = useState(false);
   const [selectedBuiltInModel, setSelectedBuiltInModel] = useState<McpModelConfig | null>(null);
   const [builtInModelApiKey, setBuiltInModelApiKey] = useState('');
+  const [builtInModelHasStoredApiKey, setBuiltInModelHasStoredApiKey] = useState(false);
   const [builtInModelId, setBuiltInModelId] = useState('');
   const [builtInModelOptions, setBuiltInModelOptions] = useState<string[]>([]);
   const [builtInModelLoading, setBuiltInModelLoading] = useState(false);
@@ -308,9 +323,10 @@ const Services: React.FC = () => {
 
   const resetCustomModelForm = useCallback(() => {
     setEditingCustomModelId(null);
-    setCustomModelProvider('custom');
+    setCustomModelProvider('');
     setCustomModelApiUrl('');
     setCustomModelApiKey('');
+    setCustomModelHasStoredApiKey(false);
     setCustomModelId('');
     setCustomModelOptions([]);
   }, []);
@@ -324,10 +340,89 @@ const Services: React.FC = () => {
     setEditingCustomModelId(model.id);
     setCustomModelProvider(model.provider);
     setCustomModelApiUrl(model.apiUrl);
-    setCustomModelApiKey(model.apiKey || '');
+    setCustomModelApiKey('');
+    setCustomModelHasStoredApiKey(Boolean(model.hasApiKey));
     setCustomModelId(model.modelId || '');
     setCustomModelOptions(model.modelId ? [model.modelId] : []);
     setMcpModelModalOpen(true);
+  }, []);
+
+  const loadReportTaskMeta = useCallback(async () => {
+    try {
+      const result = await reportTasksService.getMeta();
+      if (result.success && result.data) {
+        setTaskMeta(result.data);
+      }
+    } catch (error) {
+      console.error('加载AI汇报元数据失败:', error);
+      toastService.error('加载AI汇报配置失败');
+    }
+  }, []);
+
+  const loadReportTasks = useCallback(async () => {
+    try {
+      setReportTasksLoading(true);
+      const result = await reportTasksService.getTasks();
+      if (result.success && result.data) {
+        setReportTasks(result.data);
+      }
+    } catch (error) {
+      console.error('加载AI汇报任务失败:', error);
+      toastService.error('加载AI汇报任务失败');
+    } finally {
+      setReportTasksLoading(false);
+    }
+  }, []);
+
+  const loadReportTaskHistory = useCallback(async () => {
+    try {
+      setReportTaskHistoryLoading(true);
+      const result = await reportTasksService.getHistory();
+      if (result.success && result.data) {
+        setReportTaskHistory(result.data);
+      }
+    } catch (error) {
+      console.error('加载AI汇报发送历史失败:', error);
+      toastService.error('加载AI汇报发送历史失败');
+    } finally {
+      setReportTaskHistoryLoading(false);
+    }
+  }, []);
+
+  const resetTaskForm = useCallback((meta?: ReportTaskMeta | null) => {
+    setSelectedTaskId(null);
+    setModalTaskName('');
+    setModalTaskDescription('');
+    setModalSendTime('09:00');
+    setModalWeekdays([1]);
+    setModalRangeType('7d');
+    setModalRobot('');
+    setModalIntegrationIds([]);
+    setModalNotificationStatus(['success', 'error', 'warning', 'info']);
+    setModalModel(meta?.models?.[0]?.id || '');
+    setModalTemplate(meta?.prompts?.[0]?.id || '');
+  }, []);
+
+  const openTaskCreateModal = useCallback(() => {
+    setTaskModalMode('add');
+    resetTaskForm(taskMeta);
+    setTaskModalOpen(true);
+  }, [resetTaskForm, taskMeta]);
+
+  const openTaskEditModal = useCallback((task: ReportTaskItem) => {
+    setTaskModalMode('edit');
+    setSelectedTaskId(task.id);
+    setModalTaskName(task.name);
+    setModalTaskDescription(task.description || '');
+    setModalSendTime(task.sendTime);
+    setModalWeekdays(task.weekdays && task.weekdays.length > 0 ? task.weekdays : [1]);
+    setModalRangeType(task.rangeType);
+    setModalRobot(task.robotId);
+    setModalIntegrationIds(task.integrationIds);
+    setModalNotificationStatus(task.notificationStatuses);
+    setModalModel(task.modelConfigId);
+    setModalTemplate(task.promptTemplateId);
+    setTaskModalOpen(true);
   }, []);
 
   // 加载自定义提示词列表
@@ -351,6 +446,14 @@ const Services: React.FC = () => {
   useEffect(() => {
     loadModelConfigs();
   }, [loadModelConfigs]); // 组件挂载时加载一次
+
+  useEffect(() => {
+    if (activeMenu === 'ai-report') {
+      loadReportTaskMeta();
+      loadReportTasks();
+      loadReportTaskHistory();
+    }
+  }, [activeMenu, loadReportTaskHistory, loadReportTaskMeta, loadReportTasks]);
 
   useEffect(() => {
     const loadBuiltInPrompts = async () => {
@@ -414,6 +517,210 @@ const Services: React.FC = () => {
       loadPrompts();
     }
   }, [activeMCPTab, loadModelConfigs]);
+
+  const availableIntegrations = useMemo(() => {
+    if (!taskMeta || !modalRobot) {
+      return [];
+    }
+
+    return taskMeta.integrations.filter(integration => integration.robotId === modalRobot);
+  }, [modalRobot, taskMeta]);
+
+  useEffect(() => {
+    if (availableIntegrations.length === 0) {
+      setModalIntegrationIds([]);
+      return;
+    }
+
+    setModalIntegrationIds(current => current.filter(id => availableIntegrations.some(integration => integration.id === id)));
+  }, [availableIntegrations]);
+
+  const filteredReportTasks = useMemo(() => {
+    return reportTasks.filter(task => {
+      // 状态筛选：如果taskStatusFilter为空（显示全部），或任务状态在选中的状态列表中
+      if (taskStatusFilter.length > 0 && !taskStatusFilter.includes(task.status as 'active' | 'inactive')) {
+        return false;
+      }
+
+      if (filterRobot !== 'all' && task.robotId !== filterRobot) {
+        return false;
+      }
+
+      if (filterModel !== 'all' && task.modelConfigId !== filterModel) {
+        return false;
+      }
+
+      return true;
+    });
+  }, [filterModel, filterRobot, taskStatusFilter, reportTasks]);
+
+  const filteredHistoryRecords = useMemo(() => {
+    return reportTaskHistory.filter(record => {
+      const keyword = historySearch.trim().toLowerCase();
+      if (keyword) {
+        const matchesKeyword = [record.taskName, record.periodLabel, record.modelName, record.promptName, record.summary]
+          .join(' ')
+          .toLowerCase()
+          .includes(keyword);
+
+        if (!matchesKeyword) {
+          return false;
+        }
+      }
+
+      if (historyStatusFilter !== 'all' && record.status !== historyStatusFilter) {
+        return false;
+      }
+
+      return true;
+    });
+  }, [historySearch, historyStatusFilter, reportTaskHistory]);
+
+  const paginatedHistoryRecords = useMemo(() => {
+    const start = (historyPage - 1) * historyPageSize;
+    return filteredHistoryRecords.slice(start, start + historyPageSize);
+  }, [filteredHistoryRecords, historyPage, historyPageSize]);
+
+  const totalHistoryPages = Math.max(1, Math.ceil(filteredHistoryRecords.length / historyPageSize));
+
+  useEffect(() => {
+    if (historyPage > totalHistoryPages) {
+      setHistoryPage(totalHistoryPages);
+    }
+  }, [historyPage, totalHistoryPages]);
+
+  const reportTaskStats = useMemo(() => {
+    const now = Date.now();
+    const sevenDaysAgo = now - 7 * 24 * 60 * 60 * 1000;
+    const sentThisWeek = reportTaskHistory.filter(record => new Date(record.createdAt).getTime() >= sevenDaysAgo).length;
+    const nextTask = [...reportTasks]
+      .filter(task => task.status === 'active' && task.nextRunAt)
+      .sort((left, right) => new Date(left.nextRunAt || 0).getTime() - new Date(right.nextRunAt || 0).getTime())[0];
+
+    return {
+      total: reportTasks.length,
+      active: reportTasks.filter(task => task.status === 'active').length,
+      sentThisWeek,
+      nextRunLabel: nextTask?.nextRunAt ? new Date(nextTask.nextRunAt).toLocaleString('zh-CN') : '暂无计划',
+    };
+  }, [reportTaskHistory, reportTasks]);
+
+  const handleTaskStatusToggle = async (task: ReportTaskItem) => {
+    try {
+      const nextStatus = task.status === 'active' ? 'inactive' : 'active';
+      const result = await reportTasksService.updateTaskStatus(task.id, nextStatus);
+      if (!result.success) {
+        throw new Error(result.error || '状态更新失败');
+      }
+
+      toastService.success(nextStatus === 'active' ? '任务已启用' : '任务已停用');
+      await loadReportTasks();
+    } catch (error) {
+      console.error('更新任务状态失败:', error);
+      toastService.error('更新任务状态失败');
+    } finally {
+      setTaskMenuPos(null);
+    }
+  };
+
+  const handleRunTask = async (taskId: string) => {
+    try {
+      const result = await reportTasksService.runTask(taskId);
+      if (!result.success) {
+        throw new Error(result.error || '执行任务失败');
+      }
+
+      toastService.success('任务已执行');
+      await Promise.all([loadReportTasks(), loadReportTaskHistory(), fetchServices()]);
+    } catch (error) {
+      console.error('执行任务失败:', error);
+      toastService.error('执行任务失败');
+    } finally {
+      setTaskMenuPos(null);
+    }
+  };
+
+  const handleDeleteTask = async (taskId: string) => {
+    const confirmed = window.confirm('确认删除该AI汇报任务吗？');
+    if (!confirmed) {
+      return;
+    }
+
+    try {
+      const result = await reportTasksService.deleteTask(taskId);
+      if (!result.success) {
+        throw new Error(result.error || '删除任务失败');
+      }
+
+      toastService.success('任务已删除');
+      await Promise.all([loadReportTasks(), loadReportTaskHistory()]);
+    } catch (error) {
+      console.error('删除任务失败:', error);
+      toastService.error('删除任务失败');
+    } finally {
+      setTaskMenuPos(null);
+    }
+  };
+
+  const handleSubmitTask = async () => {
+    if (!modalTaskName.trim()) {
+      toastService.error('请输入任务名称');
+      return;
+    }
+
+    if (!modalRobot) {
+      toastService.error('请选择机器人');
+      return;
+    }
+
+    if (modalIntegrationIds.length === 0) {
+      toastService.error('请至少选择一个集成');
+      return;
+    }
+
+    if (!modalModel) {
+      toastService.error('请选择模型');
+      return;
+    }
+
+    if (!modalTemplate) {
+      toastService.error('请选择提示词模板');
+      return;
+    }
+
+    try {
+      setTaskModalLoading(true);
+      const payload = {
+        name: modalTaskName.trim(),
+        description: modalTaskDescription.trim(),
+        weekdays: modalWeekdays,
+        sendTime: modalSendTime,
+        rangeType: modalRangeType,
+        robotId: modalRobot,
+        integrationIds: modalIntegrationIds,
+        notificationStatuses: modalNotificationStatus,
+        modelConfigId: modalModel,
+        promptTemplateId: modalTemplate,
+      };
+
+      const result = taskModalMode === 'add'
+        ? await reportTasksService.createTask(payload)
+        : await reportTasksService.updateTask(selectedTaskId as string, payload);
+
+      if (!result.success) {
+        throw new Error(result.error || '保存任务失败');
+      }
+
+      toastService.success(taskModalMode === 'add' ? '任务已创建' : '任务已更新');
+      setTaskModalOpen(false);
+      await Promise.all([loadReportTasks(), loadReportTaskHistory(), fetchServices()]);
+    } catch (error) {
+      console.error('保存AI汇报任务失败:', error);
+      toastService.error('保存AI汇报任务失败');
+    } finally {
+      setTaskModalLoading(false);
+    }
+  };
 
   const fetchServices = async () => {
     try {
@@ -979,16 +1286,16 @@ const Services: React.FC = () => {
             </div>
             <div style={{ padding: '1.25rem 1.5rem', display: 'flex', alignItems: 'center', gap: '2rem', borderRight: '1px solid #f3f4f6', flexShrink: 0 }}>
               <div style={{ textAlign: 'center' }}>
-                <div style={{ fontSize: '0.75rem', color: '#9ca3af', marginBottom: '0.25rem' }}>周报任务</div>
-                <div style={{ fontSize: '1.375rem', fontWeight: 700, color: '#1f2937' }}>3</div>
+                <div style={{ fontSize: '0.75rem', color: '#9ca3af', marginBottom: '0.25rem' }}>汇报任务</div>
+                <div style={{ fontSize: '1.375rem', fontWeight: 700, color: '#1f2937' }}>{reportTaskStats.total}</div>
               </div>
               <div style={{ textAlign: 'center' }}>
                 <div style={{ fontSize: '0.75rem', color: '#9ca3af', marginBottom: '0.25rem' }}>本周发送</div>
-                <div style={{ fontSize: '1.375rem', fontWeight: 700, color: '#1f2937' }}>5</div>
+                <div style={{ fontSize: '1.375rem', fontWeight: 700, color: '#1f2937' }}>{reportTaskStats.sentThisWeek}</div>
               </div>
               <div style={{ textAlign: 'center', minWidth: '80px', padding: '0.5rem', background: '#f0f9ff', borderRadius: '0.375rem', borderLeft: '3px solid #3b82f6' }}>
                 <div style={{ fontSize: '0.7rem', color: '#1e40af', fontWeight: 600, marginBottom: '0.125rem' }}>下次发送</div>
-                <div style={{ fontSize: '0.8rem', color: '#0284c7', fontWeight: 500 }}>2天 6小时 45分钟</div>
+                <div style={{ fontSize: '0.8rem', color: '#0284c7', fontWeight: 500 }}>{reportTaskStats.nextRunLabel}</div>
               </div>
             </div>
           </div>
@@ -1036,99 +1343,101 @@ const Services: React.FC = () => {
             <div style={{ padding: '1rem 1.5rem', borderBottom: '1px solid #e5e7eb', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.625rem' }}>
                 <span style={{ fontSize: '0.9375rem', fontWeight: 700, color: '#1f2328' }}>已配置任务</span>
-                <span style={{ fontSize: '0.8125rem', color: '#656d76' }}>共 3 个</span>
+                <span style={{ fontSize: '0.8125rem', color: '#656d76' }}>共 {filteredReportTasks.length} 个</span>
               </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
                 <button 
-                  onClick={() => { setTaskModalMode('add'); setTaskModalOpen(true); }}
+                  onClick={openTaskCreateModal}
                   style={{ padding: '0.375rem 0.875rem', backgroundColor: '#1f883d', color: 'white', border: 'none', borderRadius: '0.375rem', cursor: 'pointer', fontSize: '0.8125rem', fontWeight: 500 }}>
                   + 新增
                 </button>
-                {/* 分隔线 */}
-                <span style={{ width: '1px', height: '20px', backgroundColor: '#e5e7eb' }} />
-                {/* 筛选按钮组 */}
-                <button 
-                  onClick={() => setFilterStatus(filterStatus === 'all' ? 'active' : 'all')}
-                  style={{ 
-                    display: 'inline-flex', 
-                    alignItems: 'center', 
-                    gap: '0.375rem', 
-                    padding: '0.375rem 0.75rem', 
-                    fontSize: '0.8125rem', 
-                    fontWeight: 500, 
-                    color: filterStatus !== 'all' ? '#0969da' : '#57606a', 
-                    backgroundColor: filterStatus !== 'all' ? '#dbeafe' : '#f6f8fa', 
-                    border: `1px solid ${filterStatus !== 'all' ? '#0969da' : '#d0d7de'}`,
-                    borderRadius: '0.375rem', 
-                    cursor: 'pointer',
-                    transition: 'all 0.15s'
-                  }}
-                >
-                  状态
-                  {filterStatus !== 'all' && (
-                    <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: '16px', height: '16px', borderRadius: '50%', backgroundColor: '#0969da', color: 'white', fontSize: '0.6rem', fontWeight: 700 }}>1</span>
+                <div style={{ position: 'relative', display: 'inline-block' }} onClick={e => e.stopPropagation()}>
+                  <button
+                    type="button"
+                    onClick={() => setOpenTaskFilterMenu(openTaskFilterMenu === 'status' ? null : 'status')}
+                    style={{
+                      display: 'inline-flex', alignItems: 'center', gap: '0.375rem',
+                      padding: '0.375rem 0.75rem', fontSize: '0.8125rem', fontWeight: 500,
+                      color: taskStatusFilter.length > 0 ? '#0969da' : '#57606a',
+                      backgroundColor: taskStatusFilter.length > 0 ? '#dbeafe' : '#f6f8fa',
+                      border: `1px solid ${taskStatusFilter.length > 0 ? '#0969da' : '#d0d7de'}`,
+                      borderRadius: '0.375rem', cursor: 'pointer',
+                    }}
+                  >
+                    状态
+                    {taskStatusFilter.length > 0 && (
+                      <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: '16px', height: '16px', borderRadius: '50%', backgroundColor: '#0969da', color: 'white', fontSize: '0.6rem', fontWeight: 700 }}>
+                        {taskStatusFilter.length}
+                      </span>
+                    )}
+                    <ChevronDown size={13} />
+                  </button>
+                  {openTaskFilterMenu === 'status' && (
+                    <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 20 }} onClick={() => setOpenTaskFilterMenu(null)} />
                   )}
-                  <ChevronDown size={13} />
-                </button>
-                <button 
-                  onClick={() => setFilterRobot(filterRobot === 'all' ? '主汇报机器人' : 'all')}
-                  style={{ 
-                    display: 'inline-flex', 
-                    alignItems: 'center', 
-                    gap: '0.375rem', 
-                    padding: '0.375rem 0.75rem', 
-                    fontSize: '0.8125rem', 
-                    fontWeight: 500, 
-                    color: filterRobot !== 'all' ? '#0969da' : '#57606a', 
-                    backgroundColor: filterRobot !== 'all' ? '#dbeafe' : '#f6f8fa', 
-                    border: `1px solid ${filterRobot !== 'all' ? '#0969da' : '#d0d7de'}`,
-                    borderRadius: '0.375rem', 
-                    cursor: 'pointer',
-                    transition: 'all 0.15s'
-                  }}
-                >
-                  机器人
-                  {filterRobot !== 'all' && (
-                    <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: '16px', height: '16px', borderRadius: '50%', backgroundColor: '#0969da', color: 'white', fontSize: '0.6rem', fontWeight: 700 }}>1</span>
+                  {openTaskFilterMenu === 'status' && (
+                    <div style={{ position: 'absolute', top: 'calc(100% + 0.375rem)', right: 0, minWidth: '160px', backgroundColor: '#ffffff', border: '1px solid #d0d7de', borderRadius: '0.75rem', boxShadow: '0 16px 32px rgba(31, 35, 40, 0.15)', zIndex: 30, overflow: 'hidden' }}>
+                      <div style={{ padding: '0.625rem 1rem', borderBottom: '1px solid #e5e7eb', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                        <span style={{ fontSize: '0.8125rem', fontWeight: 600, color: '#1f2328' }}>按状态筛选</span>
+                        {taskStatusFilter.length > 0 && (
+                          <button type="button" onClick={() => setTaskStatusFilter([])} style={{ fontSize: '0.75rem', color: '#0969da', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>清除</button>
+                        )}
+                      </div>
+                      {([{ value: 'active' as const, label: '启用中' }, { value: 'inactive' as const, label: '已停用' }]).map(opt => {
+                        const isSelected = taskStatusFilter.includes(opt.value);
+                        return (
+                          <button
+                            key={opt.value}
+                            type="button"
+                            onClick={() => setTaskStatusFilter(prev => prev.includes(opt.value) ? prev.filter(s => s !== opt.value) : [...prev, opt.value])}
+                            style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.5rem 1rem', border: 'none', backgroundColor: isSelected ? '#f0f6ff' : 'transparent', cursor: 'pointer', textAlign: 'left' }}
+                            onMouseEnter={e => { if (!isSelected) e.currentTarget.style.backgroundColor = '#f6f8fa'; }}
+                            onMouseLeave={e => { if (!isSelected) e.currentTarget.style.backgroundColor = 'transparent'; }}
+                          >
+                            <div style={{ width: '15px', height: '15px', borderRadius: '0.25rem', flexShrink: 0, border: `1px solid ${isSelected ? '#0969da' : '#d0d7de'}`, backgroundColor: isSelected ? '#0969da' : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                              {isSelected && <span style={{ color: 'white', fontSize: '0.6rem', fontWeight: 900 }}>✓</span>}
+                            </div>
+                            <span style={{ fontSize: '0.8125rem', color: '#1f2328' }}>{opt.label}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
                   )}
-                  <ChevronDown size={13} />
-                </button>
-                <button 
-                  onClick={() => setFilterModel(filterModel === 'all' ? 'GPT-4o' : 'all')}
-                  style={{ 
-                    display: 'inline-flex', 
-                    alignItems: 'center', 
-                    gap: '0.375rem', 
-                    padding: '0.375rem 0.75rem', 
-                    fontSize: '0.8125rem', 
-                    fontWeight: 500, 
-                    color: filterModel !== 'all' ? '#0969da' : '#57606a', 
-                    backgroundColor: filterModel !== 'all' ? '#dbeafe' : '#f6f8fa', 
-                    border: `1px solid ${filterModel !== 'all' ? '#0969da' : '#d0d7de'}`,
-                    borderRadius: '0.375rem', 
-                    cursor: 'pointer',
-                    transition: 'all 0.15s'
-                  }}
+                </div>
+                <select
+                  value={filterRobot}
+                  onChange={(e) => setFilterRobot(e.target.value)}
+                  style={{ padding: '0.375rem 0.75rem', fontSize: '0.8125rem', border: '1px solid #d0d7de', borderRadius: '0.375rem', backgroundColor: 'white' }}
                 >
-                  模型
-                  {filterModel !== 'all' && (
-                    <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: '16px', height: '16px', borderRadius: '50%', backgroundColor: '#0969da', color: 'white', fontSize: '0.6rem', fontWeight: 700 }}>1</span>
-                  )}
-                  <ChevronDown size={13} />
-                </button>
+                  <option value="all">全部机器人</option>
+                  {(taskMeta?.robots || []).map(robot => (
+                    <option key={robot.id} value={robot.id}>{robot.name}</option>
+                  ))}
+                </select>
+                <select
+                  value={filterModel}
+                  onChange={(e) => setFilterModel(e.target.value)}
+                  style={{ padding: '0.375rem 0.75rem', fontSize: '0.8125rem', border: '1px solid #d0d7de', borderRadius: '0.375rem', backgroundColor: 'white' }}
+                >
+                  <option value="all">全部模型</option>
+                  {(taskMeta?.models || []).map(model => (
+                    <option key={model.id} value={model.id}>{model.name}</option>
+                  ))}
+                </select>
               </div>
             </div>
             <div style={{ overflowX: 'auto' }}>
               <table style={{ width: '100%', borderCollapse: 'collapse', tableLayout: 'fixed', minWidth: '950px' }}>
                 <tbody>
-                  {[
-                    { id: '1', name: '飞书 AI 系统周报', integrations: ['GitHub', 'VS Code Chat', 'Telegram'], model: 'GPT-4o', robot: '主汇报机器人', schedule: '每周一 09:00', lastSent: '2026-03-10 09:02', status: 'active' },
-                    { id: '2', name: 'GitHub CI/CD 周报', integrations: ['GitHub'], model: 'GPT-4o mini', robot: '研发群机器人', schedule: '每周五 18:00', lastSent: '2026-03-07 18:01', status: 'active' },
-                    { id: '3', name: 'MCP 工作汇报周报', integrations: ['VS Code Chat'], model: 'GPT-4o', robot: '主汇报机器人', schedule: '每周三 10:00', lastSent: '2026-03-03 09:03', status: 'inactive' },
-                  ].map((task) => {
+                  {reportTasksLoading ? (
+                    <tr>
+                      <td colSpan={4} style={{ padding: '2rem', textAlign: 'center', color: '#9ca3af' }}>加载任务中...</td>
+                    </tr>
+                  ) : filteredReportTasks.length > 0 ? filteredReportTasks.map((task) => {
                     const integrationsToShow = task.integrations.slice(0, 3);
                     const hasMore = task.integrations.length > 3;
                     const moreCount = task.integrations.length - 3;
+                    const lastRunDate = task.lastSentAt ? new Date(task.lastSentAt) : null;
                     
                     return (
                       <tr key={task.id} style={{ borderBottom: '1px solid #f3f4f6' }}>
@@ -1136,16 +1445,16 @@ const Services: React.FC = () => {
                         <td style={{ padding: '0.875rem 1.5rem', width: '260px' }}>
                           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
                             <span style={{ fontWeight: 600, fontSize: '0.875rem', color: '#1f2328' }}>{task.name}</span>
-                            <span style={{ fontSize: '0.75rem', color: '#656d76' }}>{task.model}</span>
+                            <span style={{ fontSize: '0.75rem', color: '#656d76' }}>{task.modelName}</span>
                           </div>
                         </td>
 
                         {/* 第 2 列：集成名（最多 3 个 + N） */}
                         <td style={{ padding: '0.875rem 0.75rem', width: '280px' }}>
                           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.3rem' }}>
-                            {integrationsToShow.map((integration, idx) => (
+                            {integrationsToShow.map((integration) => (
                               <span
-                                key={idx}
+                                key={integration.id}
                                 style={{
                                   display: 'inline-block',
                                   padding: '0.2rem 0.6rem',
@@ -1157,7 +1466,7 @@ const Services: React.FC = () => {
                                   whiteSpace: 'nowrap',
                                 }}
                               >
-                                {integration}
+                                {integration.name}
                               </span>
                             ))}
                             {hasMore && (
@@ -1183,11 +1492,11 @@ const Services: React.FC = () => {
                           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
                             <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem', fontSize: '0.875rem', fontWeight: 600, color: '#1f2328' }}>
                               <SceneIcon name="robot" size={14} inheritColor />
-                              {task.robot}
+                              {task.robotName}
                             </div>
                             <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem', fontSize: '0.75rem', color: '#656d76' }}>
                               <CalendarDays size={12} color="#57606a" />
-                              {task.schedule}
+                              {task.scheduleText}
                             </div>
                           </div>
                         </td>
@@ -1199,11 +1508,11 @@ const Services: React.FC = () => {
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
                               <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem', color: '#374151', fontSize: '0.8125rem', fontWeight: 500, whiteSpace: 'nowrap' }}>
                                 <CalendarDays size={12} color="#57606a" />
-                                {task.lastSent.split(' ')[0]}
+                                {lastRunDate ? lastRunDate.toLocaleDateString('zh-CN') : '未执行'}
                               </div>
                               <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem', color: '#656d76', fontSize: '0.8125rem', whiteSpace: 'nowrap', fontWeight: 500 }}>
                                 <Clock3 size={12} color="#57606a" />
-                                {(task.lastSent.split(' ')[1] || '00:00') + ':00'}
+                                {lastRunDate ? lastRunDate.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit', second: '2-digit' }) : '--:--:--'}
                               </div>
                             </div>
 
@@ -1212,7 +1521,7 @@ const Services: React.FC = () => {
 
                             {/* 启停开关 */}
                             <button
-                              onClick={() => {}}
+                              onClick={() => handleTaskStatusToggle(task)}
                               style={{
                                 width: '36px',
                                 height: '20px',
@@ -1283,8 +1592,7 @@ const Services: React.FC = () => {
                               >
                                 <button
                                   onClick={() => {
-                                    console.log('手动发送任务:', task.id);
-                                    setTaskMenuPos(null);
+                                    handleRunTask(task.id);
                                   }}
                                   style={{
                                     width: '100%',
@@ -1303,9 +1611,7 @@ const Services: React.FC = () => {
                                 </button>
                                 <button
                                   onClick={() => {
-                                    setSelectedTaskId(task.id);
-                                    setTaskModalMode('edit');
-                                    setTaskModalOpen(true);
+                                    openTaskEditModal(task);
                                     setTaskMenuPos(null);
                                   }}
                                   style={{
@@ -1326,8 +1632,7 @@ const Services: React.FC = () => {
                                 </button>
                                 <button
                                   onClick={() => {
-                                    console.log('删除任务:', task.id);
-                                    setTaskMenuPos(null);
+                                    handleDeleteTask(task.id);
                                   }}
                                   style={{
                                     width: '100%',
@@ -1351,7 +1656,13 @@ const Services: React.FC = () => {
                         </td>
                       </tr>
                     );
-                  })}
+                  }) : (
+                    <tr>
+                      <td colSpan={4} style={{ padding: '2rem', textAlign: 'center', color: '#9ca3af' }}>
+                        暂无符合条件的任务
+                      </td>
+                    </tr>
+                  )}
                 </tbody>
               </table>
             </div>
@@ -1365,7 +1676,7 @@ const Services: React.FC = () => {
             <div style={{ padding: '1rem 1.5rem', borderBottom: '1px solid #e5e7eb', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem', flexWrap: 'wrap' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                 <span style={{ fontSize: '0.9375rem', fontWeight: 700, color: '#1f2328' }}>发送历史</span>
-                <span style={{ fontSize: '0.8125rem', color: '#656d76' }}>共 3 条</span>
+                <span style={{ fontSize: '0.8125rem', color: '#656d76' }}>共 {filteredHistoryRecords.length} 条</span>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.625rem' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.35rem 0.75rem', border: '1px solid #d0d7de', borderRadius: '2rem', backgroundColor: 'white', width: '200px' }}>
@@ -1393,27 +1704,21 @@ const Services: React.FC = () => {
             <div style={{ overflowX: 'auto', padding: '0 1.5rem' }}>
               <table style={{ width: '100%', borderCollapse: 'collapse', tableLayout: 'fixed' }}>
                 <tbody>
-                  {(() => {
-                    const allRecords = [
-                      { id: '1', date: '2026-03-10', clock: '09:02:14', task: '飞书 AI 系统周报', period: '2026-03-03 ~ 2026-03-09', count: 47, summary: '「上周共收到 47 条通知，其中 GitHub CI/CD 构建成功率 96%，飞书群消息活跃度上升 12%」', status: 'success' as const },
-                      { id: '2', date: '2026-03-07', clock: '18:01:47', task: 'GitHub CI/CD 周报', period: '2026-02-28 ~ 2026-03-06', count: 23, summary: '「本周 CI 流水线共触发 23 次，其中 deploy-prod 成功 21 次，失败 2 次，需关注」', status: 'success' as const },
-                      { id: '3', date: '2026-03-03', clock: '09:03:32', task: '飞书 AI 系统周报', period: '2026-02-24 ~ 2026-03-02', count: 35, summary: '「上周系统运行稳定，共处理 35 条消息，无异常告警事件，MCP 推送成功率 100%」', status: 'success' as const },
-                    ];
-                    const filtered = allRecords.filter(r =>
-                      (historyStatusFilter === 'all' || r.status === historyStatusFilter) &&
-                      (historySearch === '' || r.task.includes(historySearch))
-                    );
-                    const totalPg = Math.ceil(filtered.length / historyPageSize);
-                    const sliced = filtered.slice((historyPage - 1) * historyPageSize, historyPage * historyPageSize);
-                    return (
-                      <>
-                        {sliced.length > 0 ? sliced.map(record => (
+                  {reportTaskHistoryLoading ? (
+                    <tr>
+                      <td colSpan={4} style={{ padding: '2rem', textAlign: 'center', color: '#9ca3af' }}>加载发送历史中...</td>
+                    </tr>
+                  ) : (
+                    <>
+                        {paginatedHistoryRecords.length > 0 ? paginatedHistoryRecords.map(record => {
+                          const recordDate = new Date(record.createdAt);
+                          return (
                           <tr key={record.id} style={{ borderBottom: '1px solid #f3f4f6' }}>
                             {/* 任务名称 + 汇报期间 */}
                             <td style={{ padding: '1rem 0.75rem', width: '220px' }}>
                               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
-                                <span style={{ fontWeight: 600, fontSize: '0.875rem', color: '#1f2328', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{record.task}</span>
-                                <span style={{ fontSize: '0.75rem', color: '#656d76', whiteSpace: 'nowrap' }}>{record.period}</span>
+                                <span style={{ fontWeight: 600, fontSize: '0.875rem', color: '#1f2328', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{record.taskName}</span>
+                                <span style={{ fontSize: '0.75rem', color: '#656d76', whiteSpace: 'nowrap' }}>{record.periodLabel}</span>
                               </div>
                             </td>
                             {/* 摘要 */}
@@ -1436,10 +1741,10 @@ const Services: React.FC = () => {
                               <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.75rem' }}>
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem', textAlign: 'left' }}>
                                   <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', color: '#374151', fontSize: '0.8125rem', fontWeight: 500 }}>
-                                    <CalendarDays size={13} color="#57606a" />{record.date}
+                                    <CalendarDays size={13} color="#57606a" />{recordDate.toLocaleDateString('zh-CN')}
                                   </span>
                                   <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', color: '#656d76', fontSize: '0.75rem' }}>
-                                    <Clock3 size={13} color="#57606a" />{record.clock}
+                                    <Clock3 size={13} color="#57606a" />{recordDate.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
                                   </span>
                                 </div>
                                 <span style={{ color: '#e5e7eb', flexShrink: 0 }}>|</span>
@@ -1472,7 +1777,10 @@ const Services: React.FC = () => {
                                       }}
                                     >
                                       <button
-                                        onClick={() => { console.log('查看记录:', record.id); setHistoryMenuPos(null); }}
+                                        onClick={() => {
+                                          window.alert(record.summary || '暂无摘要内容');
+                                          setHistoryMenuPos(null);
+                                        }}
                                         style={{ width: '100%', padding: '0.5rem 1rem', border: 'none', background: 'none', textAlign: 'left', fontSize: '0.875rem', color: '#1f2937', cursor: 'pointer' }}
                                         onMouseEnter={e => { e.currentTarget.style.backgroundColor = '#f3f4f6'; }}
                                         onMouseLeave={e => { e.currentTarget.style.backgroundColor = 'transparent'; }}
@@ -1485,14 +1793,14 @@ const Services: React.FC = () => {
                               </div>
                             </td>
                           </tr>
-                        )) : (
+                        )}) : (
                           <tr>
                             <td colSpan={4} style={{ padding: '2.5rem', textAlign: 'center', color: '#9ca3af', fontSize: '0.875rem' }}>
                               {historySearch || historyStatusFilter !== 'all' ? '无匹配结果，请调整搜索条件' : '暂无发送记录'}
                             </td>
                           </tr>
                         )}
-                        {totalPg > 1 && (
+                        {totalHistoryPages > 1 && (
                           <tr>
                             <td colSpan={4} style={{ padding: '0.875rem 0', borderTop: '1px solid #e5e7eb' }}>
                               <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.125rem' }}>
@@ -1503,7 +1811,7 @@ const Services: React.FC = () => {
                                 >
                                   <ChevronLeft size={15} />上一页
                                 </button>
-                                {Array.from({ length: totalPg }, (_, i) => i + 1).map(pg => (
+                                {Array.from({ length: totalHistoryPages }, (_, i) => i + 1).map(pg => (
                                   <button
                                     key={pg}
                                     onClick={() => setHistoryPage(pg)}
@@ -1513,9 +1821,9 @@ const Services: React.FC = () => {
                                   </button>
                                 ))}
                                 <button
-                                  onClick={() => setHistoryPage(Math.min(totalPg, historyPage + 1))}
-                                  disabled={historyPage === totalPg}
-                                  style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem', padding: '0.375rem 0.625rem', border: 'none', backgroundColor: 'transparent', color: historyPage === totalPg ? '#8c959f' : '#0969da', cursor: historyPage === totalPg ? 'not-allowed' : 'pointer', borderRadius: '0.375rem', fontSize: '0.8125rem', fontWeight: 500, opacity: historyPage === totalPg ? 0.7 : 1 }}
+                                  onClick={() => setHistoryPage(Math.min(totalHistoryPages, historyPage + 1))}
+                                  disabled={historyPage === totalHistoryPages}
+                                  style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem', padding: '0.375rem 0.625rem', border: 'none', backgroundColor: 'transparent', color: historyPage === totalHistoryPages ? '#8c959f' : '#0969da', cursor: historyPage === totalHistoryPages ? 'not-allowed' : 'pointer', borderRadius: '0.375rem', fontSize: '0.8125rem', fontWeight: 500, opacity: historyPage === totalHistoryPages ? 0.7 : 1 }}
                                 >
                                   下一页<ChevronRight size={15} />
                                 </button>
@@ -1523,9 +1831,8 @@ const Services: React.FC = () => {
                             </td>
                           </tr>
                         )}
-                      </>
-                    );
-                  })()}
+                    </>
+                  )}
                 </tbody>
               </table>
             </div>
@@ -1612,6 +1919,7 @@ const Services: React.FC = () => {
                             onClick={() => {
                               setSelectedBuiltInModel(model);
                               setBuiltInModelApiKey('');
+                              setBuiltInModelHasStoredApiKey(Boolean(model.hasApiKey));
                               setBuiltInModelId(model.modelId || '');
                               setBuiltInModelOptions(model.modelId ? [model.modelId] : []);
                               setBuiltInModelModalOpen(true);
@@ -2072,13 +2380,18 @@ const Services: React.FC = () => {
                 </label>
                 <input
                   type="text"
-                  placeholder="输入该模型的 API Key"
+                  placeholder={builtInModelHasStoredApiKey ? '已保存 API Key，如需更换请重新输入' : '输入该模型的 API Key'}
                   value={builtInModelApiKey}
                   onChange={(e) => setBuiltInModelApiKey(e.target.value)}
                   autoComplete="off"
                   spellCheck="false"
                   style={{ width: '100%', padding: '0.5rem 0.75rem', border: '1px solid #d1d5db', borderRadius: '0.375rem', fontSize: '0.875rem', fontFamily: 'inherit', boxSizing: 'border-box' }}
                 />
+                {builtInModelHasStoredApiKey && !builtInModelApiKey && (
+                  <div style={{ fontSize: '0.75rem', color: '#6b7280', marginTop: '0.35rem' }}>
+                    当前已存储 API Key：********，留空保存将继续使用已存储密钥。
+                  </div>
+                )}
               </div>
               <div>
                 <label style={{ display: 'block', fontSize: '0.8125rem', fontWeight: 500, color: '#374151', marginBottom: '0.35rem' }}>
@@ -2097,18 +2410,20 @@ const Services: React.FC = () => {
                   </select>
                   <button
                     onClick={async () => {
-                      if (!builtInModelApiKey.trim()) {
+                      if (!builtInModelApiKey.trim() && !builtInModelHasStoredApiKey) {
                         toastService.warning('请先输入 API Key');
                         return;
                       }
 
                       setBuiltInModelDiscovering(true);
                       try {
-                        const result = await mcpModelsService.discoverModels({
-                          provider: 'deepseek',
-                          apiUrl: selectedBuiltInModel.apiUrl,
-                          apiKey: builtInModelApiKey,
-                        });
+                        const result = selectedBuiltInModel.id
+                          ? await mcpModelsService.discoverModelsById(selectedBuiltInModel.id, builtInModelApiKey.trim() || undefined)
+                          : await mcpModelsService.discoverModels({
+                              provider: 'deepseek',
+                              apiUrl: selectedBuiltInModel.apiUrl,
+                              apiKey: builtInModelApiKey,
+                            });
 
                         if (result.success && result.data) {
                           setBuiltInModelOptions(result.data);
@@ -2170,7 +2485,7 @@ const Services: React.FC = () => {
               </button>
               <button
                 onClick={async () => {
-                  if (!selectedBuiltInModel || !builtInModelApiKey.trim() || !builtInModelId) {
+                  if (!selectedBuiltInModel || (!builtInModelApiKey.trim() && !builtInModelHasStoredApiKey) || !builtInModelId) {
                     toastService.warning('请先填写 API Key 并选择模型');
                     return;
                   }
@@ -2181,13 +2496,14 @@ const Services: React.FC = () => {
                       const result = await mcpModelsService.updateModel(modelId, {
                         provider: 'deepseek',
                         apiUrl: selectedBuiltInModel.apiUrl,
-                        apiKey: builtInModelApiKey,
+                        apiKey: builtInModelApiKey.trim() || undefined,
                         modelId: builtInModelId,
                       });
                       if (result.success) {
                         toastService.success('配置保存成功');
                         setBuiltInModelModalOpen(false);
                         setBuiltInModelApiKey('');
+                        setBuiltInModelHasStoredApiKey(true);
                         setBuiltInModelId('');
                         setBuiltInModelOptions([]);
                         await loadModelConfigs();
@@ -2294,12 +2610,13 @@ const Services: React.FC = () => {
                 <select
                   value={customModelProvider}
                   onChange={(e) => {
-                    setCustomModelProvider(e.target.value as ModelProvider);
+                    setCustomModelProvider(e.target.value as ModelProvider | '');
                     setCustomModelId('');
                     setCustomModelOptions([]);
                   }}
                   style={{ width: '100%', padding: '0.5rem 0.75rem', border: '1px solid #d1d5db', borderRadius: '0.375rem', fontSize: '0.875rem', backgroundColor: 'white' }}
                 >
+                  <option value="">请选择服务商</option>
                   {MODEL_PROVIDER_OPTIONS.map(option => (
                     <option key={option.value} value={option.value}>{option.label}</option>
                   ))}
@@ -2311,7 +2628,7 @@ const Services: React.FC = () => {
                 </label>
                 <input
                   type="text"
-                  placeholder={MODEL_PROVIDER_HINTS[customModelProvider]}
+                  placeholder={customModelProvider ? MODEL_PROVIDER_HINTS[customModelProvider] : '请先选择服务商'}
                   value={customModelApiUrl}
                   onChange={(e) => setCustomModelApiUrl(e.target.value)}
                   autoComplete="off"
@@ -2325,13 +2642,18 @@ const Services: React.FC = () => {
                 </label>
                 <input
                   type="text"
-                  placeholder="输入服务商 API Key"
+                  placeholder={customModelHasStoredApiKey ? '已保存 API Key，如需更换请重新输入' : '输入服务商 API Key'}
                   value={customModelApiKey}
                   onChange={(e) => setCustomModelApiKey(e.target.value)}
                   autoComplete="off"
                   spellCheck="false"
                   style={{ width: '100%', padding: '0.5rem 0.75rem', border: '1px solid #d1d5db', borderRadius: '0.375rem', fontSize: '0.875rem', fontFamily: 'inherit', boxSizing: 'border-box' }}
                 />
+                {customModelHasStoredApiKey && !customModelApiKey && (
+                  <div style={{ fontSize: '0.75rem', color: '#6b7280', marginTop: '0.35rem' }}>
+                    已存储 API Key：********
+                  </div>
+                )}
               </div>
               <div>
                 <label style={{ display: 'block', fontSize: '0.8125rem', fontWeight: 500, color: '#374151', marginBottom: '0.35rem' }}>
@@ -2350,18 +2672,25 @@ const Services: React.FC = () => {
                   </select>
                   <button
                     onClick={async () => {
-                      if (!customModelApiUrl.trim() || !customModelApiKey.trim()) {
+                      if (!customModelProvider) {
+                        toastService.warning('请先选择服务商');
+                        return;
+                      }
+
+                      if (!customModelApiUrl.trim() || (!customModelApiKey.trim() && !customModelHasStoredApiKey)) {
                         toastService.warning('请先填写基础 URL 和 API Key');
                         return;
                       }
 
                       setCustomModelDiscovering(true);
                       try {
-                        const result = await mcpModelsService.discoverModels({
-                          provider: customModelProvider,
-                          apiUrl: customModelApiUrl,
-                          apiKey: customModelApiKey,
-                        });
+                        const result = editingCustomModelId
+                          ? await mcpModelsService.discoverModelsById(editingCustomModelId, customModelApiKey.trim() || undefined)
+                          : await mcpModelsService.discoverModels({
+                              provider: customModelProvider,
+                              apiUrl: customModelApiUrl,
+                              apiKey: customModelApiKey,
+                            });
 
                         if (result.success && result.data) {
                           setCustomModelOptions(result.data);
@@ -2426,7 +2755,12 @@ const Services: React.FC = () => {
               </button>
               <button
                 onClick={async () => {
-                  if (!customModelApiUrl.trim() || !customModelApiKey.trim() || !customModelId) {
+                  if (!customModelProvider) {
+                    toastService.warning('请选择服务商');
+                    return;
+                  }
+
+                  if (!customModelApiUrl.trim() || (!customModelApiKey.trim() && !customModelHasStoredApiKey) || !customModelId) {
                     toastService.warning('请先填写完整信息并选择模型');
                     return;
                   }
@@ -2436,17 +2770,23 @@ const Services: React.FC = () => {
                     const payload = {
                       provider: customModelProvider,
                       apiUrl: customModelApiUrl,
-                      apiKey: customModelApiKey,
+                      apiKey: customModelApiKey.trim() || undefined,
                       modelId: customModelId,
                     };
 
                     const result = editingCustomModelId
                       ? await mcpModelsService.updateModel(editingCustomModelId, payload)
-                      : await mcpModelsService.saveModel(payload);
+                      : await mcpModelsService.saveModel({
+                          provider: customModelProvider,
+                          apiUrl: customModelApiUrl,
+                          apiKey: customModelApiKey,
+                          modelId: customModelId,
+                        });
 
                     if (result.success) {
                       toastService.success(editingCustomModelId ? '模型配置已更新' : '模型配置已保存');
                       setMcpModelModalOpen(false);
+                      setCustomModelHasStoredApiKey(true);
                       resetCustomModelForm();
                       await loadModelConfigs();
                     } else {
@@ -3303,7 +3643,7 @@ const Services: React.FC = () => {
         </div>
       )}
 
-      {/* 新增/编辑周报任务弹窗 */}
+      {/* 新增/编辑汇报任务弹窗 */}
       {taskModalOpen && (
         <div 
           onClick={() => setTaskModalOpen(false)}
@@ -3337,8 +3677,13 @@ const Services: React.FC = () => {
               alignItems: 'center',
               justifyContent: 'space-between',
             }}>
-              <div style={{ fontSize: '1.125rem', fontWeight: 700, color: '#1f2937' }}>
-                {taskModalMode === 'add' ? '新增周报任务' : '编辑周报任务'}
+              <div>
+                <div style={{ fontSize: '1.125rem', fontWeight: 700, color: '#1f2937' }}>
+                  {taskModalMode === 'add' ? '新增汇报任务' : '编辑汇报任务'}
+                </div>
+                <div style={{ fontSize: '0.8125rem', color: '#6b7280', marginTop: '0.25rem' }}>
+                  绑定机器人、集成、模型和提示词模板，生成真实 AI 汇报任务。
+                </div>
               </div>
               <button 
                 onClick={() => setTaskModalOpen(false)}
@@ -3375,6 +3720,8 @@ const Services: React.FC = () => {
                     <input
                       type="text"
                       placeholder="如：飞书 AI 系统周报"
+                      value={modalTaskName}
+                      onChange={(e) => setModalTaskName(e.target.value)}
                       style={{ width: '100%', padding: '0.5rem 0.75rem', border: '1px solid #d1d5db', borderRadius: '0.375rem', fontSize: '0.875rem', fontFamily: 'inherit', boxSizing: 'border-box' }}
                     />
                   </div>
@@ -3385,6 +3732,8 @@ const Services: React.FC = () => {
                     <input
                       type="text"
                       placeholder="简要描述该汇报任务的用途"
+                      value={modalTaskDescription}
+                      onChange={(e) => setModalTaskDescription(e.target.value)}
                       style={{ width: '100%', padding: '0.5rem 0.75rem', border: '1px solid #d1d5db', borderRadius: '0.375rem', fontSize: '0.875rem', fontFamily: 'inherit', boxSizing: 'border-box' }}
                     />
                   </div>
@@ -3441,7 +3790,8 @@ const Services: React.FC = () => {
                       </label>
                       <input
                         type="time"
-                        defaultValue="09:00"
+                        value={modalSendTime}
+                        onChange={(e) => setModalSendTime(e.target.value)}
                         style={{ width: '100%', padding: '0.5rem 0.75rem', border: '1px solid #d1d5db', borderRadius: '0.375rem', fontSize: '0.875rem', fontFamily: 'inherit', boxSizing: 'border-box' }}
                       />
                     </div>
@@ -3449,12 +3799,16 @@ const Services: React.FC = () => {
                       <label style={{ display: 'block', fontSize: '0.8125rem', fontWeight: 500, color: '#374151', marginBottom: '0.35rem' }}>
                         统计范围
                       </label>
-                      <select style={{ width: '100%', padding: '0.5rem 0.75rem', border: '1px solid #d1d5db', borderRadius: '0.375rem', fontSize: '0.875rem', fontFamily: 'inherit', backgroundColor: 'white', boxSizing: 'border-box' }}>
-                        <option>最近 7 天</option>
-                        <option>最近 14 天</option>
-                        <option>最近 30 天</option>
-                        <option>本周</option>
-                        <option>本月</option>
+                      <select
+                        value={modalRangeType}
+                        onChange={(e) => setModalRangeType(e.target.value as '7d' | '14d' | '30d' | 'week' | 'month')}
+                        style={{ width: '100%', padding: '0.5rem 0.75rem', border: '1px solid #d1d5db', borderRadius: '0.375rem', fontSize: '0.875rem', fontFamily: 'inherit', backgroundColor: 'white', boxSizing: 'border-box' }}
+                      >
+                        <option value="7d">最近 7 天</option>
+                        <option value="14d">最近 14 天</option>
+                        <option value="30d">最近 30 天</option>
+                        <option value="week">本周</option>
+                        <option value="month">本月</option>
                       </select>
                     </div>
                   </div>
@@ -3462,7 +3816,7 @@ const Services: React.FC = () => {
                   <div style={{ padding: '0.625rem 0.875rem', backgroundColor: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: '0.5rem', fontSize: '0.8125rem', color: '#1d4ed8', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                     <CalendarDays size={14} />
                     <span>
-                      每周{modalWeekdays.map(d => ['一','二','三','四','五','六','日'][d-1]).join('、')} 09:00 发送，覆盖最近 7 天数据
+                      每周{modalWeekdays.map(d => ['一','二','三','四','五','六','日'][d-1]).join('、')} {modalSendTime} 发送，覆盖{modalRangeType === '7d' ? '最近 7 天' : modalRangeType === '14d' ? '最近 14 天' : modalRangeType === '30d' ? '最近 30 天' : modalRangeType === 'week' ? '本周' : '本月'}数据
                     </span>
                   </div>
                 </div>
@@ -3481,12 +3835,16 @@ const Services: React.FC = () => {
                     </label>
                     <select
                       value={modalRobot}
-                      onChange={(e) => setModalRobot(e.target.value)}
+                      onChange={(e) => {
+                        setModalRobot(e.target.value);
+                        setModalIntegrationIds([]);
+                      }}
                       style={{ width: '100%', padding: '0.5rem 0.75rem', border: '1px solid #d1d5db', borderRadius: '0.375rem', fontSize: '0.875rem', fontFamily: 'inherit', backgroundColor: 'white', boxSizing: 'border-box' }}
                     >
                       <option value="">请选择机器人</option>
-                      <option value="main">主汇报机器人</option>
-                      <option value="test">测试机器人</option>
+                      {(taskMeta?.robots || []).map(robot => (
+                        <option key={robot.id} value={robot.id}>{robot.name}</option>
+                      ))}
                     </select>
                   </div>
                   {/* 选了机器人后才显示集成列表 */}
@@ -3500,18 +3858,9 @@ const Services: React.FC = () => {
                         选择集成 <span style={{ color: '#6b7280', fontWeight: 400 }}>（勾选参与本次汇总的集成）</span>
                       </label>
                       <div style={{ border: '1px solid #d1d5db', borderRadius: '0.5rem', overflow: 'hidden' }}>
-                        {(modalRobot === 'main'
-                          ? [
-                              { name: 'GitHub 代码仓库', type: 'GitHub', meta: '126 次事件' },
-                              { name: '飞书工作群组', type: '飞书', meta: '89 条消息' },
-                              { name: 'Jira 任务追踪', type: 'Jira', meta: '34 个 Issue' },
-                            ]
-                          : [
-                              { name: '飞书工作群组', type: '飞书', meta: '89 条消息' },
-                            ]
-                        ).map((item, idx, arr) => (
+                        {availableIntegrations.length > 0 ? availableIntegrations.map((item, idx, arr) => (
                           <label
-                            key={idx}
+                            key={item.id}
                             style={{
                               display: 'flex',
                               alignItems: 'center',
@@ -3522,12 +3871,27 @@ const Services: React.FC = () => {
                               backgroundColor: 'white',
                             }}
                           >
-                            <input type="checkbox" defaultChecked style={{ width: '15px', height: '15px', cursor: 'pointer', accentColor: '#3b82f6' }} />
-                            <span style={{ flex: 1, fontSize: '0.875rem', color: '#1f2937', fontWeight: 500 }}>{item.name}</span>
-                            <span style={{ fontSize: '0.6875rem', padding: '0.125rem 0.5rem', backgroundColor: '#f3f4f6', color: '#6b7280', borderRadius: '0.25rem', fontWeight: 500 }}>{item.type}</span>
-                            <span style={{ fontSize: '0.75rem', color: '#9ca3af' }}>{item.meta}</span>
+                            <input
+                              type="checkbox"
+                              checked={modalIntegrationIds.includes(item.id)}
+                              onChange={(e) => {
+                                if (e.target.checked) {
+                                  setModalIntegrationIds([...modalIntegrationIds, item.id]);
+                                } else {
+                                  setModalIntegrationIds(modalIntegrationIds.filter(id => id !== item.id));
+                                }
+                              }}
+                              style={{ width: '15px', height: '15px', cursor: 'pointer', accentColor: '#3b82f6' }}
+                            />
+                            <span style={{ flex: 1, fontSize: '0.875rem', color: '#1f2937', fontWeight: 500 }}>{item.projectName}</span>
+                            <span style={{ fontSize: '0.6875rem', padding: '0.125rem 0.5rem', backgroundColor: '#f3f4f6', color: '#6b7280', borderRadius: '0.25rem', fontWeight: 500 }}>{item.projectType}</span>
+                            <span style={{ fontSize: '0.75rem', color: '#9ca3af' }}>{item.status === 'active' ? '已启用' : '未启用'}</span>
                           </label>
-                        ))}
+                        )) : (
+                          <div style={{ padding: '1rem', textAlign: 'center', color: '#9ca3af', fontSize: '0.8125rem' }}>
+                            当前机器人下暂无可用集成
+                          </div>
+                        )}
                       </div>
                     </div>
                   )}
@@ -3597,16 +3961,7 @@ const Services: React.FC = () => {
                       AI 模型 <span style={{ color: '#ef4444' }}>*</span>
                     </label>
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
-                      {[
-                        { id: 'GPT-4o', label: 'GPT-4o', desc: '综合效果最佳' },
-                        { id: 'GPT-4o mini', label: 'GPT-4o mini', desc: '速度快，成本低' },
-                        { id: 'Claude 3.5 Sonnet', label: 'Claude 3.5', desc: '擅长长文档分析' },
-                        { id: 'DeepSeek-V3', label: 'DeepSeek-V3', desc: '国内免费，性能强劲' },
-                        { id: 'Qwen-Plus', label: 'Qwen-Plus', desc: '阿里通义，性价比高' },
-                        { id: 'GLM-4-Flash', label: 'GLM-4-Flash', desc: '智谱AI，免费使用' },
-                        { id: 'Kimi', label: 'Kimi (Moonshot)', desc: '月之暗面，擅长长文' },
-                        { id: 'custom', label: '自定义模型', desc: '填写自定义 API 信息' },
-                      ].map(m => {
+                      {(taskMeta?.models || []).map(m => {
                         const isSelected = modalModel === m.id;
                         return (
                           <div
@@ -3621,12 +3976,15 @@ const Services: React.FC = () => {
                               transition: 'all 0.15s',
                             }}
                           >
-                            <div style={{ fontWeight: 600, fontSize: '0.8125rem', color: isSelected ? '#1d4ed8' : '#1f2937' }}>{m.label}</div>
-                            <div style={{ fontSize: '0.6875rem', color: '#6b7280', marginTop: '0.125rem' }}>{m.desc}</div>
+                            <div style={{ fontWeight: 600, fontSize: '0.8125rem', color: isSelected ? '#1d4ed8' : '#1f2937' }}>{m.name}</div>
+                            <div style={{ fontSize: '0.6875rem', color: '#6b7280', marginTop: '0.125rem' }}>{MODEL_PROVIDER_LABELS[m.provider as ModelProvider] || m.provider} · {m.modelId || '未选择模型'}</div>
                           </div>
                         );
                       })}
                     </div>
+                    {(!taskMeta || taskMeta.models.length === 0) && (
+                      <div style={{ marginTop: '0.5rem', color: '#9ca3af', fontSize: '0.75rem' }}>请先在 MCP 服务管理中配置可用模型。</div>
+                    )}
                   </div>
                   {/* 汇报模板选择 */}
                   <div>
@@ -3639,16 +3997,9 @@ const Services: React.FC = () => {
                       style={{ width: '100%', padding: '0.5rem 0.75rem', border: '1px solid #d1d5db', borderRadius: '0.375rem', fontSize: '0.875rem', fontFamily: 'inherit', backgroundColor: 'white', boxSizing: 'border-box' }}
                     >
                       <option value="">-- 选择提示词模板 --</option>
-                      <optgroup label="内置模板">
-                        <option value="vscode-chat-report">VS Code Chat汇报</option>
-                        <option value="daily-digest">日报快报</option>
-                        <option value="weekly-summary">周报总结</option>
-                        <option value="incident-report">事件报告</option>
-                        <option value="optimization-suggestion">优化建议</option>
-                      </optgroup>
-                      <optgroup label="自定义模板">
-                        <option value="custom-1">我的自定义模板</option>
-                      </optgroup>
+                      {(taskMeta?.prompts || []).map(prompt => (
+                        <option key={prompt.id} value={prompt.id}>{prompt.name} {prompt.isBuiltIn ? '· 内置' : '· 自定义'}</option>
+                      ))}
                     </select>
                   </div>
                 </div>
@@ -3680,19 +4031,20 @@ const Services: React.FC = () => {
                 取消
               </button>
               <button
-                onClick={() => setTaskModalOpen(false)}
+                onClick={handleSubmitTask}
+                disabled={taskModalLoading}
                 style={{
                   padding: '0.5rem 1rem',
-                  backgroundColor: '#1f883d',
+                  backgroundColor: taskModalLoading ? '#9ca3af' : '#1f883d',
                   color: 'white',
                   border: 'none',
                   borderRadius: '0.375rem',
-                  cursor: 'pointer',
+                  cursor: taskModalLoading ? 'not-allowed' : 'pointer',
                   fontSize: '0.875rem',
                   fontWeight: 500,
                 }}
               >
-                {taskModalMode === 'add' ? '创建任务' : '保存任务'}
+                {taskModalLoading ? '保存中...' : taskModalMode === 'add' ? '创建任务' : '保存任务'}
               </button>
             </div>
           </div>

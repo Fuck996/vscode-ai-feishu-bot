@@ -22,6 +22,14 @@ const PROVIDER_LABELS: Record<ModelProvider, string> = {
   custom: '自定义',
 };
 
+function sanitizeModelConfig(model: ModelConfig): ModelConfig {
+  return {
+    ...model,
+    apiKey: undefined,
+    hasApiKey: Boolean(model.apiKey),
+  };
+}
+
 function isSupportedProvider(value: unknown): value is ModelProvider {
   return value === 'deepseek' || value === 'google' || value === 'openai' || value === 'custom';
 }
@@ -60,7 +68,7 @@ function buildModelListEndpoint(provider: ModelProvider, apiUrl: string): string
 
 function buildModelConfigName(provider: ModelProvider, modelId: string, isBuiltIn: boolean): string {
   if (isBuiltIn) {
-    return 'DeepSeek 推荐模型';
+    return 'DeepSeek';
   }
 
   return `${PROVIDER_LABELS[provider]} / ${modelId}`;
@@ -140,7 +148,7 @@ async function validateConfigPayload(payload: {
 router.get('/', async (_req: Request, res: Response) => {
   try {
     const models = await database.getAllModelConfigs();
-    res.json({ success: true, data: models });
+    res.json({ success: true, data: models.map(sanitizeModelConfig) });
   } catch (error) {
     logger.error({ error }, '获取模型配置失败');
     res.status(500).json({ success: false, error: '获取模型配置失败' });
@@ -150,7 +158,7 @@ router.get('/', async (_req: Request, res: Response) => {
 router.get('/built-in', async (_req: Request, res: Response) => {
   try {
     const models = await database.getBuiltInModels();
-    res.json({ success: true, data: models });
+    res.json({ success: true, data: models.map(sanitizeModelConfig) });
   } catch (error) {
     logger.error({ error }, '获取推荐模型失败');
     res.status(500).json({ success: false, error: '获取推荐模型失败' });
@@ -160,7 +168,7 @@ router.get('/built-in', async (_req: Request, res: Response) => {
 router.get('/custom', async (_req: Request, res: Response) => {
   try {
     const models = await database.getCustomModels();
-    res.json({ success: true, data: models });
+    res.json({ success: true, data: models.map(sanitizeModelConfig) });
   } catch (error) {
     logger.error({ error }, '获取自定义模型失败');
     res.status(500).json({ success: false, error: '获取自定义模型失败' });
@@ -194,6 +202,29 @@ router.post('/discover', async (req: Request, res: Response) => {
   }
 });
 
+router.post('/:id/discover', async (req: Request, res: Response) => {
+  try {
+    const model = await database.getModelConfig(req.params.id);
+    if (!model) {
+      return res.status(404).json({ success: false, error: '模型不存在' });
+    }
+
+    const apiKey = typeof req.body.apiKey === 'string' && req.body.apiKey.trim() !== ''
+      ? req.body.apiKey.trim()
+      : model.apiKey;
+
+    if (!apiKey) {
+      return res.status(400).json({ success: false, error: '请先填写 API Key' });
+    }
+
+    const models = await discoverProviderModels(model.provider, model.apiUrl, apiKey);
+    res.json({ success: true, data: models, message: '模型列表获取成功' });
+  } catch (error) {
+    logger.error({ error }, '获取模型列表失败');
+    res.status(500).json({ success: false, error: error instanceof Error ? error.message : '获取模型列表失败' });
+  }
+});
+
 router.get('/:id', async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
@@ -203,7 +234,7 @@ router.get('/:id', async (req: Request, res: Response) => {
       return res.status(404).json({ success: false, error: '模型不存在' });
     }
 
-    res.json({ success: true, data: model });
+    res.json({ success: true, data: sanitizeModelConfig(model) });
   } catch (error) {
     logger.error({ error }, '获取模型配置失败');
     res.status(500).json({ success: false, error: '获取模型配置失败' });
@@ -235,7 +266,7 @@ router.post('/', async (req: Request, res: Response) => {
     };
 
     const saved = await database.saveModelConfig(config);
-    res.status(201).json({ success: true, data: saved, message: '模型配置已保存' });
+    res.status(201).json({ success: true, data: sanitizeModelConfig(saved), message: '模型配置已保存' });
   } catch (error) {
     logger.error({ error }, '保存模型配置失败');
     res.status(400).json({ success: false, error: error instanceof Error ? error.message : '保存模型配置失败' });
@@ -252,7 +283,9 @@ router.put('/:id', async (req: Request, res: Response) => {
 
     const mergedProvider = req.body.provider ?? existing.provider;
     const mergedApiUrl = req.body.apiUrl ?? existing.apiUrl;
-    const mergedApiKey = req.body.apiKey ?? existing.apiKey;
+    const mergedApiKey = typeof req.body.apiKey === 'string'
+      ? (req.body.apiKey.trim() !== '' ? req.body.apiKey : existing.apiKey)
+      : existing.apiKey;
     const mergedModelId = req.body.modelId ?? existing.modelId;
 
     if (existing.isBuiltIn && mergedProvider !== 'deepseek') {
@@ -279,7 +312,7 @@ router.put('/:id', async (req: Request, res: Response) => {
     };
 
     const saved = await database.saveModelConfig(updated);
-    res.json({ success: true, data: saved, message: '模型配置已更新' });
+    res.json({ success: true, data: sanitizeModelConfig(saved), message: '模型配置已更新' });
   } catch (error) {
     logger.error({ error }, '更新模型配置失败');
     res.status(400).json({ success: false, error: error instanceof Error ? error.message : '更新模型配置失败' });
@@ -315,7 +348,7 @@ router.post('/:id/test', async (req: Request, res: Response) => {
     const updated = await database.saveModelConfig(model);
     res.json({
       success: matched,
-      data: updated,
+      data: sanitizeModelConfig(updated),
       message: matched ? '连接测试成功' : '当前已保存模型不在服务商返回的模型列表中',
     });
   } catch (error) {

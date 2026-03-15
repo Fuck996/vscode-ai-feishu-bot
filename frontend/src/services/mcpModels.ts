@@ -12,6 +12,7 @@ export interface ModelConfig {
   provider: ModelProvider;
   apiUrl: string;
   apiKey?: string;
+  hasApiKey?: boolean;
   modelId?: string;
   isBuiltIn: boolean;
   status: 'connected' | 'testing' | 'disconnected' | 'unconfigured';
@@ -124,6 +125,21 @@ class McpModelsService {
       return await response.json();
     } catch (error) {
       console.error('获取模型列表失败:', error);
+      return { success: false, error: '获取模型列表失败' };
+    }
+  }
+
+  async discoverModelsById(id: string, apiKey?: string): Promise<DiscoverModelsResponse> {
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/mcp/models/${id}/discover`, {
+        method: 'POST',
+        headers: this.getHeaders(),
+        body: JSON.stringify({ apiKey }),
+      });
+
+      return await response.json();
+    } catch (error) {
+      console.error('按配置获取模型列表失败:', error);
       return { success: false, error: '获取模型列表失败' };
     }
   }
