@@ -1474,6 +1474,25 @@ const Services: React.FC = () => {
                 ))}
               </div>
 
+              {/* 状态说明 */}
+              <div style={{
+                background: '#f0f9ff',
+                border: '1px solid #bfdbfe',
+                borderRadius: '0.5rem',
+                padding: '1rem',
+                marginBottom: '1.5rem',
+                fontSize: '0.8125rem',
+                color: '#1e40af',
+              }}>
+                <div style={{ fontWeight: 600, marginBottom: '0.5rem' }}>📌 状态说明</div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', lineHeight: 1.6 }}>
+                  <div><span style={{ color: '#10b981', fontWeight: 600 }}>✓ 已连接</span>：API 可用，已通过连接测试</div>
+                  <div><span style={{ color: '#f59e0b', fontWeight: 600 }}>⚙ 配置中</span>：已填写 API 信息，等待测试连接</div>
+                  <div><span style={{ color: '#9ca3af', fontWeight: 600 }}>❌ 未连接</span>：连接测试失败（API 错误、无网络）</div>
+                  <div><span style={{ color: '#ef4444', fontWeight: 600 }}>⊘ 未配置</span>：未提供必要的 API 信息</div>
+                </div>
+              </div>
+
               <h3 style={{ fontSize: '1rem', fontWeight: 600, color: '#1f2937', marginTop: '1.5rem', marginBottom: '1rem' }}>自定义模型</h3>
               <div style={{ border: '2px dashed #d1d5db', borderRadius: '0.5rem', padding: '2rem', textAlign: 'center' }}>
                 <div style={{ fontSize: '0.875rem', color: '#6b7280', marginBottom: '1rem' }}>
@@ -1934,6 +1953,59 @@ const Services: React.FC = () => {
                   <div style={{ fontSize: '0.75rem', color: '#92400e', lineHeight: 1.6 }}>
                     <div style={{ fontWeight: 600, marginBottom: '0.25rem' }}>💡 提示词编写建议</div>
                     <div>指导模型按照 ✅完成 | 🔧修复 | 📝说明 的格式组织信息</div>
+                  </div>
+                </div>
+
+                {/* 格式教程 */}
+                <div style={{
+                  background: '#f3f4f6',
+                  border: '1px solid #d1d5db',
+                  borderRadius: '0.5rem',
+                  padding: '1rem',
+                }}>
+                  <div style={{ fontSize: '0.8125rem', fontWeight: 600, color: '#374151', marginBottom: '0.75rem' }}>📖 格式教程</div>
+                  
+                  <div style={{ fontSize: '0.75rem', color: '#4b5563', lineHeight: 1.8 }}>
+                    <div style={{ fontWeight: 600, color: '#1f2937', marginBottom: '0.5rem' }}>✏️ 提示词编写步骤：</div>
+                    
+                    <div style={{ marginBottom: '0.75rem', paddingLeft: '1rem', borderLeft: '3px solid #3b82f6' }}>
+                      <div style={{ fontWeight: 500, marginBottom: '0.25rem' }}>1️⃣ 定义输出格式</div>
+                      <div style={{ fontSize: '0.7rem', color: '#6b7280', fontFamily: 'monospace' }}>
+                        "请按以下格式输出："
+                      </div>
+                    </div>
+
+                    <div style={{ marginBottom: '0.75rem', paddingLeft: '1rem', borderLeft: '3px solid #10b981' }}>
+                      <div style={{ fontWeight: 500, marginBottom: '0.25rem' }}>2️⃣ 列举成功项</div>
+                      <div style={{ fontSize: '0.7rem', color: '#6b7280', fontFamily: 'monospace' }}>
+                        "✅ 已完成的任务和成果（每项一行）"
+                      </div>
+                    </div>
+
+                    <div style={{ marginBottom: '0.75rem', paddingLeft: '1rem', borderLeft: '3px solid #f59e0b' }}>
+                      <div style={{ fontWeight: 500, marginBottom: '0.25rem' }}>3️⃣ 列举修复/改进项</div>
+                      <div style={{ fontSize: '0.7rem', color: '#6b7280', fontFamily: 'monospace' }}>
+                        "🔧 已修复的问题和改进（每项一行）"
+                      </div>
+                    </div>
+
+                    <div style={{ marginBottom: '0.75rem', paddingLeft: '1rem', borderLeft: '3px solid #6b7280' }}>
+                      <div style={{ fontWeight: 500, marginBottom: '0.25rem' }}>4️⃣ 添加说明信息</div>
+                      <div style={{ fontSize: '0.7rem', color: '#6b7280', fontFamily: 'monospace' }}>
+                        "📝 后续计划或需要关注的事项"
+                      </div>
+                    </div>
+
+                    <div style={{ background: '#e0f2fe', border: '1px solid #bae6fd', borderRadius: '0.375rem', padding: '0.75rem', marginTop: '1rem' }}>
+                      <div style={{ fontWeight: 600, color: '#075985', marginBottom: '0.5rem' }}>📋 提示词示例：</div>
+                      <div style={{ fontSize: '0.7rem', color: '#075985', fontFamily: 'monospace', lineHeight: 1.6, background: 'white', padding: '0.5rem', borderRadius: '0.25rem' }}>
+                        分析以下工作日志，按照下述格式生成汇报：<br/>
+                        ✅ 列出所有已完成的任务<br/>
+                        🔧 列出所有已修复的问题和改进<br/>
+                        📝 包含后续计划或风险提示<br/>
+                        每项前缀必须包含符号。
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
