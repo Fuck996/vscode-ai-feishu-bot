@@ -2,6 +2,7 @@ import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { CalendarDays, Clock3, MoreHorizontal, ChevronDown, ChevronLeft, ChevronRight, Search } from 'lucide-react';
 import SceneIcon, { SceneIconName } from '../components/SceneIcon';
 import authService from '../services/auth';
+import mcpModelsService from '../services/mcpModels';
 
 interface Service {
   id: string;
@@ -139,8 +140,10 @@ const Services: React.FC = () => {
   const [selectedPromptTemplate, setSelectedPromptTemplate] = useState<{ id: string; name: string; desc: string; refs: number } | null>(null);
   // 内置模型配置弹窗状态
   const [builtInModelModalOpen, setBuiltInModelModalOpen] = useState(false);
-  const [selectedBuiltInModel, setSelectedBuiltInModel] = useState<{ name: string; desc: string; apiUrl: string; status: string } | null>(null);
+  const [selectedBuiltInModel, setSelectedBuiltInModel] = useState<{ id?: string; name: string; desc: string; apiUrl: string; status: string } | null>(null);
   const [builtInModelApiKey, setBuiltInModelApiKey] = useState('');
+  const [builtInModelLoading, setBuiltInModelLoading] = useState(false);
+  const [builtInModelTestingConnection, setBuiltInModelTestingConnection] = useState(false);
   // 发送历史分页 & 搜索状态
   const [historySearch, setHistorySearch] = useState<string>('');
   const [historyStatusFilter, setHistoryStatusFilter] = useState<string>('all');
@@ -1389,6 +1392,7 @@ const Services: React.FC = () => {
               <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginBottom: '2rem' }}>
                 {[
                   { 
+                    id: 'ollama',
                     name: 'Ollama', 
                     desc: '本地运行的开源模型',
                     apiUrl: 'http://localhost:11434/v1',
@@ -1397,6 +1401,7 @@ const Services: React.FC = () => {
                     pricing: '💚 完全免费（本地运行）'
                   },
                   { 
+                    id: 'lm-studio',
                     name: 'LM Studio', 
                     desc: '桌面端本地模型运行工具',
                     apiUrl: 'http://localhost:1234/v1',
@@ -1405,6 +1410,7 @@ const Services: React.FC = () => {
                     pricing: '💚 完全免费（本地运行）'
                   },
                   { 
+                    id: 'deepseek',
                     name: 'Deepseek', 
                     desc: '国内超低成本模型',
                     apiUrl: 'https://api.deepseek.com/v1',
@@ -1413,6 +1419,7 @@ const Services: React.FC = () => {
                     pricing: '💛 $0.00008/1K input tokens（业界最便宜）'
                   },
                   { 
+                    id: 'openai',
                     name: 'OpenAI', 
                     desc: '业界标准模型系列',
                     apiUrl: 'https://api.openai.com/v1',
@@ -1421,6 +1428,7 @@ const Services: React.FC = () => {
                     pricing: '💰 GPT-4o: $2.50/1M in | GPT-4o mini: $0.15/1M in'
                   },
                   { 
+                    id: 'claude',
                     name: 'Anthropic Claude', 
                     desc: '高智能推理能力',
                     apiUrl: 'https://api.anthropic.com/v1',
@@ -1429,6 +1437,7 @@ const Services: React.FC = () => {
                     pricing: '💰 Claude 3.5 Haiku: $0.80/1M in（商用最便宜）'
                   },
                   { 
+                    id: 'moonshot',
                     name: 'Moonshot', 
                     desc: '国内高端推理模型',
                     apiUrl: 'https://api.moonshot.cn/openai/v1',
@@ -1721,18 +1730,43 @@ const Services: React.FC = () => {
                 />
               </div>
               <button
+                onClick={async () => {
+                  if (!selectedBuiltInModel || !builtInModelApiKey.trim()) {
+                    alert('请输入 API Key');
+                    return;
+                  }
+                  setBuiltInModelTestingConnection(true);
+                  try {
+                    const modelId = (selectedBuiltInModel as any).id;
+                    if (!modelId) {
+                      alert('无法确定模型ID');
+                      return;
+                    }
+                    const result = await mcpModelsService.testModel(modelId, builtInModelApiKey);
+                    if (result.success) {
+                      alert('连接成功！');
+                    } else {
+                      alert('连接失败：' + (result.error || '未知错误'));
+                    }
+                  } catch (error) {
+                    alert('测试连接出错：' + (error instanceof Error ? error.message : '未知错误'));
+                  } finally {
+                    setBuiltInModelTestingConnection(false);
+                  }
+                }}
+                disabled={builtInModelTestingConnection}
                 style={{
                   padding: '0.5rem 1rem',
-                  backgroundColor: '#3b82f6',
+                  backgroundColor: builtInModelTestingConnection ? '#9ca3af' : '#3b82f6',
                   color: 'white',
                   border: 'none',
                   borderRadius: '0.375rem',
-                  cursor: 'pointer',
+                  cursor: builtInModelTestingConnection ? 'not-allowed' : 'pointer',
                   fontSize: '0.8125rem',
                   fontWeight: 500,
                 }}
               >
-                🔗 测试连接
+                {builtInModelTestingConnection ? '测试中...' : '🔗 测试连接'}
               </button>
             </div>
 
@@ -1760,18 +1794,49 @@ const Services: React.FC = () => {
                 取消
               </button>
               <button
+                onClick={async () => {
+                  if (!selectedBuiltInModel || !builtInModelApiKey.trim()) {
+                    alert('请输入 API Key');
+                    return;
+                  }
+                  setBuiltInModelLoading(true);
+                  try {
+                    // 根据 selectedBuiltInModel 中的 ID 来决定是更新还是创建
+                    // 这里假设 selectedBuiltInModel 对象中有 id 属性
+                    const modelId = (selectedBuiltInModel as any).id;
+                    if (modelId) {
+                      const result = await mcpModelsService.updateModel(modelId, {
+                        apiKey: builtInModelApiKey,
+                      });
+                      if (result.success) {
+                        alert('配置保存成功！');
+                        setBuiltInModelModalOpen(false);
+                        setBuiltInModelApiKey('');
+                      } else {
+                        alert('保存失败：' + (result.error || '未知错误'));
+                      }
+                    } else {
+                      alert('无法确定模型ID');
+                    }
+                  } catch (error) {
+                    alert('保存配置出错：' + (error instanceof Error ? error.message : '未知错误'));
+                  } finally {
+                    setBuiltInModelLoading(false);
+                  }
+                }}
+                disabled={builtInModelLoading}
                 style={{
                   padding: '0.5rem 1rem',
-                  backgroundColor: '#1f883d',
+                  backgroundColor: builtInModelLoading ? '#9ca3af' : '#1f883d',
                   color: 'white',
                   border: 'none',
                   borderRadius: '0.375rem',
-                  cursor: 'pointer',
+                  cursor: builtInModelLoading ? 'not-allowed' : 'pointer',
                   fontSize: '0.8125rem',
                   fontWeight: 500,
                 }}
               >
-                保存配置
+                {builtInModelLoading ? '保存中...' : '保存配置'}
               </button>
             </div>
           </div>

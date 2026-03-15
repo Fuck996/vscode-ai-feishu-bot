@@ -18,6 +18,7 @@ import platformWebhookRouter from './routes/platform-webhook';
 import mcpConfigRouter from './routes/mcp-config';
 import mcpEndpointRouter from './routes/mcp-endpoint';
 import mcpModelsRouter from './routes/mcp-models';
+import mcpPromptsRouter from './routes/mcp-prompts';
 import servicesRouter from './routes/services';
 import auditRouter from './routes/audit';
 import databaseService from './database';
@@ -163,6 +164,7 @@ app.use('/api/webhook', platformWebhookRouter);  // 平台 Webhook 接收
 app.use('/api/mcp', mcpEndpointRouter);  // MCP HTTP SSE 服务器（远端连接）
 app.use('/api/mcp', mcpConfigRouter);    // MCP 配置读取
 app.use('/api/mcp/models', mcpModelsRouter);  // MCP 模型配置管理
+app.use('/api/mcp/prompts', mcpPromptsRouter);  // MCP 提示词模板管理
 app.use('/api', webhookRouter);
 
 // 版本端点
