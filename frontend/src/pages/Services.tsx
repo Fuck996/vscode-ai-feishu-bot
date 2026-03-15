@@ -153,6 +153,9 @@ const Services: React.FC = () => {
   const [promptFormContent, setPromptFormContent] = useState('');
   const [promptFormLoading, setPromptFormLoading] = useState(false);
   const [promptFormPreview, setPromptFormPreview] = useState<string>('');
+  // 自定义提示词列表
+  const [customPromptsList, setCustomPromptsList] = useState<any[]>([]);
+  const [customPromptsLoading, setCustomPromptsLoading] = useState(false);
   // 发送历史分页 & 搜索状态
   const [historySearch, setHistorySearch] = useState<string>('');
   const [historyStatusFilter, setHistoryStatusFilter] = useState<string>('all');
@@ -229,6 +232,24 @@ const Services: React.FC = () => {
   useEffect(() => {
     updateCountdowns();
   }, [services, updateCountdowns]);
+
+  // 加载自定义提示词列表
+  useEffect(() => {
+    const loadCustomPrompts = async () => {
+      try {
+        setCustomPromptsLoading(true);
+        const result = await mcpPromptsService.getCustomPrompts();
+        if (result.success && result.data) {
+          setCustomPromptsList(result.data);
+        }
+      } catch (error) {
+        console.error('加载自定义提示词失败:', error);
+      } finally {
+        setCustomPromptsLoading(false);
+      }
+    };
+    loadCustomPrompts();
+  }, [promptFormModalOpen]); // 当弹窗打开时重新加载
 
   const fetchServices = async () => {
     try {
@@ -1618,9 +1639,84 @@ const Services: React.FC = () => {
                 <h4 style={{ fontSize: '0.875rem', fontWeight: 600, color: '#374151', marginBottom: '1rem', textTransform: 'uppercase' }}>
                   自定义模板
                 </h4>
-                <div style={{ border: '2px dashed #d1d5db', borderRadius: '0.375rem', padding: '1.5rem', textAlign: 'center', color: '#6b7280', fontSize: '0.875rem' }}>
-                  暂无自定义模板
-                </div>
+                {customPromptsLoading ? (
+                  <div style={{ textAlign: 'center', color: '#9ca3af', padding: '1.5rem' }}>
+                    加载中...
+                  </div>
+                ) : customPromptsList.length > 0 ? (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                    {customPromptsList.map(template => (
+                      <div
+                        key={template.id}
+                        style={{
+                          border: '1px solid #d1d5db',
+                          borderRadius: '0.375rem',
+                          padding: '0.75rem',
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'center',
+                        }}
+                      >
+                        <div style={{ flex: 1 }}>
+                          <div style={{ fontSize: '0.875rem', fontWeight: 500, color: '#1f2937' }}>
+                            {template.name}
+                          </div>
+                          <div style={{ fontSize: '0.75rem', color: '#6b7280', marginTop: '0.25rem' }}>
+                            {template.purpose || '自定义'} · 被 {template.usageCount || 0} 个任务使用
+                          </div>
+                        </div>
+                        <div style={{ display: 'flex', gap: '0.5rem' }}>
+                          <button
+                            onClick={() => {
+                              setEditingPromptId(template.id);
+                              setPromptFormName(template.name);
+                              setPromptFormPurpose(template.purpose || 'custom');
+                              setPromptFormContent(template.content);
+                              setPromptFormModalOpen(true);
+                            }}
+                            style={{
+                              padding: '0.25rem 0.75rem',
+                              border: '1px solid #d1d5db',
+                              background: 'white',
+                              color: '#57606a',
+                              borderRadius: '0.375rem',
+                              cursor: 'pointer',
+                              fontSize: '0.75rem',
+                              fontWeight: 500,
+                            }}
+                          >
+                            编辑
+                          </button>
+                          <button
+                            onClick={() => {
+                              if (confirm('确定要删除该提示词吗？')) {
+                                mcpPromptsService.deletePrompt(template.id).then(() => {
+                                  setCustomPromptsList(customPromptsList.filter(p => p.id !== template.id));
+                                });
+                              }
+                            }}
+                            style={{
+                              padding: '0.25rem 0.75rem',
+                              border: '1px solid #ef4444',
+                              background: 'white',
+                              color: '#ef4444',
+                              borderRadius: '0.375rem',
+                              cursor: 'pointer',
+                              fontSize: '0.75rem',
+                              fontWeight: 500,
+                            }}
+                          >
+                            删除
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div style={{ border: '2px dashed #d1d5db', borderRadius: '0.375rem', padding: '1.5rem', textAlign: 'center', color: '#6b7280', fontSize: '0.875rem' }}>
+                    暂无自定义模板，点击"新增"按钮创建
+                  </div>
+                )}
               </div>
             </div>
           )}
