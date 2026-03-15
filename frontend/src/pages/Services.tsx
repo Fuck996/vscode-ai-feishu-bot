@@ -1626,6 +1626,7 @@ const Services: React.FC = () => {
                               >
                                 <button
                                   onClick={() => {
+                                    setTaskMenuPos(null);
                                     handleRunTask(task.id);
                                   }}
                                   style={{

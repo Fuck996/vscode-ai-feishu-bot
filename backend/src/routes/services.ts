@@ -438,7 +438,44 @@ async function callLLMAPI(
       throw new Error('模型返回空结果');
     }
 
-    return choices[0]?.message?.content || '无法生成报告';
+    const reportContent = choices[0]?.message?.content || '无法生成报告';
+
+    // 【新增】异步查询模型余额（仅 DeepSeek 支持，不等待结果）
+    if (model.provider === 'deepseek' && model.apiKey) {
+      (async () => {
+        try {
+          const balanceUrl = 'https://api.deepseek.com/user/balance';
+          const balanceResponse = await axios.get(balanceUrl, {
+            headers: {
+              'Authorization': `Bearer ${model.apiKey}`,
+              'Content-Type': 'application/json',
+            },
+            timeout: 5000,
+          });
+
+          const balanceData = balanceResponse.data as {
+            is_available?: boolean;
+            balance_log_list?: Array<{ total_balance?: number }>;
+            balance_infos?: Array<{ total_balance?: number }>;
+          };
+
+          let balance: number | null = null;
+          if (balanceData.balance_log_list && balanceData.balance_log_list.length > 0) {
+            balance = balanceData.balance_log_list[0].total_balance ?? null;
+          } else if (balanceData.balance_infos && balanceData.balance_infos.length > 0) {
+            balance = balanceData.balance_infos[0].total_balance ?? null;
+          }
+
+          if (balance !== null) {
+            logger.info({ modelId: model.id, balance }, '模型余额查询成功（异步更新）');
+          }
+        } catch (balanceError) {
+          logger.debug({ modelId: model.id, error: balanceError }, '异步查询余额失败（不影响主流程）');
+        }
+      })();
+    }
+
+    return reportContent;
   } catch (error) {
     const errorMsg = error instanceof Error ? error.message : String(error);
     logger.error({ modelName: model.name, error: errorMsg }, 'LLM API 调用失败');
@@ -518,7 +555,7 @@ async function runReportTask(task: ReportTask): Promise<ReportTaskHistory> {
   const end = getRangeEnd(task.rangeType);
   const allNotifications = await db.getNotifications(10000, 0);
   
-  // 过滤通知：时间 + 状态 + 机器人 + 集成
+  // 过滤通知：时间 + 状态 + 机器人 + 集成 + 排除汇报任务产生的数据
   let relatedNotifications = allNotifications.filter(notification => {
     if (!notification.createdAt) {
       return false;
@@ -534,6 +571,18 @@ async function runReportTask(task: ReportTask): Promise<ReportTaskHistory> {
     }
 
     if (robot && notification.robotName && notification.robotName !== robot.name) {
+      return false;
+    }
+
+    // 【新增】排除汇报任务相关的数据污染
+    // 1. 排除来自汇报机器人本身的通知（防止循环）
+    if (robot && notification.robotName === robot.name) {
+      return false;
+    }
+
+    // 2. 排除 source 中包含"汇报"、"报告"等关键词的通知
+    const source = (notification.source || '').toLowerCase();
+    if (source.includes('report') || source.includes('汇报')) {
       return false;
     }
 
