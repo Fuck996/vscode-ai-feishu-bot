@@ -229,19 +229,19 @@ const History: React.FC = () => {
 
         {/* 通知历史表格 */}
         <div style={{ background: 'white', borderRadius: '0.5rem', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', overflow: 'hidden' }}>
-          <div style={{ padding: '1rem 1.5rem', borderBottom: '1px solid #e5e7eb', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem', flexWrap: 'wrap' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-              <span style={{ fontSize: '0.9375rem', fontWeight: 700, color: '#1f2328' }}>通知历史</span>
-              <span style={{ fontSize: '0.8125rem', color: '#656d76' }}>共 {displayedNotifications.length} 条</span>
+          <div style={{ padding: '1rem 1.5rem', borderBottom: '1px solid #e5e7eb', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', minWidth: 0 }}>
+              <span style={{ fontSize: '0.9375rem', fontWeight: 700, color: '#1f2328', whiteSpace: 'nowrap' }}>通知历史</span>
+              <span style={{ fontSize: '0.8125rem', color: '#656d76', whiteSpace: 'nowrap' }}>共 {displayedNotifications.length} 条</span>
             </div>
-            <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+            <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
               {renderFilterDropdown('status')}
               {renderFilterDropdown('robot')}
               {(statusFilter.length > 0 || robotFilter.length > 0) && (
                 <button
                   type="button"
                   onClick={() => { setStatusFilter([]); setRobotFilter([]); }}
-                  style={{ padding: '0.375rem 0.75rem', fontSize: '0.8125rem', color: '#cf222e', backgroundColor: '#fff0f0', border: '1px solid #ffcdd2', borderRadius: '0.375rem', cursor: 'pointer', fontWeight: 500 }}
+                  style={{ padding: '0.375rem 0.75rem', fontSize: '0.8125rem', color: '#cf222e', backgroundColor: '#fff0f0', border: '1px solid #ffcdd2', borderRadius: '0.375rem', cursor: 'pointer', fontWeight: 500, whiteSpace: 'nowrap' }}
                 >
                   清除筛选
                 </button>

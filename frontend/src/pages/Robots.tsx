@@ -77,7 +77,7 @@ export default function Robots() {
   const [searchQuery, setSearchQuery] = useState('');
   const [openActionMenu, setOpenActionMenu] = useState<ActionMenuState | null>(null);
   const [openFilterMenu, setOpenFilterMenu] = useState(false);
-  const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive'>('all');
+  const [statusFilter, setStatusFilter] = useState<('active' | 'inactive')[]>([]);
   // 每个机器人已使用的集成类型  robotId -> string[]
   const [robotIntegrationTypes, setRobotIntegrationTypes] = useState<Record<string, string[]>>({});
 
@@ -416,7 +416,7 @@ export default function Robots() {
 
   // 过滤机器人列表
   const filteredRobots = robots.filter(robot => {
-    if (statusFilter !== 'all' && robot.status !== statusFilter) return false;
+    if (statusFilter.length > 0 && !statusFilter.includes(robot.status)) return false;
     if (searchQuery.trim() !== '' && !robot.name.toLowerCase().includes(searchQuery.toLowerCase())) return false;
     return true;
   });
@@ -481,11 +481,13 @@ export default function Robots() {
                 <button
                   type="button"
                   onClick={() => setOpenFilterMenu(!openFilterMenu)}
-                  style={{ display: 'inline-flex', alignItems: 'center', gap: '0.375rem', padding: '0.375rem 0.75rem', fontSize: '0.8125rem', fontWeight: 500, color: statusFilter !== 'all' ? '#0969da' : '#57606a', backgroundColor: statusFilter !== 'all' ? '#dbeafe' : '#f6f8fa', border: `1px solid ${statusFilter !== 'all' ? '#0969da' : '#d0d7de'}`, borderRadius: '0.375rem', cursor: 'pointer' }}
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: '0.375rem', padding: '0.375rem 0.75rem', fontSize: '0.8125rem', fontWeight: 500, color: statusFilter.length > 0 ? '#0969da' : '#57606a', backgroundColor: statusFilter.length > 0 ? '#dbeafe' : '#f6f8fa', border: `1px solid ${statusFilter.length > 0 ? '#0969da' : '#d0d7de'}`, borderRadius: '0.375rem', cursor: 'pointer' }}
                 >
                   状态
-                  {statusFilter !== 'all' && (
-                    <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: '16px', height: '16px', borderRadius: '50%', backgroundColor: '#0969da', color: 'white', fontSize: '0.6rem', fontWeight: 700 }}>1</span>
+                  {statusFilter.length > 0 && (
+                    <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: '16px', height: '16px', borderRadius: '50%', backgroundColor: '#0969da', color: 'white', fontSize: '0.6rem', fontWeight: 700 }}>
+                      {statusFilter.length}
+                    </span>
                   )}
                   <ChevronDown size={13} />
                 </button>
@@ -493,26 +495,31 @@ export default function Robots() {
                   <div style={{ position: 'absolute', top: 'calc(100% + 0.375rem)', right: 0, minWidth: '160px', backgroundColor: '#ffffff', border: '1px solid #d0d7de', borderRadius: '0.75rem', boxShadow: '0 16px 32px rgba(31, 35, 40, 0.15)', zIndex: 30, overflow: 'hidden' }}>
                     <div style={{ padding: '0.625rem 1rem', borderBottom: '1px solid #e5e7eb', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                       <span style={{ fontSize: '0.8125rem', fontWeight: 600, color: '#1f2328' }}>按状态筛选</span>
-                      {statusFilter !== 'all' && (
-                        <button type="button" onClick={() => setStatusFilter('all')} style={{ fontSize: '0.75rem', color: '#0969da', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>清除</button>
+                      {statusFilter.length > 0 && (
+                        <button type="button" onClick={() => setStatusFilter([])} style={{ fontSize: '0.75rem', color: '#0969da', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>清除</button>
                       )}
                     </div>
-                    {[
-                      { label: '全部', value: 'all' },
-                      { label: '启用', value: 'active' },
-                      { label: '禁用', value: 'inactive' },
-                    ].map(opt => (
-                      <button
-                        key={opt.value}
-                        type="button"
-                        onClick={() => { setStatusFilter(opt.value as 'all' | 'active' | 'inactive'); setOpenFilterMenu(false); }}
-                        style={{ width: '100%', textAlign: 'left', padding: '0.5rem 1rem', border: 'none', backgroundColor: statusFilter === opt.value ? '#f3f4f6' : 'transparent', color: '#1f2328', cursor: 'pointer', fontSize: '0.875rem', fontWeight: statusFilter === opt.value ? 600 : 400 }}
-                        onMouseEnter={e => { if (statusFilter !== opt.value) e.currentTarget.style.backgroundColor = '#f6f8fa'; }}
-                        onMouseLeave={e => { e.currentTarget.style.backgroundColor = statusFilter === opt.value ? '#f3f4f6' : 'transparent'; }}
-                      >
-                        {opt.label}
-                      </button>
-                    ))}
+                    {([{ label: '启用', value: 'active' }, { label: '禁用', value: 'inactive' }] as const).map(opt => {
+                      const isSelected = statusFilter.includes(opt.value);
+                      return (
+                        <button
+                          key={opt.value}
+                          type="button"
+                          onClick={() => setStatusFilter(prev => prev.includes(opt.value) ? prev.filter(s => s !== opt.value) : [...prev, opt.value])}
+                          style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.5rem 1rem', border: 'none', backgroundColor: isSelected ? '#f0f6ff' : 'transparent', cursor: 'pointer', textAlign: 'left' }}
+                          onMouseEnter={e => { if (!isSelected) e.currentTarget.style.backgroundColor = '#f6f8fa'; }}
+                          onMouseLeave={e => { if (!isSelected) e.currentTarget.style.backgroundColor = 'transparent'; }}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={isSelected}
+                            onChange={() => {}}
+                            style={{ margin: 0, cursor: 'pointer' }}
+                          />
+                          <span style={{ fontSize: '0.875rem', color: '#1f2328' }}>{opt.label}</span>
+                        </button>
+                      );
+                    })}
                   </div>
                 )}
               </div>
