@@ -1,6 +1,6 @@
 # 需求与BUG跟踪文档
 
-**版本：** v1.4.7 | **更新时间：** 2026-03-17 | **内容：** 修复History筛选器裁切 | 修复Services页MCP数据加载 | 强化表格规范文档
+![alt text](image.png)**版本：** v1.4.9 | **更新时间：** 2026-03-15 | **内容：** 修复MCP服务401错误(localStorage token key不匹配)
 
 
 ## 📌 使用说明
@@ -92,6 +92,7 @@
 
 | 版本 | 发布日期 | 主要变更 |
 |------|----------|----------|
+| v1.4.9 | 2026-03-15 | 修复 MCP 服务 401 认证错误：mcpModels.ts、mcpPrompts.ts、mcpLogs.ts 三个服务文件读取 token 时使用了错误的 localStorage key `'token'`，与 auth.ts 实际存储的 `'auth_token'` 不一致，导致请求头携带 `Bearer null`，后端返回 401；已统一修正为 `'auth_token'`（共 18 处替换） ✅ 已完成 |
 | v1.4.8 | 2026-03-17 | UI 缺陷修复：History.tsx 筛选器下拉菜单改用 `position: fixed + getBoundingClientRect()` 动态定位，完全避免被卡片容器 overflow 裁切；Services.tsx MCP 模型和提示词标签页调整加载时机（组件挂载时初始一次 + 标签切换时重新加载），确保数据展示；强化表格规范文档第7章关于 overflow 裁切问题的说明，加入强制规范、根本原因、正确/错误做法及检查清单 ✅ 已完成 |
 | v1.4.7 | 2026-03-17 | UI 缺陷修复：Robots.tsx 状态筛选器从单选改为多选数组状态管理（支持同时筛选活跃和非活跃机器人）；History.tsx 筛选框裁切问题修复（应用 flexbox `minWidth:0` 和 `whiteSpace:nowrap` 确保响应式布局）；前端成功编译无错误；后端服务正常运行；数据库内置模型和提示词初始化验证成功 (6+5) ✅ 已完成 |
 | v1.4.6 | 2026-03-17 | 提示词管理完整实现：后端在初始化时自动创建 5 个预置提示词模板（VS Code Chat 汇报、日报快报、周报总结、事件报告、优化建议）和 6 个内置模型（Ollama/LM Studio/Deepseek/OpenAI/Claude/Moonshot）；前端 Services 页面新增自定义提示词列表加载、编辑、删除功能；提示词创建弹窗支持实时飞书卡片预览和格式教程；所有 API 调用已集成后端路由 ✅ 已完成 |
