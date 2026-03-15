@@ -395,183 +395,294 @@ function formatNotificationsAsJSON(
   };
 }
 
-/**
- * 优化通知数据以适应 DeepSeek 的上下文限制
- * - DeepSeek 最大上下文：128K tokens
- * - 估算方式：1 token ≈ 3-4 个字符（考虑中英文混合）
- * - 设定安全限制：100K tokens ≈ 350KB 字符
- */
+interface OptimizableEvent {
+  id: string;
+  status: string;
+  title: string;
+  timestamp: string;
+  sentences: string[];
+}
+
+const DEEPSEEK_SAFE_CONTEXT_CHARS = 180000;
+const IRRELEVANT_SENTENCE_PATTERNS = [
+  /^https?:\/\//i,
+  /^[a-f0-9]{7,}$/i,
+  /^[A-Z_]+\s*=\s*.+$/,
+  /^([A-Za-z]:)?[\\/].+$/,
+  /^(job|run|workflow|task|branch|pid|id)\s*[:#=]/i,
+  /^\d{4}-\d{2}-\d{2}[ t]\d{2}:\d{2}(:\d{2})?/i,
+  /^[\d\s:./_-]+$/,
+];
+const EXCLUDED_SENTENCE_KEYWORDS = ['启动', '重启', '提交', '构建', '编译', 'start', 'restart', 'commit', 'build', 'compile'];
+
+function splitIntoSentences(text: string): string[] {
+  return text
+    .replace(/\r/g, '')
+    .split(/\n|[。！？!?]/)
+    .map(item => item.trim())
+    .filter(Boolean);
+}
+
+function normalizeSentence(text: string): string {
+  return text.replace(/\s+/g, ' ').trim().toLowerCase();
+}
+
+function isIrrelevantSentence(sentence: string): boolean {
+  const trimmed = sentence.trim();
+  if (!trimmed || trimmed.length <= 3) {
+    return true;
+  }
+
+  return IRRELEVANT_SENTENCE_PATTERNS.some(pattern => pattern.test(trimmed));
+}
+
+function containsExcludedKeyword(sentence: string): boolean {
+  const normalized = sentence.toLowerCase();
+  return EXCLUDED_SENTENCE_KEYWORDS.some(keyword => normalized.includes(keyword.toLowerCase()));
+}
+
+function toOptimizableEvents(
+  data: ReturnType<typeof formatNotificationsAsJSON>
+): OptimizableEvent[] {
+  return data.events.map((event, index) => {
+    const summarySentences = splitIntoSentences(event.summary);
+    return {
+      id: `${event.timestamp}-${index}`,
+      status: event.status,
+      title: event.title,
+      timestamp: event.timestamp,
+      sentences: summarySentences.length ? summarySentences : splitIntoSentences(event.title),
+    };
+  });
+}
+
+function pruneEmptyEvents(events: OptimizableEvent[]): OptimizableEvent[] {
+  return events.filter(event => event.sentences.length > 0);
+}
+
+function rebuildFormattedData(
+  baseData: ReturnType<typeof formatNotificationsAsJSON>,
+  events: OptimizableEvent[]
+): ReturnType<typeof formatNotificationsAsJSON> {
+  const statistics: Record<string, number> = {
+    success: 0,
+    error: 0,
+    warning: 0,
+    info: 0,
+  };
+
+  const rebuiltEvents = events.map(event => {
+    statistics[event.status] = (statistics[event.status] || 0) + 1;
+    return {
+      status: event.status,
+      title: event.title,
+      summary: event.sentences.join('。\n'),
+      timestamp: event.timestamp,
+    };
+  });
+
+  return {
+    ...baseData,
+    total: rebuiltEvents.length,
+    statistics,
+    events: rebuiltEvents,
+  };
+}
+
 function optimizeNotificationDataForContext(
   data: ReturnType<typeof formatNotificationsAsJSON>,
-  rangeType: ReportTaskRange, // 用于判断是否超过1天
+  rangeType: ReportTaskRange,
   taskName: string
 ): {
   data: ReturnType<typeof formatNotificationsAsJSON>;
   optimized: boolean;
   log: string[];
 } {
-  const SAFETY_LIMIT = 350000; // 350K 字符 ≈ 100K tokens
   const logs: string[] = [];
+  let workingEvents = toOptimizableEvents(data);
+  let currentData = rebuildFormattedData(data, workingEvents);
+  let currentSize = JSON.stringify(currentData).length;
 
-  // 计算当前数据大小
-  let currentSize = JSON.stringify(data).length;
-
-  if (currentSize <= SAFETY_LIMIT) {
+  if (currentSize <= DEEPSEEK_SAFE_CONTEXT_CHARS) {
     logger.debug(
-      { taskName, currentSize, safetyLimit: SAFETY_LIMIT },
+      { taskName, currentSize, safetyLimit: DEEPSEEK_SAFE_CONTEXT_CHARS },
       '数据大小在安全范围内，无需优化'
     );
     return { data, optimized: false, log: logs };
   }
 
   logger.info(
-    { taskName, currentSize, safetyLimit: SAFETY_LIMIT, exceeded: currentSize - SAFETY_LIMIT },
-    `数据超过上下文限制，开始多层次优化（超出 ${currentSize - SAFETY_LIMIT} 字符）`
+    {
+      taskName,
+      currentSize,
+      safetyLimit: DEEPSEEK_SAFE_CONTEXT_CHARS,
+      exceeded: currentSize - DEEPSEEK_SAFE_CONTEXT_CHARS,
+    },
+    `数据超过上下文限制，开始多层次优化（超出 ${currentSize - DEEPSEEK_SAFE_CONTEXT_CHARS} 字符）`
   );
 
-  const workingData = JSON.parse(JSON.stringify(data)); // 深拷贝
+  const sortedByTime = [...workingEvents].sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+  const winnerKeys = new Set<string>();
+  const seenSentences = new Set<string>();
 
-  // ================== 第1层：筛除完全一致的信息（去重） ==================
-  const step1Log = `【Step 1】筛除重复信息...`;
-  const seenTitles = new Set<string>();
-  const deduplicatedEvents = workingData.events.filter((event: any) => {
-    if (seenTitles.has(event.title)) {
-      return false;
-    }
-    seenTitles.add(event.title);
-    return true;
-  });
-
-  const removed1 = workingData.events.length - deduplicatedEvents.length;
-  workingData.events = deduplicatedEvents;
-
-  currentSize = JSON.stringify(workingData).length;
-  if (removed1 > 0) {
-    logs.push(`${step1Log} 移除了 ${removed1} 条重复项，当前大小: ${currentSize}`);
-    logger.info({ taskName, removed: removed1, newSize: currentSize }, step1Log);
-  }
-
-  if (currentSize <= SAFETY_LIMIT) {
-    logs.push(`优化完成：数据已满足上下文限制`);
-    return { data: workingData, optimized: true, log: logs };
-  }
-
-  // ================== 第2层：筛除与总结内容无关的数据 ==================
-  const step2Log = `【Step 2】筛除无关的低优先级数据...`;
-  const relevantKeywords = ['error', 'warning', 'fail', 'problem', 'issue', '错误', '警告', '失败', '问题'];
-  const filteredEvents = workingData.events.filter((event: any) => {
-    // 保留 error 和 warning 状态的所有事件
-    if (event.status === 'error' || event.status === 'warning') {
-      return true;
-    }
-
-    // 对于 success 和 info，检查是否包含相关关键词
-    const content = `${event.title} ${event.summary}`.toLowerCase();
-    return relevantKeywords.some(keyword => content.includes(keyword));
-  });
-
-  const removed2 = workingData.events.length - filteredEvents.length;
-  workingData.events = filteredEvents;
-
-  currentSize = JSON.stringify(workingData).length;
-  if (removed2 > 0) {
-    logs.push(`${step2Log} 移除了 ${removed2} 条无关项，当前大小: ${currentSize}`);
-    logger.info({ taskName, removed: removed2, newSize: currentSize }, step2Log);
-  }
-
-  if (currentSize <= SAFETY_LIMIT) {
-    logs.push(`优化完成：数据已满足上下文限制`);
-    return { data: workingData, optimized: true, log: logs };
-  }
-
-  // ================== 第3层：筛除特定关键词的数据 ==================
-  const step3Log = `【Step 3】筛除系统操作相关的消息...`;
-  const systemKeywords = ['启动', '重启', '提交', '构建', '编译', 'start', 'restart', 'deploy', 'build', 'compile', 'commit'];
-  const reducedEvents = workingData.events.filter((event: any) => {
-    // 保留高优先级事件（error/warning）
-    if (event.status === 'error' || event.status === 'warning') {
-      return true;
-    }
-
-    // 对于其他事件，检查是否包含系统关键词
-    const content = `${event.title} ${event.summary}`.toLowerCase();
-    return !systemKeywords.some(keyword => content.includes(keyword.toLowerCase()));
-  });
-
-  const removed3 = workingData.events.length - reducedEvents.length;
-  workingData.events = reducedEvents;
-
-  currentSize = JSON.stringify(workingData).length;
-  if (removed3 > 0) {
-    logs.push(`${step3Log} 移除了 ${removed3} 条系统操作消息，当前大小: ${currentSize}`);
-    logger.info({ taskName, removed: removed3, newSize: currentSize }, step3Log);
-  }
-
-  if (currentSize <= SAFETY_LIMIT) {
-    logs.push(`优化完成：数据已满足上下文限制`);
-    return { data: workingData, optimized: true, log: logs };
-  }
-
-  // ================== 第4层：逐条筛除最短的数据（仅限多天范围） ==================
-  const isMultiDayRange = rangeType !== 'today' && rangeType !== '1d';
-
-  if (isMultiDayRange && workingData.events.length > 0) {
-    const step4Log = `【Step 4】逐条筛除最短的消息（多日范围模式）...`;
-    let removed4 = 0;
-
-    while (currentSize > SAFETY_LIMIT && workingData.events.length > 0) {
-      // 找到最短的事件
-      let minIndex = 0;
-      let minLength = Infinity;
-
-      workingData.events.forEach((event: any, index: number) => {
-        const length = `${event.title}${event.summary}`.length;
-        if (length < minLength) {
-          minLength = length;
-          minIndex = index;
-        }
-      });
-
-      // 移除最短的事件
-      workingData.events.splice(minIndex, 1);
-      removed4++;
-      currentSize = JSON.stringify(workingData).length;
-
-      // 每移除10条就记录一次
-      if (removed4 % 10 === 0) {
-        logger.debug(
-          { taskName, removedCount: removed4, currentSize },
-          `${step4Log} 已移除 ${removed4} 条消息`
-        );
+  for (const event of sortedByTime) {
+    event.sentences.forEach((sentence, index) => {
+      const normalized = normalizeSentence(sentence);
+      if (!normalized || seenSentences.has(normalized)) {
+        return;
       }
 
-      // 防止移除过多
-      if (removed4 > 1000) {
-        logger.warn({ taskName }, '优化过程中移除了超过1000条消息，可能数据量过大');
+      seenSentences.add(normalized);
+      winnerKeys.add(`${event.id}:${index}`);
+    });
+  }
+
+  let removed1 = 0;
+  workingEvents = pruneEmptyEvents(workingEvents.map(event => ({
+    ...event,
+    sentences: event.sentences.filter((_sentence, index) => {
+      const keep = winnerKeys.has(`${event.id}:${index}`);
+      if (!keep) {
+        removed1 += 1;
+      }
+      return keep;
+    }),
+  })));
+
+  currentData = rebuildFormattedData(data, workingEvents);
+  currentSize = JSON.stringify(currentData).length;
+  if (removed1 > 0) {
+    logs.push(`第1步：按句去重，移除 ${removed1} 句重复内容，当前大小 ${currentSize}`);
+    logger.info({ taskName, removed: removed1, newSize: currentSize }, '【上下文优化】按句去重完成');
+  }
+
+  if (currentSize <= DEEPSEEK_SAFE_CONTEXT_CHARS) {
+    logs.push('优化完成：数据已满足上下文限制');
+    return { data: currentData, optimized: true, log: logs };
+  }
+
+  let removed2 = 0;
+  workingEvents = pruneEmptyEvents(workingEvents.map(event => ({
+    ...event,
+    sentences: event.sentences.filter(sentence => {
+      if (event.status === 'error' || event.status === 'warning') {
+        return true;
+      }
+
+      const keep = !isIrrelevantSentence(sentence);
+      if (!keep) {
+        removed2 += 1;
+      }
+      return keep;
+    }),
+  })));
+
+  currentData = rebuildFormattedData(data, workingEvents);
+  currentSize = JSON.stringify(currentData).length;
+  if (removed2 > 0) {
+    logs.push(`第2步：按句移除无关元数据 ${removed2} 句，当前大小 ${currentSize}`);
+    logger.info({ taskName, removed: removed2, newSize: currentSize }, '【上下文优化】无关句子过滤完成');
+  }
+
+  if (currentSize <= DEEPSEEK_SAFE_CONTEXT_CHARS) {
+    logs.push('优化完成：数据已满足上下文限制');
+    return { data: currentData, optimized: true, log: logs };
+  }
+
+  let removed3 = 0;
+  workingEvents = pruneEmptyEvents(workingEvents.map(event => ({
+    ...event,
+    sentences: event.sentences.filter(sentence => {
+      const keep = !containsExcludedKeyword(sentence);
+      if (!keep) {
+        removed3 += 1;
+      }
+      return keep;
+    }),
+  })));
+
+  currentData = rebuildFormattedData(data, workingEvents);
+  currentSize = JSON.stringify(currentData).length;
+  if (removed3 > 0) {
+    logs.push(`第3步：按句移除启动/重启/提交/构建/编译相关内容 ${removed3} 句，当前大小 ${currentSize}`);
+    logger.info({ taskName, removed: removed3, newSize: currentSize }, '【上下文优化】关键词句子过滤完成');
+  }
+
+  if (currentSize <= DEEPSEEK_SAFE_CONTEXT_CHARS) {
+    logs.push('优化完成：数据已满足上下文限制');
+    return { data: currentData, optimized: true, log: logs };
+  }
+
+  const isMultiDayRange = rangeType !== 'today' && rangeType !== '1d';
+  if (isMultiDayRange && workingEvents.length > 0) {
+    let removed4 = 0;
+
+    while (currentSize > DEEPSEEK_SAFE_CONTEXT_CHARS && workingEvents.length > 0) {
+      const eventsByDay = new Map<string, Array<{ eventIndex: number; sentenceIndex: number; length: number }>>();
+
+      workingEvents.forEach((event, eventIndex) => {
+        const dayKey = event.timestamp.slice(0, 10);
+        const sentenceEntries = event.sentences.map((sentence, sentenceIndex) => ({
+          eventIndex,
+          sentenceIndex,
+          length: sentence.length,
+        }));
+        eventsByDay.set(dayKey, [...(eventsByDay.get(dayKey) || []), ...sentenceEntries]);
+      });
+
+      let removedThisRound = 0;
+      for (const sentenceEntries of eventsByDay.values()) {
+        sentenceEntries.sort((a, b) => a.length - b.length);
+        const target = sentenceEntries[0];
+        if (!target) {
+          continue;
+        }
+
+        const event = workingEvents[target.eventIndex];
+        if (!event || !event.sentences[target.sentenceIndex]) {
+          continue;
+        }
+
+        event.sentences.splice(target.sentenceIndex, 1);
+        removed4 += 1;
+        removedThisRound += 1;
+      }
+
+      workingEvents = pruneEmptyEvents(workingEvents);
+      currentData = rebuildFormattedData(data, workingEvents);
+      currentSize = JSON.stringify(currentData).length;
+
+      if (removedThisRound === 0) {
+        break;
+      }
+
+      if (removed4 % 20 === 0) {
+        logger.debug({ taskName, removedCount: removed4, currentSize }, '【上下文优化】按天移除最短句进行中');
+      }
+
+      if (removed4 > 2000) {
+        logger.warn({ taskName }, '优化过程中移除了超过2000句，可能数据量过大');
         break;
       }
     }
 
     if (removed4 > 0) {
-      logs.push(`${step4Log} 移除了 ${removed4} 条最短消息，当前大小: ${currentSize}`);
-      logger.info({ taskName, removed: removed4, newSize: currentSize }, step4Log);
+      logs.push(`第4步：多日范围按天各移除最短句，共 ${removed4} 句，当前大小 ${currentSize}`);
+      logger.info({ taskName, removed: removed4, newSize: currentSize }, '【上下文优化】按天移除最短句完成');
     }
   }
 
-  // 最终检查
-  if (currentSize > SAFETY_LIMIT) {
+  if (currentSize > DEEPSEEK_SAFE_CONTEXT_CHARS) {
     logger.warn(
-      { taskName, finalSize: currentSize, safetyLimit: SAFETY_LIMIT },
-      `数据优化后仍然超过上下文限制，可能导致信息丢失`
+      { taskName, finalSize: currentSize, safetyLimit: DEEPSEEK_SAFE_CONTEXT_CHARS },
+      '数据优化后仍然超过上下文限制，可能导致信息丢失'
     );
-    logs.push(
-      `⚠️ 警告：优化后数据仍然超限 (${currentSize} / ${SAFETY_LIMIT})，建议减少筛选范围或调整任务配置`
-    );
+    logs.push(`警告：优化后数据仍然超限 (${currentSize} / ${DEEPSEEK_SAFE_CONTEXT_CHARS})，建议缩小统计范围或降低消息上限`);
   } else {
-    logs.push(`✅ 优化成功：数据已压缩至 ${currentSize} 字符（限制: ${SAFETY_LIMIT}）`);
+    logs.push(`优化成功：数据已压缩至 ${currentSize} 字符（限制: ${DEEPSEEK_SAFE_CONTEXT_CHARS}）`);
   }
 
-  return { data: workingData, optimized: true, log: logs };
+  return { data: currentData, optimized: true, log: logs };
 }
 async function callLLMAPI(
   model: ModelConfig,
