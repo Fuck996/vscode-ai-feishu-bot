@@ -5,6 +5,7 @@ import authService from '../services/auth';
 import mcpModelsService from '../services/mcpModels';
 import mcpPromptsService from '../services/mcpPrompts';
 import mcpLogsService from '../services/mcpLogs';
+import toastService from '../services/toastService';
 
 interface Service {
   id: string;
@@ -1936,24 +1937,24 @@ const Services: React.FC = () => {
               <button
                 onClick={async () => {
                   if (!selectedBuiltInModel || !builtInModelApiKey.trim()) {
-                    alert('请输入 API Key');
+                    toastService.warning('请输入 API Key');
                     return;
                   }
                   setBuiltInModelTestingConnection(true);
                   try {
                     const modelId = (selectedBuiltInModel as any).id;
                     if (!modelId) {
-                      alert('无法确定模型ID');
+                      toastService.error('无法确定模型ID');
                       return;
                     }
                     const result = await mcpModelsService.testModel(modelId, builtInModelApiKey);
                     if (result.success) {
-                      alert('连接成功！');
+                      toastService.success('测试连接成功');
                     } else {
-                      alert('连接失败：' + (result.error || '未知错误'));
+                      toastService.error('连接失败：' + (result.error || '未知错误'));
                     }
                   } catch (error) {
-                    alert('测试连接出错：' + (error instanceof Error ? error.message : '未知错误'));
+                    toastService.error('测试连接出错：' + (error instanceof Error ? error.message : '未知错误'));
                   } finally {
                     setBuiltInModelTestingConnection(false);
                   }
@@ -2000,7 +2001,7 @@ const Services: React.FC = () => {
               <button
                 onClick={async () => {
                   if (!selectedBuiltInModel || !builtInModelApiKey.trim()) {
-                    alert('请输入 API Key');
+                    toastService.warning('请输入 API Key');
                     return;
                   }
                   setBuiltInModelLoading(true);
@@ -2013,17 +2014,17 @@ const Services: React.FC = () => {
                         apiKey: builtInModelApiKey,
                       });
                       if (result.success) {
-                        alert('配置保存成功！');
+                        toastService.success('配置保存成功');
                         setBuiltInModelModalOpen(false);
                         setBuiltInModelApiKey('');
                       } else {
-                        alert('保存失败：' + (result.error || '未知错误'));
+                        toastService.error('保存失败：' + (result.error || '未知错误'));
                       }
                     } else {
-                      alert('无法确定模型ID');
+                      toastService.error('无法确定模型ID');
                     }
                   } catch (error) {
-                    alert('保存配置出错：' + (error instanceof Error ? error.message : '未知错误'));
+                    toastService.error('保存配置出错：' + (error instanceof Error ? error.message : '未知错误'));
                   } finally {
                     setBuiltInModelLoading(false);
                   }

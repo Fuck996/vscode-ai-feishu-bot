@@ -1,6 +1,6 @@
 # 需求与BUG跟踪文档
 
-![alt text](image.png)**版本：** v1.4.11 | **更新时间：** 2026-03-15 | **内容：** 修复浏览器自动填充扩展错误
+![alt text](image.png)**版本：** v1.4.7 | **更新时间：** 2026-03-15 | **内容：** 完善模型验证逻辑 & 集成 Toast 通知系统
 
 
 ## 📌 使用说明
@@ -92,6 +92,7 @@
 
 | 版本 | 发布日期 | 主要变更 |
 |------|----------|----------|
+| v1.4.7 | 2026-03-15 | 完善 MCP 模型连接测试验证：后端优化 Ollama/LM Studio/OpenAI/Claude 的验证逻辑，确保 HTTP 错误、无模型列表等情况都设置明确的错误信息；前端所有模型测试通知（成功/失败）改用 Toast 通知替代 alert()，包括测试连接、保存配置等操作全部接入 toastService ✅ 已完成 |
 | v1.4.11 | 2026-03-15 | 修复浏览器自动填充扩展错误：模型配置弹窗中 API Key 输入框改为 `type="text"` 并添加 `autoComplete="off"` 禁用自动填充，解决浏览器扩展处理 password 字段时的 null 异常崩溃 ✅ 已完成 |
 | v1.4.10 | 2026-03-15 | MCP 服务完善：API KEY 真实验证（Ollama、LM Studio、OpenAI、Deepseek、Claude、Moonshot 各有相应的验证端点和请求头，错误提示清楚）；UI 改进：修复提示词显示的 refs→usageCount 且显示 0，移除按钮"🔗"Emoji，移除模型定价的 emoji，修复模型配置弹窗的 desc 字段访问（改为根据 purpose 动态显示），提示词预览框使用情况改为显示具体数值 ✅ 已完成 |
 | v1.4.9 | 2026-03-15 | 修复 MCP 服务 401 认证错误：mcpModels.ts、mcpPrompts.ts、mcpLogs.ts 三个服务文件读取 token 时使用了错误的 localStorage key `'token'`，与 auth.ts 实际存储的 `'auth_token'` 不一致，导致请求头携带 `Bearer null`，后端返回 401；已统一修正为 `'auth_token'`（共 18 处替换） ✅ 已完成 |

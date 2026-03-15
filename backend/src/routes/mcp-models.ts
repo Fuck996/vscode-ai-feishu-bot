@@ -197,9 +197,14 @@ router.post('/:id/test', async (req: Request, res: Response) => {
             if (response.ok) {
               const data = await response.json();
               testResult = data.models && Array.isArray(data.models) && data.models.length > 0;
+              if (!testResult) {
+                errorMessage = 'Ollama 未返回任何模型列表';
+              }
+            } else {
+              errorMessage = `Ollama 连接失败 (HTTP ${response.status})，请确保本地服务运行在 ${model.apiUrl}`;
             }
           } catch (err) {
-            errorMessage = 'Ollama 连接失败，请确保本地服务运行在正确地址';
+            errorMessage = `Ollama 连接失败：${err instanceof Error ? err.message : '未知错误'}，请确保本地服务运行在正确地址`;
           }
           break;
           
@@ -214,10 +219,15 @@ router.post('/:id/test', async (req: Request, res: Response) => {
             }
             if (response.ok) {
               const data = await response.json();
-              testResult = (data.data && Array.isArray(data.data)) || (data.models && Array.isArray(data.models));
+              testResult = (data.data && Array.isArray(data.data) && data.data.length > 0) || (data.models && Array.isArray(data.models) && data.models.length > 0);
+              if (!testResult) {
+                errorMessage = 'LM Studio 未返回任何模型列表';
+              }
+            } else {
+              errorMessage = `LM Studio 连接失败 (HTTP ${response.status})，请确保本地服务运行在 ${model.apiUrl}`;
             }
           } catch (err) {
-            errorMessage = 'LM Studio 连接失败，请确保本地服务运行在正确地址';
+            errorMessage = `LM Studio 连接失败：${err instanceof Error ? err.message : '未知错误'}，请确保本地服务运行在正确地址`;
           }
           break;
           
@@ -236,11 +246,14 @@ router.post('/:id/test', async (req: Request, res: Response) => {
             } else if (response.ok) {
               const data = await response.json();
               testResult = data.data && Array.isArray(data.data) && data.data.length > 0;
+              if (!testResult) {
+                errorMessage = '成功连接但未返回模型列表';
+              }
             } else {
-              errorMessage = `API 返回错误: ${response.status}`;
+              errorMessage = `API 返回错误: ${response.status} - ${response.statusText}`;
             }
           } catch (err) {
-            errorMessage = `连接到 ${model.apiUrl} 失败`;
+            errorMessage = `连接到 ${model.apiUrl} 失败: ${err instanceof Error ? err.message : '未知错误'}`;
           }
           break;
           
@@ -256,9 +269,12 @@ router.post('/:id/test', async (req: Request, res: Response) => {
               errorMessage = 'API Key 无效';
             } else if (response.ok) {
               const data = await response.json();
-              testResult = data.data && Array.isArray(data.data);
+              testResult = data.data && Array.isArray(data.data) && data.data.length > 0;
+              if (!testResult) {
+                errorMessage = '成功连接但未返回模型列表';
+              }
             } else {
-              errorMessage = `API 返回错误: ${response.status}`;
+              errorMessage = `API 返回错误: ${response.status} - ${response.statusText}`;
             }
           } catch (err) {
             errorMessage = `连接失败: ${err instanceof Error ? err.message : '未知错误'}`;
