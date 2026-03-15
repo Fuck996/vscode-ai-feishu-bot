@@ -3,6 +3,7 @@ import { CalendarDays, Clock3, MoreHorizontal, ChevronDown, ChevronLeft, Chevron
 import SceneIcon, { SceneIconName } from '../components/SceneIcon';
 import authService from '../services/auth';
 import mcpModelsService from '../services/mcpModels';
+import mcpPromptsService from '../services/mcpPrompts';
 
 interface Service {
   id: string;
@@ -144,6 +145,14 @@ const Services: React.FC = () => {
   const [builtInModelApiKey, setBuiltInModelApiKey] = useState('');
   const [builtInModelLoading, setBuiltInModelLoading] = useState(false);
   const [builtInModelTestingConnection, setBuiltInModelTestingConnection] = useState(false);
+  // 提示词编辑弹窗状态
+  const [promptFormModalOpen, setPromptFormModalOpen] = useState(false);
+  const [editingPromptId, setEditingPromptId] = useState<string | null>(null);
+  const [promptFormName, setPromptFormName] = useState('');
+  const [promptFormPurpose, setPromptFormPurpose] = useState<'vscode-chat' | 'daily' | 'weekly' | 'incident' | 'optimization' | 'custom'>('custom');
+  const [promptFormContent, setPromptFormContent] = useState('');
+  const [promptFormLoading, setPromptFormLoading] = useState(false);
+  const [promptFormPreview, setPromptFormPreview] = useState<string>('');
   // 发送历史分页 & 搜索状态
   const [historySearch, setHistorySearch] = useState<string>('');
   const [historyStatusFilter, setHistoryStatusFilter] = useState<string>('all');
@@ -1530,7 +1539,13 @@ const Services: React.FC = () => {
                   </p>
                 </div>
                 <button
-                  onClick={() => setMcpPromptModalOpen(true)}
+                  onClick={() => {
+                    setEditingPromptId(null);
+                    setPromptFormName('');
+                    setPromptFormPurpose('custom');
+                    setPromptFormContent('');
+                    setPromptFormModalOpen(true);
+                  }}
                   style={{
                     padding: '0.375rem 0.875rem',
                     backgroundColor: '#1f883d',
@@ -1555,7 +1570,7 @@ const Services: React.FC = () => {
                   {[
                     { id: 'vscode-chat-report', name: 'VS Code Chat汇报', desc: '用于AI任务完成后自动生成飞书通知摘要', refs: 0 },
                     { id: 'daily-digest', name: '日报快报', desc: '用于生成日常简明摘要', refs: 1 },
-                    { id: 'report-summary', name: '周报总结', desc: '用于生成周期性汇总报告', refs: 2 },
+                    { id: 'weekly-summary', name: '周报总结', desc: '用于生成周期性汇总报告', refs: 2 },
                     { id: 'incident-report', name: '事件报告', desc: '用于记录重要事件和问题', refs: 0 },
                     { id: 'optimization-suggestion', name: '优化建议', desc: '用于分析和生成系统改进建议', refs: 0 },
                   ].map(template => (
@@ -2346,7 +2361,27 @@ const Services: React.FC = () => {
                   whiteSpace: 'pre-wrap',
                   wordBreak: 'break-word',
                 }}>
-                  {selectedPromptTemplate.id === 'report-summary' && `生成系统周期性工作汇总。
+                  {selectedPromptTemplate.id === 'vscode-chat-report' && `AI 任务完成后的飞书汇报。
+
+根据 AI 任务的执行结果，生成符合飞书汇报规范的内容。
+
+格式规范（严格遵守）：
+
+✅ 已完成的任务
+- 列举所有成功完成的工作项
+- 一项一行，前缀必须为 ✅
+
+🔧 改进或修复的内容
+- 列举所有改进、修复、优化的项目
+- 一项一行，前缀必须为 🔧
+
+📝 说明或后续
+- 包含必要的说明信息
+- 潜在的问题或建议
+- 后续需要的操作或跟进
+
+严格要求：每一行必须以符号开头，确保飞书卡片显示正确。`}
+                  {selectedPromptTemplate.id === 'weekly-summary' && `生成系统周期性工作汇总。
 
 请分析提供的工作日志数据，按照以下格式生成周报汇总：
 
@@ -2491,6 +2526,304 @@ const Services: React.FC = () => {
                 }}
               >
                 复制到剪贴板
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 提示词编辑弹窗 */}
+      {promptFormModalOpen && (
+        <div 
+          onClick={() => setPromptFormModalOpen(false)}
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(0,0,0,0.4)',
+            zIndex: 300,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+        >
+          <div 
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              background: 'white',
+              borderRadius: '1rem',
+              boxShadow: '0 20px 60px rgba(0,0,0,0.25)',
+              width: '900px',
+              maxWidth: '95vw',
+              maxHeight: '90vh',
+              overflowY: 'auto',
+              display: 'flex',
+              flexDirection: 'column',
+            }}
+          >
+            {/* 弹窗头 */}
+            <div style={{
+              padding: '1.5rem',
+              borderBottom: '1px solid #f3f4f6',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+            }}>
+              <div style={{ fontSize: '1.125rem', fontWeight: 700, color: '#1f2937' }}>
+                {editingPromptId ? '编辑提示词' : '新增提示词'}
+              </div>
+              <button 
+                onClick={() => setPromptFormModalOpen(false)}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  fontSize: '1.25rem',
+                  cursor: 'pointer',
+                  color: '#9ca3af',
+                  lineHeight: 1,
+                  padding: '0.25rem',
+                  borderRadius: '0.25rem',
+                }}
+                onMouseEnter={(e) => { e.currentTarget.style.color = '#374151'; e.currentTarget.style.backgroundColor = '#f3f4f6'; }}
+                onMouseLeave={(e) => { e.currentTarget.style.color = '#9ca3af'; e.currentTarget.style.backgroundColor = 'transparent'; }}
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* 弹窗体 - 双列布局 */}
+            <div style={{ padding: '1.5rem', display: 'flex', gap: '1.5rem', flex: 1, minHeight: '500px' }}>
+              {/* 左列 - 表单 */}
+              <div style={{ flex: '0 0 40%', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.8125rem', fontWeight: 500, color: '#374151', marginBottom: '0.35rem' }}>
+                    提示词名称 <span style={{ color: '#ef4444' }}>*</span>
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="例如：日报生成"
+                    value={promptFormName}
+                    onChange={(e) => setPromptFormName(e.target.value)}
+                    style={{ width: '100%', padding: '0.5rem 0.75rem', border: '1px solid #d1d5db', borderRadius: '0.375rem', fontSize: '0.875rem', fontFamily: 'inherit', boxSizing: 'border-box' }}
+                  />
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.8125rem', fontWeight: 500, color: '#374151', marginBottom: '0.35rem' }}>
+                    应用场景 <span style={{ color: '#ef4444' }}>*</span>
+                  </label>
+                  <select
+                    value={promptFormPurpose}
+                    onChange={(e) => setPromptFormPurpose(e.target.value as any)}
+                    style={{ width: '100%', padding: '0.5rem 0.75rem', border: '1px solid #d1d5db', borderRadius: '0.375rem', fontSize: '0.875rem', fontFamily: 'inherit', boxSizing: 'border-box' }}
+                  >
+                    <option value="vscode-chat">VS Code Chat 汇报</option>
+                    <option value="daily">日报快报</option>
+                    <option value="weekly">周报总结</option>
+                    <option value="incident">事件报告</option>
+                    <option value="optimization">优化建议</option>
+                    <option value="custom">自定义</option>
+                  </select>
+                </div>
+
+                <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+                  <label style={{ display: 'block', fontSize: '0.8125rem', fontWeight: 500, color: '#374151', marginBottom: '0.35rem' }}>
+                    提示词内容 <span style={{ color: '#ef4444' }}>*</span>
+                  </label>
+                  <textarea
+                    placeholder="输入 AI 提示词内容...（支持 Markdown 格式）"
+                    value={promptFormContent}
+                    onChange={(e) => setPromptFormContent(e.target.value)}
+                    style={{ 
+                      width: '100%', 
+                      padding: '0.75rem', 
+                      border: '1px solid #d1d5db', 
+                      borderRadius: '0.375rem', 
+                      fontSize: '0.875rem', 
+                      fontFamily: "'Monaco', 'Menlo', 'Ubuntu Mono', monospace",
+                      flex: 1,
+                      minHeight: '250px',
+                      boxSizing: 'border-box',
+                      resize: 'vertical',
+                    }}
+                  />
+                </div>
+              </div>
+
+              {/* 右列 - 预览 + 格式教程 */}
+              <div style={{ flex: '0 0 60%', display: 'flex', flexDirection: 'column', gap: '1rem', borderLeft: '1px solid #e5e7eb', paddingLeft: '1.5rem' }}>
+                {/* 预览标签页 */}
+                <div style={{ display: 'flex', gap: '0.5rem', borderBottom: '1px solid #e5e7eb' }}>
+                  <button
+                    onClick={() => setPromptFormPreview('preview')}
+                    style={{
+                      padding: '0.5rem 1rem',
+                      background: promptFormPreview === 'preview' ? '#3b82f6' : 'transparent',
+                      color: promptFormPreview === 'preview' ? 'white' : '#57606a',
+                      border: 'none',
+                      borderRadius: '0.375rem',
+                      cursor: 'pointer',
+                      fontSize: '0.8125rem',
+                      fontWeight: promptFormPreview === 'preview' ? 600 : 400,
+                    }}
+                  >
+                    飞书卡片预览
+                  </button>
+                  <button
+                    onClick={() => setPromptFormPreview('format')}
+                    style={{
+                      padding: '0.5rem 1rem',
+                      background: promptFormPreview === 'format' ? '#3b82f6' : 'transparent',
+                      color: promptFormPreview === 'format' ? 'white' : '#57606a',
+                      border: 'none',
+                      borderRadius: '0.375rem',
+                      cursor: 'pointer',
+                      fontSize: '0.8125rem',
+                      fontWeight: promptFormPreview === 'format' ? 600 : 400,
+                    }}
+                  >
+                    格式说明
+                  </button>
+                </div>
+
+                {/* 预览内容 */}
+                <div style={{ flex: 1, overflowY: 'auto' }}>
+                    {promptFormPreview === 'preview' && (
+                    <div style={{
+                      background: '#f0fdf4',
+                      border: '1px solid #bbf7d0',
+                      borderRadius: '0.5rem',
+                      padding: '1rem',
+                    }}>
+                      <div style={{ fontSize: '0.8125rem', color: '#166534', fontWeight: 600, marginBottom: '0.5rem' }}>
+                        📋 飞书汇报预览
+                      </div>
+                      <div style={{
+                        background: 'white',
+                        border: '1px solid #d1d5db',
+                        borderRadius: '0.375rem',
+                        padding: '1rem',
+                        fontFamily: 'inherit',
+                        fontSize: '0.875rem',
+                        color: '#1f2937',
+                        lineHeight: 1.6,
+                      }}>
+                        {promptFormContent ? (
+                          <div>
+                            <div style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
+                              {promptFormContent}
+                            </div>
+                          </div>
+                        ) : (
+                          <div style={{ color: '#9ca3af', fontStyle: 'italic' }}>提示词预览将在这里显示...</div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                  {promptFormPreview === 'format' && (
+                    <div style={{ fontSize: '0.8125rem', color: '#374151', lineHeight: 1.7 }}>
+                      <div style={{ marginBottom: '1rem' }}>
+                        <div style={{ fontWeight: 600, marginBottom: '0.5rem' }}>✅ 符号规范</div>
+                        <div style={{ paddingLeft: '1rem' }}>
+                          • <strong>✅</strong> 用于"已完成"或"成功"的项目<br/>
+                          • <strong>🔧</strong> 用于"改进"或"修复"的项目<br/>
+                          • <strong>📝</strong> 用于"说明"或"补充信息"<br/>
+                        </div>
+                      </div>
+                      <div style={{ marginBottom: '1rem' }}>
+                        <div style={{ fontWeight: 600, marginBottom: '0.5rem' }}>📋 内容格式</div>
+                        <div style={{ paddingLeft: '1rem', background: '#f9fafb', padding: '0.75rem', borderRadius: '0.375rem', fontFamily: 'monospace', fontSize: '0.75rem' }}>
+                          ✅ 已完成的任务<br/>
+                          - 任务项1<br/>
+                          - 任务项2<br/>
+                          <br/>
+                          🔧 改进的内容<br/>
+                          - 改进项1<br/>
+                          - 改进项2
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* 弹窗底部按钮 */}
+            <div style={{
+              padding: '1.5rem',
+              borderTop: '1px solid #f3f4f6',
+              display: 'flex',
+              gap: '0.875rem',
+              justifyContent: 'flex-end',
+            }}>
+              <button
+                onClick={() => setPromptFormModalOpen(false)}
+                style={{
+                  padding: '0.5rem 1rem',
+                  backgroundColor: '#f3f4f6',
+                  color: '#374151',
+                  border: 'none',
+                  borderRadius: '0.375rem',
+                  cursor: 'pointer',
+                  fontSize: '0.8125rem',
+                  fontWeight: 500,
+                }}
+              >
+                取消
+              </button>
+              <button
+                onClick={async () => {
+                  if (!promptFormName.trim() || !promptFormContent.trim()) {
+                    alert('请填写完整的提示词信息');
+                    return;
+                  }
+                  setPromptFormLoading(true);
+                  try {
+                    const promptData = {
+                      name: promptFormName,
+                      purpose: promptFormPurpose,
+                      content: promptFormContent,
+                      isBuiltIn: false,
+                      usageCount: 0,
+                    };
+                    
+                    if (editingPromptId) {
+                      const result = await mcpPromptsService.updatePrompt(editingPromptId, promptData);
+                      if (result.success) {
+                        alert('提示词已更新');
+                        setPromptFormModalOpen(false);
+                      } else {
+                        alert('保存失败：' + (result.error || '未知错误'));
+                      }
+                    } else {
+                      const result = await mcpPromptsService.savePrompt(promptData);
+                      if (result.success) {
+                        alert('提示词已保存');
+                        setPromptFormModalOpen(false);
+                        setPromptFormName('');
+                        setPromptFormContent('');
+                      } else {
+                        alert('保存失败：' + (result.error || '未知错误'));
+                      }
+                    }
+                  } catch (error) {
+                    alert('保存提示词出错：' + (error instanceof Error ? error.message : '未知错误'));
+                  } finally {
+                    setPromptFormLoading(false);
+                  }
+                }}
+                disabled={promptFormLoading}
+                style={{
+                  padding: '0.5rem 1rem',
+                  backgroundColor: promptFormLoading ? '#9ca3af' : '#1f883d',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '0.375rem',
+                  cursor: promptFormLoading ? 'not-allowed' : 'pointer',
+                  fontSize: '0.8125rem',
+                  fontWeight: 500,
+                }}
+              >
+                {promptFormLoading ? '保存中...' : '保存提示词'}
               </button>
             </div>
           </div>
@@ -2836,7 +3169,7 @@ const Services: React.FC = () => {
                       <optgroup label="内置模板">
                         <option value="vscode-chat-report">VS Code Chat汇报</option>
                         <option value="daily-digest">日报快报</option>
-                        <option value="report-summary">周报总结</option>
+                        <option value="weekly-summary">周报总结</option>
                         <option value="incident-report">事件报告</option>
                         <option value="optimization-suggestion">优化建议</option>
                       </optgroup>

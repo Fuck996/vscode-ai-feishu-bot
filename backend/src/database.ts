@@ -156,9 +156,254 @@ class DatabaseService {
   }
 
   private async initializeSampleData(): Promise<void> {
-    // 不自动创建任何示例数据
-    // 系统以真实空白开始，用户需要通过 API 创建真实数据
-    return;
+    // 初始化预置提示词模板
+    if (this.promptTemplates.length === 0) {
+      const builtInPrompts = [
+        {
+          id: 'vscode-chat-report',
+          name: 'VS Code Chat 汇报',
+          purpose: 'vscode-chat' as const,
+          content: `你是一个专业的技术总结专家。请根据我提供的信息，生成一份结构清晰的工作汇报。
+
+汇报格式要求：
+1. **完成的事项** - 列出已完成的工作
+2. **遇到的问题** - 列出碰到的主要问题和解决方案
+3. **后续计划** - 列出接下来的工作安排
+4. **资源需求** - 如需要的工具、文档、审批等
+
+请确保汇报简洁专业，每个要点不超过2行，总长度不超过500字。`,
+          isBuiltIn: true,
+          usageCount: 0,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        },
+        {
+          id: 'daily-digest',
+          name: '日报快报',
+          purpose: 'daily' as const,
+          content: `你是一个日报编辑。请根据以下信息生成一份精准的日报快报。
+
+日报格式：
+## 📋 今日速览
+
+**重点事项（3条以内）：**
+- 事项1
+- 事项2
+- 事项3
+
+**数据统计：**
+- 指标1：数值
+- 指标2：数值
+
+**待办提醒：**
+- 明日重点
+
+要求：
+- 精炼表达，避免冗余
+- 突出重点和关键指标
+- 字数控制在300字以内`,
+          isBuiltIn: true,
+          usageCount: 0,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        },
+        {
+          id: 'weekly-summary',
+          name: '周报总结',
+          purpose: 'weekly' as const,
+          content: `你是一个周报撰写助手。请根据本周数据生成一份完整的周报总结。
+
+周报结构：
+## 📊 本周总结
+
+### 🎯 周目标完成度
+本周计划：[列出本周3-5个主要目标]
+完成情况：[描述每个目标的完成进度]
+
+### ✅ 主要成就
+- 成就1
+- 成就2
+- 成就3
+
+### ⚠️ 遇到的挑战
+- 挑战1：解决方案
+- 挑战2：解决方案
+
+### 📈 关键数据
+- 指标体系概览
+- 周环比分析
+- 趋势判断
+
+### 🔜 下周计划
+- 重点工作1
+- 重点工作2
+- 重点工作3
+
+要求：突出数据支撑，字数800字以内`,
+          isBuiltIn: true,
+          usageCount: 0,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        },
+        {
+          id: 'incident-report',
+          name: '事件报告',
+          purpose: 'incident' as const,
+          content: `你是事件管理专家。请根据事件信息生成一份专业的事件报告。
+
+事件报告格式：
+## 🚨 事件报告
+
+**事件等级：** [P1/P2/P3]
+**状态：** [进行中/已解决]
+
+### 事件描述
+- 发生时间
+- 受影响范围
+- 用户影响数量
+
+### 根本原因分析
+- 直接原因
+- 根本原因
+
+### 处理过程
+- 发现时间
+- 处理时间
+- 恢复时间
+- 采取的措施
+
+### 预防措施
+- 短期措施（1周内）
+- 长期措施（1月内）
+
+### 后续跟进
+- 监控指标
+- 跟进时间
+
+要求：数据准确，逻辑清晰，字数控制在400字以内`,
+          isBuiltIn: true,
+          usageCount: 0,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        },
+        {
+          id: 'optimization-suggestion',
+          name: '优化建议',
+          purpose: 'optimization' as const,
+          content: `你是产品优化顾问。请根据提供的信息提出专业的优化建议。
+
+优化建议框架：
+## 💡 优化建议
+
+### 📊 现状分析
+- 当前指标
+- 存在的问题
+- 对比均值分析
+
+### 💭 优化思路
+**优化方向1：** [具体方案]
+- 预期效果
+- 实施难度：☆☆☆
+- 优先级：P1
+
+**优化方向2：** [具体方案]
+- 预期效果
+- 实施难度：☆☆☆
+- 优先级：P1
+
+### 📈 预期收益
+- 指标提升
+- 用户体验改进
+- 业务价值
+
+### 🚀 实施计划
+- Phase 1：计划
+- Phase 2：执行
+- Phase 3：验证
+
+要求：方案可行性强，有具体数据支撑，字数500字以内`,
+          isBuiltIn: true,
+          usageCount: 0,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        },
+      ];
+      for (const prompt of builtInPrompts) {
+        this.promptTemplates.push(prompt);
+      }
+    }
+
+    // 初始化预置内置模型
+    if (this.modelConfigs.length === 0) {
+      const builtInModels = [
+        {
+          id: 'ollama',
+          name: 'Ollama',
+          apiUrl: 'http://localhost:11434/v1',
+          apiKey: undefined,
+          isBuiltIn: true,
+          status: 'unconfigured' as const,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        },
+        {
+          id: 'lm-studio',
+          name: 'LM Studio',
+          apiUrl: 'http://localhost:1234/v1',
+          apiKey: undefined,
+          isBuiltIn: true,
+          status: 'unconfigured' as const,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        },
+        {
+          id: 'deepseek',
+          name: 'Deepseek',
+          apiUrl: 'https://api.deepseek.com/v1',
+          apiKey: undefined,
+          isBuiltIn: true,
+          status: 'unconfigured' as const,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        },
+        {
+          id: 'openai',
+          name: 'OpenAI',
+          apiUrl: 'https://api.openai.com/v1',
+          apiKey: undefined,
+          isBuiltIn: true,
+          status: 'unconfigured' as const,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        },
+        {
+          id: 'claude',
+          name: 'Anthropic Claude',
+          apiUrl: 'https://api.anthropic.com/v1',
+          apiKey: undefined,
+          isBuiltIn: true,
+          status: 'unconfigured' as const,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        },
+        {
+          id: 'moonshot',
+          name: 'Moonshot',
+          apiUrl: 'https://api.moonshot.cn/openai/v1',
+          apiKey: undefined,
+          isBuiltIn: true,
+          status: 'unconfigured' as const,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        },
+      ];
+      for (const model of builtInModels) {
+        this.modelConfigs.push(model);
+      }
+    }
+
+    // 保存到文件
+    await this.saveToFile();
   }
 
   private async initializeAdminUser(): Promise<void> {
