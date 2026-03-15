@@ -73,6 +73,29 @@ export interface AuditLog {
   createdAt?: string;
 }
 
+export interface ModelConfig {
+  id: string;
+  name: string;                          // 模型名称（如 'OpenAI', 'Deepseek' 等）
+  apiUrl: string;                        // API 地址
+  apiKey?: string;                       // API Key（可选，内置模型可能不需要）
+  isBuiltIn: boolean;                    // 是否内置模型
+  status: 'connected' | 'testing' | 'disconnected' | 'unconfigured';  // 连接状态
+  lastTestedAt?: string;                 // 最后测试时间
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface PromptTemplate {
+  id: string;
+  name: string;                          // 模板名称
+  purpose: 'vscode-chat' | 'daily' | 'weekly' | 'incident' | 'optimization' | 'custom';  // 用途
+  content: string;                       // 模板内容
+  isBuiltIn: boolean;                    // 是否内置模板
+  usageCount: number;                    // 使用次数
+  createdAt: string;
+  updatedAt: string;
+}
+
 class DatabaseService {
   private dbPath: string;
   private notifications: (Notification & { id: number; createdAt: string })[] = [];
@@ -80,6 +103,8 @@ class DatabaseService {
   private robots: Robot[] = [];
   private integrations: Integration[] = [];
   private auditLogs: AuditLog[] = [];
+  private modelConfigs: ModelConfig[] = [];
+  private promptTemplates: PromptTemplate[] = [];
   private nextId: number = 1;
 
   constructor() {
@@ -104,6 +129,8 @@ class DatabaseService {
         this.robots = parsed.robots || [];
         this.integrations = parsed.integrations || [];
         this.auditLogs = parsed.auditLogs || [];
+        this.modelConfigs = parsed.modelConfigs || [];
+        this.promptTemplates = parsed.promptTemplates || [];
         this.nextId = parsed.nextId || 1;
         
         // 找到最大的ID
@@ -180,6 +207,8 @@ class DatabaseService {
       integrations: this.integrations,
       notifications: this.notifications,
       auditLogs: this.auditLogs,
+      modelConfigs: this.modelConfigs,
+      promptTemplates: this.promptTemplates,
       nextId: this.nextId,
       lastUpdated: new Date().toISOString(),
     };
@@ -611,6 +640,88 @@ class DatabaseService {
 
   deletePasswordResetCode(username: string): void {
     this.passwordResetCodes.delete(username.toLowerCase());
+  }
+
+  // ===== 模型配置管理 =====
+  async saveModelConfig(config: ModelConfig): Promise<ModelConfig> {
+    const existingIndex = this.modelConfigs.findIndex(m => m.id === config.id);
+    if (existingIndex >= 0) {
+      config.updatedAt = new Date().toISOString();
+      this.modelConfigs[existingIndex] = config;
+    } else {
+      config.createdAt = config.createdAt || new Date().toISOString();
+      config.updatedAt = new Date().toISOString();
+      this.modelConfigs.push(config);
+    }
+    await this.saveToFile();
+    return config;
+  }
+
+  async getModelConfig(id: string): Promise<ModelConfig | null> {
+    return this.modelConfigs.find(m => m.id === id) || null;
+  }
+
+  async getAllModelConfigs(): Promise<ModelConfig[]> {
+    return this.modelConfigs;
+  }
+
+  async getBuiltInModels(): Promise<ModelConfig[]> {
+    return this.modelConfigs.filter(m => m.isBuiltIn);
+  }
+
+  async getCustomModels(): Promise<ModelConfig[]> {
+    return this.modelConfigs.filter(m => !m.isBuiltIn);
+  }
+
+  async deleteModelConfig(id: string): Promise<boolean> {
+    const index = this.modelConfigs.findIndex(m => m.id === id);
+    if (index >= 0) {
+      this.modelConfigs.splice(index, 1);
+      await this.saveToFile();
+      return true;
+    }
+    return false;
+  }
+
+  // ===== 提示词模板管理 =====
+  async savePromptTemplate(template: PromptTemplate): Promise<PromptTemplate> {
+    const existingIndex = this.promptTemplates.findIndex(t => t.id === template.id);
+    if (existingIndex >= 0) {
+      template.updatedAt = new Date().toISOString();
+      this.promptTemplates[existingIndex] = template;
+    } else {
+      template.createdAt = template.createdAt || new Date().toISOString();
+      template.updatedAt = new Date().toISOString();
+      this.promptTemplates.push(template);
+    }
+    await this.saveToFile();
+    return template;
+  }
+
+  async getPromptTemplate(id: string): Promise<PromptTemplate | null> {
+    return this.promptTemplates.find(t => t.id === id) || null;
+  }
+
+  async getAllPromptTemplates(): Promise<PromptTemplate[]> {
+    return this.promptTemplates;
+  }
+
+  async getBuiltInPromptTemplates(): Promise<PromptTemplate[]> {
+    return this.promptTemplates.filter(t => t.isBuiltIn);
+  }
+
+  async getCustomPromptTemplates(): Promise<PromptTemplate[]> {
+    return this.promptTemplates.filter(t => !t.isBuiltIn);
+  }
+
+  async deletePromptTemplate(id: string): Promise<boolean> {
+    const index = this.promptTemplates.findIndex(t => t.id === id);
+    if (index >= 0) {
+      this.promptTemplates.splice(index, 1);
+      await this.saveToFile();
+      return true;
+    }
+    return false;
   }
 
   // ===== 密码哈希公开方法（供路由使用）=====

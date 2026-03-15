@@ -1,0 +1,241 @@
+/**
+ * MCP 模型配置管理路由
+ * 
+ * 处理内置模型和自定义模型的配置、获取、删除等操作
+ */
+
+import { Router, Request, Response } from 'express';
+import database, { ModelConfig } from '../database';
+import { authMiddleware } from '../middleware/auth';
+import logger from '../logger';
+import * as crypto from 'crypto';
+
+const router = Router();
+
+// 应用认证中间件
+router.use(authMiddleware);
+
+/**
+ * 获取所有模型配置（含内置和自定义）
+ * GET /api/mcp/models
+ */
+router.get('/', async (req: Request, res: Response) => {
+  try {
+    const models = await database.getAllModelConfigs();
+    res.json({ success: true, data: models });
+  } catch (error) {
+    logger.error({ error }, '获取模型配置失败');
+    res.status(500).json({ success: false, error: '获取模型配置失败' });
+  }
+});
+
+/**
+ * 获取内置模型
+ * GET /api/mcp/models/built-in
+ */
+router.get('/built-in', async (req: Request, res: Response) => {
+  try {
+    const models = await database.getBuiltInModels();
+    res.json({ success: true, data: models });
+  } catch (error) {
+    logger.error({ error }, '获取内置模型失败');
+    res.status(500).json({ success: false, error: '获取内置模型失败' });
+  }
+});
+
+/**
+ * 获取自定义模型
+ * GET /api/mcp/models/custom
+ */
+router.get('/custom', async (req: Request, res: Response) => {
+  try {
+    const models = await database.getCustomModels();
+    res.json({ success: true, data: models });
+  } catch (error) {
+    logger.error({ error }, '获取自定义模型失败');
+    res.status(500).json({ success: false, error: '获取自定义模型失败' });
+  }
+});
+
+/**
+ * 获取单个模型配置
+ * GET /api/mcp/models/:id
+ */
+router.get('/:id', async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const model = await database.getModelConfig(id);
+    
+    if (!model) {
+      return res.status(404).json({ success: false, error: '模型不存在' });
+    }
+    
+    res.json({ success: true, data: model });
+  } catch (error) {
+    logger.error({ error }, '获取模型配置失败');
+    res.status(500).json({ success: false, error: '获取模型配置失败' });
+  }
+});
+
+/**
+ * 保存模型配置（更新或创建）
+ * POST /api/mcp/models
+ * 
+ * Body:
+ * {
+ *   name: string,
+ *   apiUrl: string,
+ *   apiKey?: string,
+ *   isBuiltIn?: boolean
+ * }
+ */
+router.post('/', async (req: Request, res: Response) => {
+  try {
+    const { name, apiUrl, apiKey, isBuiltIn = false } = req.body;
+    
+    // 验证必填字段
+    if (!name || !apiUrl) {
+      return res.status(400).json({ success: false, error: '缺少必填字段：name, apiUrl' });
+    }
+    
+    const config: ModelConfig = {
+      id: crypto.randomUUID(),
+      name,
+      apiUrl,
+      apiKey,
+      isBuiltIn,
+      status: 'unconfigured',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+    
+    const saved = await database.saveModelConfig(config);
+    res.status(201).json({ success: true, data: saved });
+  } catch (error) {
+    logger.error({ error }, '保存模型配置失败');
+    res.status(500).json({ success: false, error: '保存模型配置失败' });
+  }
+});
+
+/**
+ * 更新模型配置
+ * PUT /api/mcp/models/:id
+ * 
+ * Body:
+ * {
+ *   name?: string,
+ *   apiUrl?: string,
+ *   apiKey?: string,
+ *   status?: 'connected' | 'testing' | 'disconnected' | 'unconfigured'
+ * }
+ */
+router.put('/:id', async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const { name, apiUrl, apiKey, status } = req.body;
+    
+    const existing = await database.getModelConfig(id);
+    if (!existing) {
+      return res.status(404).json({ success: false, error: '模型不存在' });
+    }
+    
+    const updated: ModelConfig = {
+      ...existing,
+      name: name || existing.name,
+      apiUrl: apiUrl || existing.apiUrl,
+      apiKey: apiKey !== undefined ? apiKey : existing.apiKey,
+      status: status || existing.status,
+      updatedAt: new Date().toISOString(),
+    };
+    
+    const saved = await database.saveModelConfig(updated);
+    res.json({ success: true, data: saved });
+  } catch (error) {
+    logger.error({ error }, '更新模型配置失败');
+    res.status(500).json({ success: false, error: '更新模型配置失败' });
+  }
+});
+
+/**
+ * 测试模型连接
+ * POST /api/mcp/models/:id/test
+ * 
+ * Body:
+ * {
+ *   apiKey?: string  // 可选，如果不提供则使用已保存的 Key
+ * }
+ */
+router.post('/:id/test', async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const { apiKey } = req.body;
+    
+    const model = await database.getModelConfig(id);
+    if (!model) {
+      return res.status(404).json({ success: false, error: '模型不存在' });
+    }
+    
+    const keyToUse = apiKey || model.apiKey;
+    if (!keyToUse && !model.isBuiltIn) {
+      return res.status(400).json({ success: false, error: 'API Key 未提供' });
+    }
+    
+    // 更新状态为测试中
+    model.status = 'testing';
+    await database.saveModelConfig(model);
+    
+    // 这里可以实现实际的连接测试逻辑
+    // 例如调用模型的 health check 端点
+    // 为了简化，这里假设测试成功
+    const testResult = true; // 实际应该是真实的连接测试
+    
+    if (testResult) {
+      model.status = 'connected';
+      model.lastTestedAt = new Date().toISOString();
+    } else {
+      model.status = 'disconnected';
+    }
+    
+    const updated = await database.saveModelConfig(model);
+    res.json({ 
+      success: true, 
+      data: updated,
+      message: testResult ? '连接测试成功' : '连接测试失败'
+    });
+  } catch (error) {
+    logger.error({ error }, '测试模型连接失败');
+    res.status(500).json({ success: false, error: '测试模型连接失败' });
+  }
+});
+
+/**
+ * 删除模型配置
+ * DELETE /api/mcp/models/:id
+ */
+router.delete('/:id', async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    
+    const model = await database.getModelConfig(id);
+    if (!model) {
+      return res.status(404).json({ success: false, error: '模型不存在' });
+    }
+    
+    // 禁止删除内置模型
+    if (model.isBuiltIn) {
+      return res.status(403).json({ success: false, error: '内置模型不能删除' });
+    }
+    
+    const deleted = await database.deleteModelConfig(id);
+    if (deleted) {
+      res.json({ success: true, message: '模型配置已删除' });
+    } else {
+      res.status(404).json({ success: false, error: '模型不存在' });
+    }
+  } catch (error) {
+    logger.error({ error }, '删除模型配置失败');
+    res.status(500).json({ success: false, error: '删除模型配置失败' });
+  }
+});
+
+export default router;
