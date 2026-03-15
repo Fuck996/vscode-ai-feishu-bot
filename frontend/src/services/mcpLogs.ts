@@ -24,7 +24,7 @@ class McpLogsService {
    */
   async getAllLogs(limit: number = 100, offset: number = 0): Promise<GetLogsResponse> {
     try {
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem('auth_token');
       const response = await fetch(
         `${API_BASE_URL}/api/mcp/logs?limit=${limit}&offset=${offset}`,
         {
@@ -49,7 +49,7 @@ class McpLogsService {
    */
   async getLogsByLevel(level: 'INFO' | 'WARN' | 'ERROR', limit: number = 100): Promise<GetLogsResponse> {
     try {
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem('auth_token');
       const response = await fetch(
         `${API_BASE_URL}/api/mcp/logs/${level}?limit=${limit}`,
         {
@@ -74,7 +74,7 @@ class McpLogsService {
    */
   async clearLogs(): Promise<{ success: boolean; message?: string; error?: string }> {
     try {
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem('auth_token');
       const response = await fetch(`${API_BASE_URL}/api/mcp/logs`, {
         method: 'DELETE',
         headers: {

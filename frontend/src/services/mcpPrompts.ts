@@ -33,7 +33,7 @@ class McpPromptsService {
    */
   async getAllPrompts(): Promise<GetPromptsResponse> {
     try {
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem('auth_token');
       const response = await fetch(`${API_BASE_URL}/api/mcp/prompts`, {
         method: 'GET',
         headers: {
@@ -55,7 +55,7 @@ class McpPromptsService {
    */
   async getBuiltInPrompts(): Promise<GetPromptsResponse> {
     try {
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem('auth_token');
       const response = await fetch(`${API_BASE_URL}/api/mcp/prompts/built-in`, {
         method: 'GET',
         headers: {
@@ -77,7 +77,7 @@ class McpPromptsService {
    */
   async getCustomPrompts(): Promise<GetPromptsResponse> {
     try {
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem('auth_token');
       const response = await fetch(`${API_BASE_URL}/api/mcp/prompts/custom`, {
         method: 'GET',
         headers: {
@@ -99,7 +99,7 @@ class McpPromptsService {
    */
   async getPrompt(id: string): Promise<SavePromptTemplateResponse> {
     try {
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem('auth_token');
       const response = await fetch(`${API_BASE_URL}/api/mcp/prompts/${id}`, {
         method: 'GET',
         headers: {
@@ -121,7 +121,7 @@ class McpPromptsService {
    */
   async savePrompt(prompt: Omit<PromptTemplate, 'id' | 'createdAt' | 'updatedAt'>): Promise<SavePromptTemplateResponse> {
     try {
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem('auth_token');
       const response = await fetch(`${API_BASE_URL}/api/mcp/prompts`, {
         method: 'POST',
         headers: {
@@ -144,7 +144,7 @@ class McpPromptsService {
    */
   async updatePrompt(id: string, prompt: Partial<PromptTemplate>): Promise<SavePromptTemplateResponse> {
     try {
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem('auth_token');
       const response = await fetch(`${API_BASE_URL}/api/mcp/prompts/${id}`, {
         method: 'PUT',
         headers: {
@@ -167,7 +167,7 @@ class McpPromptsService {
    */
   async deletePrompt(id: string): Promise<{ success: boolean; message?: string; error?: string }> {
     try {
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem('auth_token');
       const response = await fetch(`${API_BASE_URL}/api/mcp/prompts/${id}`, {
         method: 'DELETE',
         headers: {

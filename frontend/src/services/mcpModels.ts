@@ -34,7 +34,7 @@ class McpModelsService {
    */
   async getAllModels(): Promise<GetModelsResponse> {
     try {
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem('auth_token');
       const response = await fetch(`${API_BASE_URL}/api/mcp/models`, {
         method: 'GET',
         headers: {
@@ -56,7 +56,7 @@ class McpModelsService {
    */
   async getBuiltInModels(): Promise<GetModelsResponse> {
     try {
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem('auth_token');
       const response = await fetch(`${API_BASE_URL}/api/mcp/models/built-in`, {
         method: 'GET',
         headers: {
@@ -78,7 +78,7 @@ class McpModelsService {
    */
   async getCustomModels(): Promise<GetModelsResponse> {
     try {
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem('auth_token');
       const response = await fetch(`${API_BASE_URL}/api/mcp/models/custom`, {
         method: 'GET',
         headers: {
@@ -100,7 +100,7 @@ class McpModelsService {
    */
   async getModel(id: string): Promise<SaveModelConfigResponse> {
     try {
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem('auth_token');
       const response = await fetch(`${API_BASE_URL}/api/mcp/models/${id}`, {
         method: 'GET',
         headers: {
@@ -122,7 +122,7 @@ class McpModelsService {
    */
   async saveModel(config: Omit<ModelConfig, 'id' | 'createdAt' | 'updatedAt'>): Promise<SaveModelConfigResponse> {
     try {
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem('auth_token');
       const response = await fetch(`${API_BASE_URL}/api/mcp/models`, {
         method: 'POST',
         headers: {
@@ -145,7 +145,7 @@ class McpModelsService {
    */
   async updateModel(id: string, config: Partial<ModelConfig>): Promise<SaveModelConfigResponse> {
     try {
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem('auth_token');
       const response = await fetch(`${API_BASE_URL}/api/mcp/models/${id}`, {
         method: 'PUT',
         headers: {
@@ -168,7 +168,7 @@ class McpModelsService {
    */
   async testModel(id: string, apiKey?: string): Promise<SaveModelConfigResponse> {
     try {
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem('auth_token');
       const response = await fetch(`${API_BASE_URL}/api/mcp/models/${id}/test`, {
         method: 'POST',
         headers: {
@@ -191,7 +191,7 @@ class McpModelsService {
    */
   async deleteModel(id: string): Promise<{ success: boolean; message?: string; error?: string }> {
     try {
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem('auth_token');
       const response = await fetch(`${API_BASE_URL}/api/mcp/models/${id}`, {
         method: 'DELETE',
         headers: {
