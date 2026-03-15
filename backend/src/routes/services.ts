@@ -144,23 +144,74 @@ function getRangeStart(rangeType: ReportTaskRange): Date {
   base.setHours(0, 0, 0, 0);
 
   switch (rangeType) {
+    case '1d':
+      // 前一天 0 点
+      base.setDate(base.getDate() - 1);
+      return base;
+    case '7d':
+      // 7 天前 0 点（不包含当日，最多 6 天前到昨天）
+      base.setDate(base.getDate() - 7);
+      return base;
     case '14d':
-      base.setDate(base.getDate() - 13);
+      // 14 天前 0 点
+      base.setDate(base.getDate() - 14);
       return base;
     case '30d':
-      base.setDate(base.getDate() - 29);
+      // 30 天前 0 点
+      base.setDate(base.getDate() - 30);
+      return base;
+    case 'today':
+      // 当日 0 点
       return base;
     case 'week': {
+      // 本周一 0 点
       const weekday = base.getDay() === 0 ? 7 : base.getDay();
       base.setDate(base.getDate() - weekday + 1);
       return base;
     }
     case 'month':
+      // 本月 1 日 0 点
       base.setDate(1);
       return base;
-    case '7d':
     default:
-      base.setDate(base.getDate() - 6);
+      base.setDate(base.getDate() - 7);
+      return base;
+  }
+}
+
+function getRangeEnd(rangeType: ReportTaskRange): Date {
+  const now = new Date();
+  const base = new Date(now);
+  base.setHours(23, 59, 59, 999);
+
+  switch (rangeType) {
+    case '1d':
+    case '7d':
+    case '14d':
+    case '30d':
+      // "最近 X 天"的 end 应该是当日前一天的 23:59:59
+      base.setDate(base.getDate() - 1);
+      base.setHours(23, 59, 59, 999);
+      return base;
+    case 'today':
+      // 当日 23:59:59
+      return base;
+    case 'week': {
+      // 本周日 23:59:59
+      const weekday = base.getDay() === 0 ? 7 : base.getDay();
+      base.setDate(base.getDate() - weekday + 7);
+      base.setHours(23, 59, 59, 999);
+      return base;
+    }
+    case 'month':
+      // 本月最后一天 23:59:59
+      base.setMonth(base.getMonth() + 1);
+      base.setDate(0);
+      base.setHours(23, 59, 59, 999);
+      return base;
+    default:
+      base.setDate(base.getDate() - 1);
+      base.setHours(23, 59, 59, 999);
       return base;
   }
 }
@@ -464,7 +515,7 @@ async function runReportTask(task: ReportTask): Promise<ReportTaskHistory> {
   const validIntegrations = integrations.filter(Boolean) as Integration[];
 
   const start = getRangeStart(task.rangeType);
-  const end = new Date();
+  const end = getRangeEnd(task.rangeType);
   const allNotifications = await db.getNotifications(10000, 0);
   
   // 过滤通知：时间 + 状态 + 机器人 + 集成

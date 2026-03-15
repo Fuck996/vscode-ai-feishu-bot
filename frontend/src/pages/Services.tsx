@@ -158,7 +158,7 @@ const Services: React.FC = () => {
   const [modalTaskName, setModalTaskName] = useState('');
   const [modalTaskDescription, setModalTaskDescription] = useState('');
   const [modalSendTime, setModalSendTime] = useState('09:00');
-  const [modalRangeType, setModalRangeType] = useState<'7d' | '14d' | '30d' | 'week' | 'month'>('7d');
+  const [modalRangeType, setModalRangeType] = useState<'1d' | '7d' | '14d' | '30d' | 'today' | 'week' | 'month'>('7d');
   const [modalModel, setModalModel] = useState<string>('');
   const [modalTemplate, setModalTemplate] = useState<string>('');
   const [modalRobot, setModalRobot] = useState<string>('');
@@ -3805,12 +3805,14 @@ const Services: React.FC = () => {
                       </label>
                       <select
                         value={modalRangeType}
-                        onChange={(e) => setModalRangeType(e.target.value as '7d' | '14d' | '30d' | 'week' | 'month')}
+                        onChange={(e) => setModalRangeType(e.target.value as '1d' | '7d' | '14d' | '30d' | 'today' | 'week' | 'month')}
                         style={{ width: '100%', padding: '0.5rem 0.75rem', border: '1px solid #d1d5db', borderRadius: '0.375rem', fontSize: '0.875rem', fontFamily: 'inherit', backgroundColor: 'white', boxSizing: 'border-box' }}
                       >
+                        <option value="1d">最近 1 天</option>
                         <option value="7d">最近 7 天</option>
                         <option value="14d">最近 14 天</option>
                         <option value="30d">最近 30 天</option>
+                        <option value="today">本日</option>
                         <option value="week">本周</option>
                         <option value="month">本月</option>
                       </select>
@@ -3820,7 +3822,7 @@ const Services: React.FC = () => {
                   <div style={{ padding: '0.625rem 0.875rem', backgroundColor: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: '0.5rem', fontSize: '0.8125rem', color: '#1d4ed8', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                     <CalendarDays size={14} />
                     <span>
-                      每周{modalWeekdays.map(d => ['一','二','三','四','五','六','日'][d-1]).join('、')} {modalSendTime} 发送，覆盖{modalRangeType === '7d' ? '最近 7 天' : modalRangeType === '14d' ? '最近 14 天' : modalRangeType === '30d' ? '最近 30 天' : modalRangeType === 'week' ? '本周' : '本月'}数据
+                      每周{modalWeekdays.map(d => ['一','二','三','四','五','六','日'][d-1]).join('、')} {modalSendTime} 发送，覆盖{modalRangeType === '1d' ? '最近 1 天' : modalRangeType === '7d' ? '最近 7 天' : modalRangeType === '14d' ? '最近 14 天' : modalRangeType === '30d' ? '最近 30 天' : modalRangeType === 'today' ? '本日' : modalRangeType === 'week' ? '本周' : '本月'}数据
                     </span>
                   </div>
                 </div>
@@ -3962,6 +3964,9 @@ const Services: React.FC = () => {
                   <div>
                     <label style={{ display: 'block', fontSize: '0.8125rem', fontWeight: 500, color: '#374151', marginBottom: '0.5rem' }}>
                       发送给AI模型的最多条数（默认50）
+                      <span style={{ marginLeft: '0.5rem', fontSize: '0.75rem', color: '#6b7280' }}>
+                        预估 Token：{Math.round(1500 + modalMaxNotifications * 10)} | 预估成本：￥{((1500 + modalMaxNotifications * 10) * 0.0014 + 800 * 0.0028 * 7).toFixed(2)}
+                      </span>
                     </label>
                     <input
                       type="number"

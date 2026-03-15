@@ -90,7 +90,7 @@ export interface ModelConfig {
   updatedAt: string;
 }
 
-export type ReportTaskRange = '7d' | '14d' | '30d' | 'week' | 'month';
+export type ReportTaskRange = '1d' | '7d' | '14d' | '30d' | 'today' | 'week' | 'month';
 
 export interface ReportTask {
   id: string;

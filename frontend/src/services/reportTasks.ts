@@ -6,7 +6,7 @@ export interface ReportTaskItem {
   description: string;
   weekdays: number[];
   sendTime: string;
-  rangeType: '7d' | '14d' | '30d' | 'week' | 'month';
+  rangeType: '1d' | '7d' | '14d' | '30d' | 'today' | 'week' | 'month';
   robotId: string;
   robotName: string;
   integrationIds: string[];
@@ -48,7 +48,7 @@ export interface ReportTaskPayload {
   description: string;
   weekdays: number[];
   sendTime: string;
-  rangeType: '7d' | '14d' | '30d' | 'week' | 'month';
+  rangeType: '1d' | '7d' | '14d' | '30d' | 'today' | 'week' | 'month';
   robotId: string;
   integrationIds: string[];
   notificationStatuses: string[];
