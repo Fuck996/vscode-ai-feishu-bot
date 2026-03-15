@@ -125,6 +125,15 @@ const Services: React.FC = () => {
   const [modalTemplate, setModalTemplate] = useState<string>('report-summary');
   const [modalRobot, setModalRobot] = useState<string>('');
   const [modalNotificationStatus, setModalNotificationStatus] = useState<string[]>(['success', 'error', 'warning', 'info']);
+  // MCP 服务弹窗状态
+  const [mcpModelModalOpen, setMcpModelModalOpen] = useState(false);
+  const [mcpPromptModalOpen, setMcpPromptModalOpen] = useState(false);
+  const [customModelName, setCustomModelName] = useState('');
+  const [customModelApiUrl, setCustomModelApiUrl] = useState('');
+  const [customModelApiKey, setCustomModelApiKey] = useState('');
+  const [customPromptName, setCustomPromptName] = useState('');
+  const [customPromptPurpose, setCustomPromptPurpose] = useState('custom');
+  const [customPromptContent, setCustomPromptContent] = useState('');
   // 发送历史分页 & 搜索状态
   const [historySearch, setHistorySearch] = useState<string>('');
   const [historyStatusFilter, setHistoryStatusFilter] = useState<string>('all');
@@ -1418,6 +1427,7 @@ const Services: React.FC = () => {
                   💡 支持任何兼容 OpenAI API 的模型（如 Ollama、LM Studio 等）
                 </div>
                 <button
+                  onClick={() => setMcpModelModalOpen(true)}
                   style={{
                     padding: '0.5rem 1.25rem',
                     backgroundColor: '#1f883d',
@@ -1446,6 +1456,7 @@ const Services: React.FC = () => {
                   </p>
                 </div>
                 <button
+                  onClick={() => setMcpPromptModalOpen(true)}
                   style={{
                     padding: '0.375rem 0.875rem',
                     backgroundColor: '#1f883d',
@@ -1547,6 +1558,301 @@ const Services: React.FC = () => {
           box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
         }
       `}</style>
+
+      {/* 自定义模型弹窗 */}
+      {mcpModelModalOpen && (
+        <div 
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(0,0,0,0.4)',
+            zIndex: 300,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+        >
+          <div 
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              background: 'white',
+              borderRadius: '1rem',
+              boxShadow: '0 20px 60px rgba(0,0,0,0.25)',
+              width: '560px',
+              maxWidth: '95vw',
+              maxHeight: '90vh',
+              overflowY: 'auto',
+            }}
+          >
+            {/* 弹窗头 */}
+            <div style={{
+              padding: '1.5rem',
+              borderBottom: '1px solid #f3f4f6',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+            }}>
+              <div style={{ fontSize: '1.125rem', fontWeight: 700, color: '#1f2937' }}>
+                添加自定义模型
+              </div>
+              <button 
+                onClick={() => setMcpModelModalOpen(false)}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  fontSize: '1.25rem',
+                  cursor: 'pointer',
+                  color: '#9ca3af',
+                  lineHeight: 1,
+                  padding: '0.25rem',
+                  borderRadius: '0.25rem',
+                }}
+                onMouseEnter={(e) => { e.currentTarget.style.color = '#374151'; e.currentTarget.style.backgroundColor = '#f3f4f6'; }}
+                onMouseLeave={(e) => { e.currentTarget.style.color = '#9ca3af'; e.currentTarget.style.backgroundColor = 'transparent'; }}
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* 弹窗体 */}
+            <div style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+              <div>
+                <label style={{ display: 'block', fontSize: '0.8125rem', fontWeight: 500, color: '#374151', marginBottom: '0.35rem' }}>
+                  模型名称 <span style={{ color: '#ef4444' }}>*</span>
+                </label>
+                <input
+                  type="text"
+                  placeholder="如：My Ollama Model"
+                  value={customModelName}
+                  onChange={(e) => setCustomModelName(e.target.value)}
+                  style={{ width: '100%', padding: '0.5rem 0.75rem', border: '1px solid #d1d5db', borderRadius: '0.375rem', fontSize: '0.875rem', fontFamily: 'inherit', boxSizing: 'border-box' }}
+                />
+              </div>
+              <div>
+                <label style={{ display: 'block', fontSize: '0.8125rem', fontWeight: 500, color: '#374151', marginBottom: '0.35rem' }}>
+                  API 地址 <span style={{ color: '#ef4444' }}>*</span>
+                </label>
+                <input
+                  type="text"
+                  placeholder="如：http://localhost:11434/v1"
+                  value={customModelApiUrl}
+                  onChange={(e) => setCustomModelApiUrl(e.target.value)}
+                  style={{ width: '100%', padding: '0.5rem 0.75rem', border: '1px solid #d1d5db', borderRadius: '0.375rem', fontSize: '0.875rem', fontFamily: 'inherit', boxSizing: 'border-box' }}
+                />
+              </div>
+              <div>
+                <label style={{ display: 'block', fontSize: '0.8125rem', fontWeight: 500, color: '#374151', marginBottom: '0.35rem' }}>
+                  API Key <span style={{ color: '#9ca3af' }}>(可选)</span>
+                </label>
+                <input
+                  type="password"
+                  placeholder="如果需要认证，输入 API Key"
+                  value={customModelApiKey}
+                  onChange={(e) => setCustomModelApiKey(e.target.value)}
+                  style={{ width: '100%', padding: '0.5rem 0.75rem', border: '1px solid #d1d5db', borderRadius: '0.375rem', fontSize: '0.875rem', fontFamily: 'inherit', boxSizing: 'border-box' }}
+                />
+              </div>
+              <button
+                style={{
+                  padding: '0.5rem 1rem',
+                  backgroundColor: '#3b82f6',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '0.375rem',
+                  cursor: 'pointer',
+                  fontSize: '0.8125rem',
+                  fontWeight: 500,
+                }}
+              >
+                🔗 测试连接
+              </button>
+            </div>
+
+            {/* 弹窗底部按钮 */}
+            <div style={{
+              padding: '1.5rem',
+              borderTop: '1px solid #f3f4f6',
+              display: 'flex',
+              gap: '0.875rem',
+              justifyContent: 'flex-end',
+            }}>
+              <button
+                onClick={() => setMcpModelModalOpen(false)}
+                style={{
+                  padding: '0.5rem 1rem',
+                  backgroundColor: '#f3f4f6',
+                  color: '#374151',
+                  border: 'none',
+                  borderRadius: '0.375rem',
+                  cursor: 'pointer',
+                  fontSize: '0.8125rem',
+                  fontWeight: 500,
+                }}
+              >
+                取消
+              </button>
+              <button
+                style={{
+                  padding: '0.5rem 1rem',
+                  backgroundColor: '#1f883d',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '0.375rem',
+                  cursor: 'pointer',
+                  fontSize: '0.8125rem',
+                  fontWeight: 500,
+                }}
+              >
+                确认添加
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 提示词管理弹窗 */}
+      {mcpPromptModalOpen && (
+        <div 
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(0,0,0,0.4)',
+            zIndex: 300,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+        >
+          <div 
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              background: 'white',
+              borderRadius: '1rem',
+              boxShadow: '0 20px 60px rgba(0,0,0,0.25)',
+              width: '600px',
+              maxWidth: '95vw',
+              maxHeight: '90vh',
+              overflowY: 'auto',
+            }}
+          >
+            {/* 弹窗头 */}
+            <div style={{
+              padding: '1.5rem',
+              borderBottom: '1px solid #f3f4f6',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+            }}>
+              <div style={{ fontSize: '1.125rem', fontWeight: 700, color: '#1f2937' }}>
+                新增提示词模板
+              </div>
+              <button 
+                onClick={() => setMcpPromptModalOpen(false)}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  fontSize: '1.25rem',
+                  cursor: 'pointer',
+                  color: '#9ca3af',
+                  lineHeight: 1,
+                  padding: '0.25rem',
+                  borderRadius: '0.25rem',
+                }}
+                onMouseEnter={(e) => { e.currentTarget.style.color = '#374151'; e.currentTarget.style.backgroundColor = '#f3f4f6'; }}
+                onMouseLeave={(e) => { e.currentTarget.style.color = '#9ca3af'; e.currentTarget.style.backgroundColor = 'transparent'; }}
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* 弹窗体 */}
+            <div style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+              <div>
+                <label style={{ display: 'block', fontSize: '0.8125rem', fontWeight: 500, color: '#374151', marginBottom: '0.35rem' }}>
+                  模板名称 <span style={{ color: '#ef4444' }}>*</span>
+                </label>
+                <input
+                  type="text"
+                  placeholder="如：团队周报模板"
+                  value={customPromptName}
+                  onChange={(e) => setCustomPromptName(e.target.value)}
+                  style={{ width: '100%', padding: '0.5rem 0.75rem', border: '1px solid #d1d5db', borderRadius: '0.375rem', fontSize: '0.875rem', fontFamily: 'inherit', boxSizing: 'border-box' }}
+                />
+              </div>
+              <div>
+                <label style={{ display: 'block', fontSize: '0.8125rem', fontWeight: 500, color: '#374151', marginBottom: '0.35rem' }}>
+                  用途标签 <span style={{ color: '#ef4444' }}>*</span>
+                </label>
+                <div style={{ display: 'flex', gap: '1rem' }}>
+                  {['周报', '日报', '事件', '其他'].map(tag => (
+                    <label key={tag} style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', fontSize: '0.875rem', cursor: 'pointer' }}>
+                      <input
+                        type="radio"
+                        name="purpose"
+                        value={tag}
+                        checked={customPromptPurpose === tag}
+                        onChange={(e) => setCustomPromptPurpose(e.target.value)}
+                        style={{ cursor: 'pointer' }}
+                      />
+                      {tag}
+                    </label>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <label style={{ display: 'block', fontSize: '0.8125rem', fontWeight: 500, color: '#374151', marginBottom: '0.35rem' }}>
+                  提示词内容 <span style={{ color: '#ef4444' }}>*</span>
+                </label>
+                <textarea
+                  placeholder="输入提示词内容，支持 Markdown 格式..."
+                  value={customPromptContent}
+                  onChange={(e) => setCustomPromptContent(e.target.value)}
+                  style={{ width: '100%', padding: '0.75rem', border: '1px solid #d1d5db', borderRadius: '0.375rem', fontSize: '0.875rem', fontFamily: "'Monaco', 'Menlo', 'Ubuntu Mono', monospace", boxSizing: 'border-box', minHeight: '150px' }}
+                />
+              </div>
+            </div>
+
+            {/* 弹窗底部按钮 */}
+            <div style={{
+              padding: '1.5rem',
+              borderTop: '1px solid #f3f4f6',
+              display: 'flex',
+              gap: '0.875rem',
+              justifyContent: 'flex-end',
+            }}>
+              <button
+                onClick={() => setMcpPromptModalOpen(false)}
+                style={{
+                  padding: '0.5rem 1rem',
+                  backgroundColor: '#f3f4f6',
+                  color: '#374151',
+                  border: 'none',
+                  borderRadius: '0.375rem',
+                  cursor: 'pointer',
+                  fontSize: '0.8125rem',
+                  fontWeight: 500,
+                }}
+              >
+                取消
+              </button>
+              <button
+                style={{
+                  padding: '0.5rem 1rem',
+                  backgroundColor: '#1f883d',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '0.375rem',
+                  cursor: 'pointer',
+                  fontSize: '0.8125rem',
+                  fontWeight: 500,
+                }}
+              >
+                确认添加
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* 新增/编辑周报任务弹窗 */}
       {taskModalOpen && (
@@ -1872,17 +2178,6 @@ const Services: React.FC = () => {
                         );
                       })}
                     </div>
-                  </div>
-                  {/* API Key */}
-                  <div>
-                    <label style={{ display: 'block', fontSize: '0.8125rem', fontWeight: 500, color: '#374151', marginBottom: '0.35rem' }}>
-                      API Key
-                    </label>
-                    <input
-                      type="password"
-                      placeholder="sk-..."
-                      style={{ width: '100%', padding: '0.5rem 0.75rem', border: '1px solid #d1d5db', borderRadius: '0.375rem', fontSize: '0.875rem', fontFamily: 'inherit', boxSizing: 'border-box' }}
-                    />
                   </div>
                   {/* 汇报模板选择 */}
                   <div>
