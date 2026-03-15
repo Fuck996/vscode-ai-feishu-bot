@@ -749,7 +749,7 @@ export default function Robots() {
               alignItems: 'center',
             }}>
               <h2 style={{ fontSize: '1.25rem', fontWeight: 600, color: '#1f2937', margin: 0 }}>
-                🤖 创建新的机器人
+                创建新的机器人
               </h2>
               <button
                 onClick={() => setIsAddRobotModalOpen(false)}

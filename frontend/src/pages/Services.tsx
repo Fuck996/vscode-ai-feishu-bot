@@ -156,6 +156,15 @@ const Services: React.FC = () => {
   // 自定义提示词列表
   const [customPromptsList, setCustomPromptsList] = useState<any[]>([]);
   const [customPromptsLoading, setCustomPromptsLoading] = useState(false);
+  // 模型列表（从数据库读取）
+  const [builtInModelsList, setBuiltInModelsList] = useState<any[]>([]);
+  const [builtInModelsLoading, setBuiltInModelsLoading] = useState(false);
+  // 内置提示词列表（从数据库读取）
+  const [builtInPromptsList, setBuiltInPromptsList] = useState<any[]>([]);
+  const [builtInPromptsLoading, setBuiltInPromptsLoading] = useState(false);
+  // MCP 日志列表（从 API 读取）
+  const [mcpLogs, setMcpLogs] = useState<any[]>([]);
+  const [mcpLogsLoading, setMcpLogsLoading] = useState(false);
   // 发送历史分页 & 搜索状态
   const [historySearch, setHistorySearch] = useState<string>('');
   const [historyStatusFilter, setHistoryStatusFilter] = useState<string>('all');
@@ -250,6 +259,40 @@ const Services: React.FC = () => {
     };
     loadCustomPrompts();
   }, [promptFormModalOpen]); // 当弹窗打开时重新加载
+
+  useEffect(() => {
+    const loadBuiltInModels = async () => {
+      try {
+        setBuiltInModelsLoading(true);
+        const result = await mcpModelsService.getBuiltInModels();
+        if (result.success && result.data) {
+          setBuiltInModelsList(result.data);
+        }
+      } catch (error) {
+        console.error('加载内置模型失败:', error);
+      } finally {
+        setBuiltInModelsLoading(false);
+      }
+    };
+    loadBuiltInModels();
+  }, [activeMCPTab]); // 当标签页切换时重新加载
+
+  useEffect(() => {
+    const loadBuiltInPrompts = async () => {
+      try {
+        setBuiltInPromptsLoading(true);
+        const result = await mcpPromptsService.getBuiltInPrompts();
+        if (result.success && result.data) {
+          setBuiltInPromptsList(result.data);
+        }
+      } catch (error) {
+        console.error('加载内置提示词失败:', error);
+      } finally {
+        setBuiltInPromptsLoading(false);
+      }
+    };
+    loadBuiltInPrompts();
+  }, [activeMCPTab]); // 当标签页切换时重新加载
 
   const fetchServices = async () => {
     try {
@@ -1420,109 +1463,86 @@ const Services: React.FC = () => {
             <div style={{ background: 'white', borderRadius: '0.5rem', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', padding: '1.5rem' }}>
               <h3 style={{ fontSize: '1rem', fontWeight: 600, color: '#1f2937', marginTop: 0, marginBottom: '1rem' }}>内置模型</h3>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginBottom: '2rem' }}>
-                {[
-                  { 
-                    id: 'ollama',
-                    name: 'Ollama', 
-                    desc: '本地运行的开源模型',
-                    apiUrl: 'http://localhost:11434/v1',
-                    status: '✓ 已连接',
-                    statusColor: '#10b981',
-                    pricing: '💚 完全免费（本地运行）'
-                  },
-                  { 
-                    id: 'lm-studio',
-                    name: 'LM Studio', 
-                    desc: '桌面端本地模型运行工具',
-                    apiUrl: 'http://localhost:1234/v1',
-                    status: '未连接',
-                    statusColor: '#9ca3af',
-                    pricing: '💚 完全免费（本地运行）'
-                  },
-                  { 
-                    id: 'deepseek',
-                    name: 'Deepseek', 
-                    desc: '国内超低成本模型',
-                    apiUrl: 'https://api.deepseek.com/v1',
-                    status: '待测试',
-                    statusColor: '#f59e0b',
-                    pricing: '💛 $0.00008/1K input tokens（业界最便宜）'
-                  },
-                  { 
-                    id: 'openai',
-                    name: 'OpenAI', 
-                    desc: '业界标准模型系列',
-                    apiUrl: 'https://api.openai.com/v1',
-                    status: '未配置',
-                    statusColor: '#ef4444',
-                    pricing: '💰 GPT-4o: $2.50/1M in | GPT-4o mini: $0.15/1M in'
-                  },
-                  { 
-                    id: 'claude',
-                    name: 'Anthropic Claude', 
-                    desc: '高智能推理能力',
-                    apiUrl: 'https://api.anthropic.com/v1',
-                    status: '未配置',
-                    statusColor: '#ef4444',
-                    pricing: '💰 Claude 3.5 Haiku: $0.80/1M in（商用最便宜）'
-                  },
-                  { 
-                    id: 'moonshot',
-                    name: 'Moonshot', 
-                    desc: '国内高端推理模型',
-                    apiUrl: 'https://api.moonshot.cn/openai/v1',
-                    status: '未配置',
-                    statusColor: '#ef4444',
-                    pricing: '💛 ¥0.008/1K tokens（约 $0.001）'
-                  },
-                ].map((model, idx) => (
-                  <div
-                    key={idx}
-                    style={{
-                      border: '1px solid #d1d5db',
-                      borderRadius: '0.5rem',
-                      padding: '1rem',
-                      backgroundColor: model.status === '✓ 已连接' ? '#f0fdf4' : '#f9fafb',
-                    }}
-                  >
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.75rem' }}>
-                      <div>
-                        <div style={{ fontSize: '0.9375rem', fontWeight: 600, color: '#1f2937' }}>
-                          {model.name}
-                        </div>
-                        <div style={{ fontSize: '0.75rem', color: '#6b7280', marginTop: '0.25rem' }}>
-                          {model.desc}
-                        </div>
-                      </div>
-                      <button
-                        onClick={() => {
-                          setSelectedBuiltInModel(model);
-                          setBuiltInModelApiKey('');
-                          setBuiltInModelModalOpen(true);
-                        }}
+                {builtInModelsLoading ? (
+                  <div style={{ textAlign: 'center', color: '#9ca3af', padding: '1.5rem' }}>加载中...</div>
+                ) : builtInModelsList.length > 0 ? (
+                  builtInModelsList.map((model) => {
+                    const modelDescriptions: Record<string, {desc: string; pricing: string}> = {
+                      'ollama': { desc: '本地运行的开源模型', pricing: '💚 完全免费（本地运行）' },
+                      'lm-studio': { desc: '桌面端本地模型运行工具', pricing: '💚 完全免费（本地运行）' },
+                      'deepseek': { desc: '国内超低成本模型', pricing: '💛 $0.00008/1K input tokens（业界最便宜）' },
+                      'openai': { desc: '业界标准模型系列', pricing: '💰 GPT-4o: $2.50/1M in | GPT-4o mini: $0.15/1M in' },
+                      'claude': { desc: '高智能推理能力', pricing: '💰 Claude 3.5 Haiku: $0.80/1M in（商用最便宜）' },
+                      'moonshot': { desc: '国内高端推理模型', pricing: '💛 ¥0.008/1K tokens（约 $0.001）' },
+                    };
+                    const info = modelDescriptions[model.id] || { desc: '', pricing: '' };
+                    const statusMap: Record<string, {text: string; color: string}> = {
+                      'connected': { text: '✓ 已连接', color: '#10b981' },
+                      'testing': { text: '测试中', color: '#f59e0b' },
+                      'disconnected': { text: '未连接', color: '#9ca3af' },
+                      'unconfigured': { text: '未配置', color: '#ef4444' },
+                    };
+                    const status = statusMap[model.status] || { text: model.status, color: '#9ca3af' };
+                    return (
+                      <div
+                        key={model.id}
                         style={{
-                          padding: '0.375rem 0.75rem',
-                          border: '1px solid #3b82f6',
-                          background: 'white',
-                          color: '#3b82f6',
-                          borderRadius: '0.375rem',
-                          cursor: 'pointer',
-                          fontSize: '0.8125rem',
-                          fontWeight: 500,
+                          border: '1px solid #d1d5db',
+                          borderRadius: '0.5rem',
+                          padding: '1rem',
+                          backgroundColor: model.status === 'connected' ? '#f0fdf4' : '#f9fafb',
                         }}
                       >
-                        配置
-                      </button>
-                    </div>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem', fontSize: '0.8125rem', color: '#6b7280', marginBottom: '0.75rem' }}>
-                      <div>API 地址：<span style={{ color: '#1f2937', fontFamily: 'monospace', fontSize: '0.75rem' }}>{model.apiUrl}</span></div>
-                      <div>状态：<span style={{ color: model.statusColor, fontWeight: 600 }}>{model.status}</span></div>
-                    </div>
-                    <div style={{ fontSize: '0.8125rem', color: '#6b7280', paddingTop: '0.75rem', borderTop: '1px solid #e5e7eb' }}>
-                      {model.pricing}
-                    </div>
-                  </div>
-                ))}
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.75rem' }}>
+                          <div>
+                            <div style={{ fontSize: '0.9375rem', fontWeight: 600, color: '#1f2937' }}>
+                              {model.name}
+                            </div>
+                            <div style={{ fontSize: '0.75rem', color: '#6b7280', marginTop: '0.25rem' }}>
+                              {info.desc}
+                            </div>
+                          </div>
+                          <button
+                            onClick={() => {
+                              setSelectedBuiltInModel(model);
+                              setBuiltInModelApiKey('');
+                              setBuiltInModelModalOpen(true);
+                            }}
+                            style={{
+                              padding: '0.5rem 1rem',
+                              background: '#3b82f6',
+                              color: 'white',
+                              border: 'none',
+                              borderRadius: '0.375rem',
+                              cursor: 'pointer',
+                              fontSize: '0.875rem',
+                              fontWeight: 500,
+                            }}
+                          >
+                            配置
+                          </button>
+                        </div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '0.75rem' }}>
+                          <div style={{ display: 'flex', gap: '1rem', fontSize: '0.75rem' }}>
+                            <div>
+                              <span style={{ color: '#6b7280' }}>API URL: </span>
+                              <span style={{ color: '#1f2937', fontFamily: "'Monaco', monospace" }}>{model.apiUrl}</span>
+                            </div>
+                            <div>
+                              <span style={{ color: '#6b7280' }}>状态: </span>
+                              <span style={{ color: status.color, fontWeight: 600 }}>{status.text}</span>
+                            </div>
+                          </div>
+                        </div>
+                        <div style={{ fontSize: '0.75rem', color: '#6b7280', marginTop: '0.5rem' }}>
+                          {info.pricing}
+                        </div>
+                      </div>
+                    );
+                  })
+                ) : (
+                  <div style={{ textAlign: 'center', color: '#9ca3af' }}>暂无内置模型</div>
+                )}
               </div>
 
               <h3 style={{ fontSize: '1rem', fontWeight: 600, color: '#1f2937', marginTop: '1.5rem', marginBottom: '1rem' }}>自定义模型</h3>
@@ -1588,13 +1608,10 @@ const Services: React.FC = () => {
                   内置模板
                 </h4>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginBottom: '2rem' }}>
-                  {[
-                    { id: 'vscode-chat-report', name: 'VS Code Chat汇报', desc: '用于AI任务完成后自动生成飞书通知摘要', refs: 0 },
-                    { id: 'daily-digest', name: '日报快报', desc: '用于生成日常简明摘要', refs: 1 },
-                    { id: 'weekly-summary', name: '周报总结', desc: '用于生成周期性汇总报告', refs: 2 },
-                    { id: 'incident-report', name: '事件报告', desc: '用于记录重要事件和问题', refs: 0 },
-                    { id: 'optimization-suggestion', name: '优化建议', desc: '用于分析和生成系统改进建议', refs: 0 },
-                  ].map(template => (
+                  {builtInPromptsLoading ? (
+                    <div style={{ textAlign: 'center', color: '#9ca3af', padding: '1.5rem' }}>加载中...</div>
+                  ) : builtInPromptsList.length > 0 ? (
+                    builtInPromptsList.map(template => (
                     <div
                       key={template.id}
                       style={{
@@ -1633,7 +1650,10 @@ const Services: React.FC = () => {
                         预览
                       </button>
                     </div>
-                  ))}
+                    ))
+                  ) : (
+                    <div style={{ textAlign: 'center', color: '#9ca3af' }}>暂无内置模板</div>
+                  )}
                 </div>
 
                 <h4 style={{ fontSize: '0.875rem', fontWeight: 600, color: '#374151', marginBottom: '1rem', textTransform: 'uppercase' }}>
@@ -1725,10 +1745,21 @@ const Services: React.FC = () => {
           {activeMCPTab === 'logs' && (
             <div style={{ background: '#1f2937', borderRadius: '0.5rem', padding: '1.5rem' }}>
               <div style={{ color: '#10b981', fontFamily: "'Monaco', 'Menlo', 'Ubuntu Mono', monospace", fontSize: '0.75rem', lineHeight: 1.6 }}>
-                <div style={{ color: '#9ca3af' }}>[2026-03-15 14:32:15] <span style={{ color: '#60a5fa' }}>[INFO]</span> MCP 服务启动成功</div>
-                <div style={{ color: '#9ca3af' }}>[2026-03-15 14:32:16] <span style={{ color: '#60a5fa' }}>[INFO]</span> 加载 3 个内置提示词</div>
-                <div style={{ color: '#9ca3af' }}>[2026-03-15 14:32:17] <span style={{ color: '#60a5fa' }}>[INFO]</span> OpenAI API 已连接</div>
-                <div style={{ color: '#9ca3af' }}>[2026-03-15 14:33:01] <span style={{ color: '#fbbf24' }}>[WARN]</span> DeepSeek API 连接超时，将在 30 秒后重试</div>
+                {mcpLogsLoading ? (
+                  <div style={{ color: '#9ca3af' }}>加载日志中...</div>
+                ) : mcpLogs.length > 0 ? (
+                  mcpLogs.map((log, idx) => (
+                    <div key={idx} style={{ color: '#9ca3af', marginBottom: '0.5rem' }}>
+                      [{new Date(log.timestamp).toLocaleString()}] 
+                      <span style={{ color: log.level === 'ERROR' ? '#ef4444' : log.level === 'WARN' ? '#fbbf24' : '#60a5fa' }}>
+                        [{log.level}]
+                      </span>
+                      {' '}{log.message}
+                    </div>
+                  ))
+                ) : (
+                  <div style={{ color: '#9ca3af' }}>暂无日志记录</div>
+                )}
               </div>
             </div>
           )}

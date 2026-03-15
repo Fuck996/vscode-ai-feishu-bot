@@ -156,14 +156,13 @@ class DatabaseService {
   }
 
   private async initializeSampleData(): Promise<void> {
-    // 初始化预置提示词模板
-    if (this.promptTemplates.length === 0) {
-      const builtInPrompts = [
-        {
-          id: 'vscode-chat-report',
-          name: 'VS Code Chat 汇报',
-          purpose: 'vscode-chat' as const,
-          content: `你是一个专业的技术总结专家。请根据我提供的信息，生成一份结构清晰的工作汇报。
+    // 定义预置提示词模板
+    const builtInPrompts = [
+      {
+        id: 'vscode-chat-report',
+        name: 'VS Code Chat 汇报',
+        purpose: 'vscode-chat' as const,
+        content: `你是一个专业的技术总结专家。请根据我提供的信息，生成一份结构清晰的工作汇报。
 
 汇报格式要求：
 1. **完成的事项** - 列出已完成的工作
@@ -172,16 +171,16 @@ class DatabaseService {
 4. **资源需求** - 如需要的工具、文档、审批等
 
 请确保汇报简洁专业，每个要点不超过2行，总长度不超过500字。`,
-          isBuiltIn: true,
-          usageCount: 0,
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-        },
-        {
-          id: 'daily-digest',
-          name: '日报快报',
-          purpose: 'daily' as const,
-          content: `你是一个日报编辑。请根据以下信息生成一份精准的日报快报。
+        isBuiltIn: true,
+        usageCount: 0,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      },
+      {
+        id: 'daily-digest',
+        name: '日报快报',
+        purpose: 'daily' as const,
+        content: `你是一个日报编辑。请根据以下信息生成一份精准的日报快报。
 
 日报格式：
 ## 📋 今日速览
@@ -202,16 +201,16 @@ class DatabaseService {
 - 精炼表达，避免冗余
 - 突出重点和关键指标
 - 字数控制在300字以内`,
-          isBuiltIn: true,
-          usageCount: 0,
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-        },
-        {
-          id: 'weekly-summary',
-          name: '周报总结',
-          purpose: 'weekly' as const,
-          content: `你是一个周报撰写助手。请根据本周数据生成一份完整的周报总结。
+        isBuiltIn: true,
+        usageCount: 0,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      },
+      {
+        id: 'weekly-summary',
+        name: '周报总结',
+        purpose: 'weekly' as const,
+        content: `你是一个周报撰写助手。请根据本周数据生成一份完整的周报总结。
 
 周报结构：
 ## 📊 本周总结
@@ -240,16 +239,16 @@ class DatabaseService {
 - 重点工作3
 
 要求：突出数据支撑，字数800字以内`,
-          isBuiltIn: true,
-          usageCount: 0,
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-        },
-        {
-          id: 'incident-report',
-          name: '事件报告',
-          purpose: 'incident' as const,
-          content: `你是事件管理专家。请根据事件信息生成一份专业的事件报告。
+        isBuiltIn: true,
+        usageCount: 0,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      },
+      {
+        id: 'incident-report',
+        name: '事件报告',
+        purpose: 'incident' as const,
+        content: `你是事件管理专家。请根据事件信息生成一份专业的事件报告。
 
 事件报告格式：
 ## 🚨 事件报告
@@ -281,16 +280,16 @@ class DatabaseService {
 - 跟进时间
 
 要求：数据准确，逻辑清晰，字数控制在400字以内`,
-          isBuiltIn: true,
-          usageCount: 0,
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-        },
-        {
-          id: 'optimization-suggestion',
-          name: '优化建议',
-          purpose: 'optimization' as const,
-          content: `你是产品优化顾问。请根据提供的信息提出专业的优化建议。
+        isBuiltIn: true,
+        usageCount: 0,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      },
+      {
+        id: 'optimization-suggestion',
+        name: '优化建议',
+        purpose: 'optimization' as const,
+        content: `你是产品优化顾问。请根据提供的信息提出专业的优化建议。
 
 优化建议框架：
 ## 💡 优化建议
@@ -322,87 +321,92 @@ class DatabaseService {
 - Phase 3：验证
 
 要求：方案可行性强，有具体数据支撑，字数500字以内`,
-          isBuiltIn: true,
-          usageCount: 0,
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-        },
-      ];
-      for (const prompt of builtInPrompts) {
+        isBuiltIn: true,
+        usageCount: 0,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      },
+    ];
+
+    // 为每个预置提示词检查是否存在，不存在则添加（兼容旧数据库）
+    for (const prompt of builtInPrompts) {
+      if (!this.promptTemplates.find(p => p.id === prompt.id)) {
         this.promptTemplates.push(prompt);
       }
     }
 
-    // 初始化预置内置模型
-    if (this.modelConfigs.length === 0) {
-      const builtInModels = [
-        {
-          id: 'ollama',
-          name: 'Ollama',
-          apiUrl: 'http://localhost:11434/v1',
-          apiKey: undefined,
-          isBuiltIn: true,
-          status: 'unconfigured' as const,
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-        },
-        {
-          id: 'lm-studio',
-          name: 'LM Studio',
-          apiUrl: 'http://localhost:1234/v1',
-          apiKey: undefined,
-          isBuiltIn: true,
-          status: 'unconfigured' as const,
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-        },
-        {
-          id: 'deepseek',
-          name: 'Deepseek',
-          apiUrl: 'https://api.deepseek.com/v1',
-          apiKey: undefined,
-          isBuiltIn: true,
-          status: 'unconfigured' as const,
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-        },
-        {
-          id: 'openai',
-          name: 'OpenAI',
-          apiUrl: 'https://api.openai.com/v1',
-          apiKey: undefined,
-          isBuiltIn: true,
-          status: 'unconfigured' as const,
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-        },
-        {
-          id: 'claude',
-          name: 'Anthropic Claude',
-          apiUrl: 'https://api.anthropic.com/v1',
-          apiKey: undefined,
-          isBuiltIn: true,
-          status: 'unconfigured' as const,
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-        },
-        {
-          id: 'moonshot',
-          name: 'Moonshot',
-          apiUrl: 'https://api.moonshot.cn/openai/v1',
-          apiKey: undefined,
-          isBuiltIn: true,
-          status: 'unconfigured' as const,
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-        },
-      ];
-      for (const model of builtInModels) {
+    // 定义预置内置模型
+    const builtInModels = [
+      {
+        id: 'ollama',
+        name: 'Ollama',
+        apiUrl: 'http://localhost:11434/v1',
+        apiKey: undefined,
+        isBuiltIn: true,
+        status: 'unconfigured' as const,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      },
+      {
+        id: 'lm-studio',
+        name: 'LM Studio',
+        apiUrl: 'http://localhost:1234/v1',
+        apiKey: undefined,
+        isBuiltIn: true,
+        status: 'unconfigured' as const,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      },
+      {
+        id: 'deepseek',
+        name: 'Deepseek',
+        apiUrl: 'https://api.deepseek.com/v1',
+        apiKey: undefined,
+        isBuiltIn: true,
+        status: 'unconfigured' as const,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      },
+      {
+        id: 'openai',
+        name: 'OpenAI',
+        apiUrl: 'https://api.openai.com/v1',
+        apiKey: undefined,
+        isBuiltIn: true,
+        status: 'unconfigured' as const,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      },
+      {
+        id: 'claude',
+        name: 'Anthropic Claude',
+        apiUrl: 'https://api.anthropic.com/v1',
+        apiKey: undefined,
+        isBuiltIn: true,
+        status: 'unconfigured' as const,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      },
+      {
+        id: 'moonshot',
+        name: 'Moonshot',
+        apiUrl: 'https://api.moonshot.cn/openai/v1',
+        apiKey: undefined,
+        isBuiltIn: true,
+        status: 'unconfigured' as const,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      },
+    ];
+
+    // 为每个预置模型检查是否存在，不存在则添加（兼容旧数据库）
+    for (const model of builtInModels) {
+      if (!this.modelConfigs.find(m => m.id === model.id)) {
         this.modelConfigs.push(model);
       }
     }
 
-    // 保存到文件
+    // 保存到文件（如果有新增数据）
     await this.saveToFile();
   }
 
