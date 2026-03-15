@@ -20,6 +20,7 @@ export interface SaveModelConfigResponse {
   success: boolean;
   data?: ModelConfig;
   error?: string;
+  message?: string;
 }
 
 export interface GetModelsResponse {

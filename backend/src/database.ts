@@ -335,31 +335,37 @@ class DatabaseService {
       }
     }
 
-    // 定义预置内置模型
+    // ─── 数据迁移：删除不再支持的本地模型 ───
+    const localModelsToRemove = ['ollama', 'lm-studio'];
+    this.modelConfigs = this.modelConfigs.filter(m => !localModelsToRemove.includes(m.id));
+
+    // ─── 数据迁移：更新 DeepSeek 名称 ───
+    const existingDeepseek = this.modelConfigs.find(m => m.id === 'deepseek');
+    if (existingDeepseek && existingDeepseek.name !== 'DeepSeek V3') {
+      existingDeepseek.name = 'DeepSeek V3';
+      existingDeepseek.updatedAt = new Date().toISOString();
+    }
+
+    // ─── 数据迁移：修正 Moonshot API URL ───
+    const existingMoonshot = this.modelConfigs.find(m => m.id === 'moonshot');
+    if (existingMoonshot && existingMoonshot.apiUrl !== 'https://api.moonshot.cn/v1') {
+      existingMoonshot.apiUrl = 'https://api.moonshot.cn/v1';
+      existingMoonshot.updatedAt = new Date().toISOString();
+    }
+
+    // ─── 数据完整性检查：无 apiKey 的内置模型不应处于 connected 状态 ───
+    for (const model of this.modelConfigs) {
+      if (model.isBuiltIn && !model.apiKey && model.status === 'connected') {
+        model.status = 'unconfigured';
+        model.updatedAt = new Date().toISOString();
+      }
+    }
+
+    // 定义预置内置模型（仅云端 API，不含本地模型）
     const builtInModels = [
       {
-        id: 'ollama',
-        name: 'Ollama',
-        apiUrl: 'http://localhost:11434/v1',
-        apiKey: undefined,
-        isBuiltIn: true,
-        status: 'unconfigured' as const,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      },
-      {
-        id: 'lm-studio',
-        name: 'LM Studio',
-        apiUrl: 'http://localhost:1234/v1',
-        apiKey: undefined,
-        isBuiltIn: true,
-        status: 'unconfigured' as const,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      },
-      {
         id: 'deepseek',
-        name: 'Deepseek',
+        name: 'DeepSeek V3',
         apiUrl: 'https://api.deepseek.com/v1',
         apiKey: undefined,
         isBuiltIn: true,
@@ -389,8 +395,8 @@ class DatabaseService {
       },
       {
         id: 'moonshot',
-        name: 'Moonshot',
-        apiUrl: 'https://api.moonshot.cn/openai/v1',
+        name: 'Moonshot (Kimi)',
+        apiUrl: 'https://api.moonshot.cn/v1',
         apiKey: undefined,
         isBuiltIn: true,
         status: 'unconfigured' as const,

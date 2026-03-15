@@ -1529,12 +1529,10 @@ const Services: React.FC = () => {
                 ) : builtInModelsList.length > 0 ? (
                   builtInModelsList.map((model) => {
                     const modelDescriptions: Record<string, {desc: string; pricing: string}> = {
-                      'ollama': { desc: '本地运行的开源模型', pricing: '完全免费（本地运行）' },
-                      'lm-studio': { desc: '桌面端本地模型运行工具', pricing: '完全免费（本地运行）' },
-                      'deepseek': { desc: '国内超低成本模型', pricing: '$0.00008/1K input tokens（业界最便宜）' },
+                      'deepseek': { desc: '深度求索 DeepSeek-V3 超低成本模型', pricing: '$0.27/1M input tokens（约 ¥2/百万 token）' },
                       'openai': { desc: '业界标准模型系列', pricing: 'GPT-4o: $2.50/1M in | GPT-4o mini: $0.15/1M in' },
                       'claude': { desc: '高智能推理能力', pricing: 'Claude 3.5 Haiku: $0.80/1M in（商用最便宜）' },
-                      'moonshot': { desc: '国内高端推理模型', pricing: '¥0.008/1K tokens（约 $0.001）' },
+                      'moonshot': { desc: '月之暗面 Kimi 高端推理模型', pricing: '¥0.012/1K tokens（约 $0.0017）' },
                     };
                     const info = modelDescriptions[model.id] || { desc: '', pricing: '' };
                     const statusMap: Record<string, {text: string; color: string}> = {
@@ -1609,7 +1607,7 @@ const Services: React.FC = () => {
               <h3 style={{ fontSize: '1rem', fontWeight: 600, color: '#1f2937', marginTop: '1.5rem', marginBottom: '1rem' }}>自定义模型</h3>
               <div style={{ border: '2px dashed #d1d5db', borderRadius: '0.5rem', padding: '2rem', textAlign: 'center' }}>
                 <div style={{ fontSize: '0.875rem', color: '#6b7280', marginBottom: '1rem' }}>
-                  💡 支持任何兼容 OpenAI API 的模型（如 Ollama、LM Studio 等）
+                  💡 支持任何兼容 OpenAI API 的模型服务
                 </div>
                 <button
                   onClick={() => setMcpModelModalOpen(true)}
@@ -1921,12 +1919,53 @@ const Services: React.FC = () => {
                 </div>
               </div>
               <div>
-                <label style={{ display: 'block', fontSize: '0.8125rem', fontWeight: 500, color: '#374151', marginBottom: '0.35rem' }}>
-                  API Key <span style={{ color: '#ef4444' }}>*</span>
-                </label>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.35rem' }}>
+                  <label style={{ fontSize: '0.8125rem', fontWeight: 500, color: '#374151' }}>
+                    API Key <span style={{ color: '#ef4444' }}>*</span>
+                  </label>
+                  {/* 若已配置 Key，显示状态标签和清除按钮 */}
+                  {(selectedBuiltInModel as any).apiKey && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                      <span style={{ fontSize: '0.75rem', color: '#10b981', fontWeight: 500 }}>
+                        已配置：{String((selectedBuiltInModel as any).apiKey).slice(0, 6)}...{String((selectedBuiltInModel as any).apiKey).slice(-4)}
+                      </span>
+                      <button
+                        onClick={async () => {
+                          const modelId = (selectedBuiltInModel as any).id;
+                          if (!modelId) return;
+                          try {
+                            const result = await mcpModelsService.updateModel(modelId, { apiKey: '', status: 'unconfigured' });
+                            if (result.success) {
+                              toastService.success('API Key 已清除，模型状态已重置');
+                              setBuiltInModelModalOpen(false);
+                              // 刷新模型列表
+                              const res = await mcpModelsService.getBuiltInModels();
+                              if (res.success && res.data) setBuiltInModelsList(res.data);
+                            } else {
+                              toastService.error('清除失败：' + (result.error || result.message || '未知错误'));
+                            }
+                          } catch (err) {
+                            toastService.error('清除出错：' + (err instanceof Error ? err.message : '未知错误'));
+                          }
+                        }}
+                        style={{
+                          padding: '0.2rem 0.6rem',
+                          fontSize: '0.75rem',
+                          color: '#ef4444',
+                          background: 'none',
+                          border: '1px solid #ef4444',
+                          borderRadius: '0.25rem',
+                          cursor: 'pointer',
+                        }}
+                      >
+                        清除
+                      </button>
+                    </div>
+                  )}
+                </div>
                 <input
                   type="text"
-                  placeholder="输入该模型的 API Key"
+                  placeholder={(selectedBuiltInModel as any).apiKey ? '输入新 Key 以更新（留空则保留已配置的 Key）' : '输入该模型的 API Key'}
                   value={builtInModelApiKey}
                   onChange={(e) => setBuiltInModelApiKey(e.target.value)}
                   autoComplete="off"
@@ -1936,7 +1975,8 @@ const Services: React.FC = () => {
               </div>
               <button
                 onClick={async () => {
-                  if (!selectedBuiltInModel || !builtInModelApiKey.trim()) {
+                  const existingKey = (selectedBuiltInModel as any).apiKey;
+                  if (!selectedBuiltInModel || (!builtInModelApiKey.trim() && !existingKey)) {
                     toastService.warning('请输入 API Key');
                     return;
                   }
@@ -1947,11 +1987,13 @@ const Services: React.FC = () => {
                       toastService.error('无法确定模型ID');
                       return;
                     }
-                    const result = await mcpModelsService.testModel(modelId, builtInModelApiKey);
+                    // 若输入为空则使用后端存储的 Key（传 undefined 让后端用已存 Key）
+                    const keyToTest = builtInModelApiKey.trim() || undefined;
+                    const result = await mcpModelsService.testModel(modelId, keyToTest);
                     if (result.success) {
                       toastService.success('测试连接成功');
                     } else {
-                      toastService.error('连接失败：' + (result.error || '未知错误'));
+                      toastService.error('连接失败：' + (result.message || result.error || '未知错误'));
                     }
                   } catch (error) {
                     toastService.error('测试连接出错：' + (error instanceof Error ? error.message : '未知错误'));
@@ -2000,25 +2042,29 @@ const Services: React.FC = () => {
               </button>
               <button
                 onClick={async () => {
-                  if (!selectedBuiltInModel || !builtInModelApiKey.trim()) {
+                  const existingKey = (selectedBuiltInModel as any).apiKey;
+                  if (!selectedBuiltInModel || (!builtInModelApiKey.trim() && !existingKey)) {
                     toastService.warning('请输入 API Key');
                     return;
                   }
                   setBuiltInModelLoading(true);
                   try {
-                    // 根据 selectedBuiltInModel 中的 ID 来决定是更新还是创建
-                    // 这里假设 selectedBuiltInModel 对象中有 id 属性
                     const modelId = (selectedBuiltInModel as any).id;
                     if (modelId) {
-                      const result = await mcpModelsService.updateModel(modelId, {
-                        apiKey: builtInModelApiKey,
-                      });
+                      // 有输入时更新为新 Key，无输入时不修改 Key（仅保存其他配置）
+                      const updatePayload = builtInModelApiKey.trim()
+                        ? { apiKey: builtInModelApiKey }
+                        : {};
+                      const result = await mcpModelsService.updateModel(modelId, updatePayload);
                       if (result.success) {
                         toastService.success('配置保存成功');
                         setBuiltInModelModalOpen(false);
                         setBuiltInModelApiKey('');
+                        // 刷新模型列表
+                        const res = await mcpModelsService.getBuiltInModels();
+                        if (res.success && res.data) setBuiltInModelsList(res.data);
                       } else {
-                        toastService.error('保存失败：' + (result.error || '未知错误'));
+                        toastService.error('保存失败：' + (result.error || result.message || '未知错误'));
                       }
                     } else {
                       toastService.error('无法确定模型ID');

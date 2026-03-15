@@ -143,8 +143,9 @@ router.put('/:id', async (req: Request, res: Response) => {
       ...existing,
       name: name || existing.name,
       apiUrl: apiUrl || existing.apiUrl,
-      apiKey: apiKey !== undefined ? apiKey : existing.apiKey,
-      status: status || existing.status,
+      apiKey: apiKey !== undefined ? (apiKey === '' ? undefined : apiKey) : existing.apiKey,
+      // 清除 key 时自动重置为未配置状态；显式传入 status 时使用传入值
+      status: status || (apiKey === '' ? 'unconfigured' : existing.status),
       updatedAt: new Date().toISOString(),
     };
     
@@ -190,47 +191,6 @@ router.post('/:id/test', async (req: Request, res: Response) => {
     
     try {
       switch (id) {
-        case 'ollama':
-          // Ollama: GET /api/tags
-          try {
-            const response = await fetch(`${model.apiUrl.replace('/v1', '')}/api/tags`);
-            if (response.ok) {
-              const data = await response.json();
-              testResult = data.models && Array.isArray(data.models) && data.models.length > 0;
-              if (!testResult) {
-                errorMessage = 'Ollama 未返回任何模型列表';
-              }
-            } else {
-              errorMessage = `Ollama 连接失败 (HTTP ${response.status})，请确保本地服务运行在 ${model.apiUrl}`;
-            }
-          } catch (err) {
-            errorMessage = `Ollama 连接失败：${err instanceof Error ? err.message : '未知错误'}，请确保本地服务运行在正确地址`;
-          }
-          break;
-          
-        case 'lm-studio':
-          // LM Studio: GET /api/models 或 /v1/models
-          try {
-            let response = await fetch(`${model.apiUrl}/models`);
-            if (!response.ok) {
-              response = await fetch(model.apiUrl.includes('/v1') 
-                ? `${model.apiUrl}/models` 
-                : `${model.apiUrl}/v1/models`);
-            }
-            if (response.ok) {
-              const data = await response.json();
-              testResult = (data.data && Array.isArray(data.data) && data.data.length > 0) || (data.models && Array.isArray(data.models) && data.models.length > 0);
-              if (!testResult) {
-                errorMessage = 'LM Studio 未返回任何模型列表';
-              }
-            } else {
-              errorMessage = `LM Studio 连接失败 (HTTP ${response.status})，请确保本地服务运行在 ${model.apiUrl}`;
-            }
-          } catch (err) {
-            errorMessage = `LM Studio 连接失败：${err instanceof Error ? err.message : '未知错误'}，请确保本地服务运行在正确地址`;
-          }
-          break;
-          
         case 'openai':
         case 'deepseek':
         case 'moonshot':
@@ -278,6 +238,30 @@ router.post('/:id/test', async (req: Request, res: Response) => {
             }
           } catch (err) {
             errorMessage = `连接失败: ${err instanceof Error ? err.message : '未知错误'}`;
+          }
+          break;
+
+        default:
+          // 自定义模型：尝试 GET /v1/models，需要 Authorization header
+          try {
+            const headers: Record<string, string> = {
+              'Authorization': `Bearer ${keyToUse}`,
+              'Content-Type': 'application/json',
+            };
+            const response = await fetch(`${model.apiUrl}/models`, { headers });
+            if (response.status === 401 || response.status === 403) {
+              errorMessage = 'API Key 无效或无权限';
+            } else if (response.ok) {
+              const data = await response.json();
+              testResult = data.data && Array.isArray(data.data) && data.data.length > 0;
+              if (!testResult) {
+                errorMessage = '成功连接但未返回模型列表';
+              }
+            } else {
+              errorMessage = `API 返回错误: ${response.status} - ${response.statusText}`;
+            }
+          } catch (err) {
+            errorMessage = `连接到 ${model.apiUrl} 失败: ${err instanceof Error ? err.message : '未知错误'}`;
           }
           break;
       }
