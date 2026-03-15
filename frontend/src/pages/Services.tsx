@@ -214,6 +214,8 @@ const Services: React.FC = () => {
   const [builtInModelsLoading, setBuiltInModelsLoading] = useState(false);
   const [customModelsList, setCustomModelsList] = useState<McpModelConfig[]>([]);
   const [customModelsLoading, setCustomModelsLoading] = useState(false);
+  // 模型余额缓存 (modelId -> { balance: number | null, message?: string })
+  const [modelBalances, setModelBalances] = useState<Record<string, { balance: number | null; message?: string }>>({});
   // 内置提示词列表（从数据库读取）
   const [builtInPromptsList, setBuiltInPromptsList] = useState<any[]>([]);
   const [builtInPromptsLoading, setBuiltInPromptsLoading] = useState(false);
@@ -309,10 +311,38 @@ const Services: React.FC = () => {
 
       if (builtInResult.success && builtInResult.data) {
         setBuiltInModelsList(builtInResult.data);
+        // 异步获取每个模型的余额
+        builtInResult.data.forEach(model => {
+          mcpModelsService.getModelBalance(model.id).then(result => {
+            if (result.success && result.data) {
+              setModelBalances(prev => ({
+                ...prev,
+                [model.id]: {
+                  balance: result.data.balance,
+                  message: result.data.message,
+                },
+              }));
+            }
+          });
+        });
       }
 
       if (customResult.success && customResult.data) {
         setCustomModelsList(customResult.data);
+        // 异步获取每个模型的余额
+        customResult.data.forEach(model => {
+          mcpModelsService.getModelBalance(model.id).then(result => {
+            if (result.success && result.data) {
+              setModelBalances(prev => ({
+                ...prev,
+                [model.id]: {
+                  balance: result.data.balance,
+                  message: result.data.message,
+                },
+              }));
+            }
+          });
+        });
       }
     } catch (error) {
       console.error('加载模型配置失败:', error);
@@ -1961,6 +1991,11 @@ const Services: React.FC = () => {
                         <div style={{ fontSize: '0.75rem', color: '#6b7280', marginTop: '0.5rem' }}>
                           当前模型：{model.modelId || '未选择'}
                         </div>
+                        <div style={{ fontSize: '0.75rem', color: '#6b7280', marginTop: '0.375rem', padding: '0.375rem 0.5rem', backgroundColor: '#f3f4f6', borderRadius: '0.25rem' }}>
+                          {modelBalances[model.id]?.balance !== undefined && modelBalances[model.id]?.balance !== null
+                            ? `余额：¥${(modelBalances[model.id].balance || 0).toFixed(2)}`
+                            : modelBalances[model.id]?.message || '获取余额中...'}
+                        </div>
                       </div>
                     );
                   })
@@ -2015,6 +2050,11 @@ const Services: React.FC = () => {
                             </div>
                             <div style={{ fontSize: '0.75rem', color: '#6b7280', marginTop: '0.35rem', fontFamily: "'Monaco', monospace" }}>
                               {model.apiUrl}
+                            </div>
+                            <div style={{ fontSize: '0.75rem', color: '#6b7280', marginTop: '0.375rem', padding: '0.375rem 0.5rem', backgroundColor: '#f3f4f6', borderRadius: '0.25rem', display: 'inline-block' }}>
+                              {modelBalances[model.id]?.balance !== undefined && modelBalances[model.id]?.balance !== null
+                                ? `余额：¥${(modelBalances[model.id].balance || 0).toFixed(2)}`
+                                : modelBalances[model.id]?.message || '获取余额中...'}
                             </div>
                           </div>
                           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexShrink: 0 }}>

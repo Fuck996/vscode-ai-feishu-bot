@@ -357,6 +357,97 @@ router.post('/:id/test', async (req: Request, res: Response) => {
   }
 });
 
+router.get('/:id/balance', async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const model = await database.getModelConfig(id);
+    if (!model) {
+      return res.status(404).json({ success: false, error: '模型不存在' });
+    }
+
+    // 只有 DeepSeek 支持余额查询
+    if (model.provider !== 'deepseek') {
+      return res.status(200).json({
+        success: true,
+        data: {
+          balance: null,
+          currency: 'CNY',
+          message: '模型不支持余额查询或查询失败',
+        },
+      });
+    }
+
+    if (!model.apiKey) {
+      return res.status(200).json({
+        success: true,
+        data: {
+          balance: null,
+          currency: 'CNY',
+          message: '模型不支持余额查询或查询失败',
+        },
+      });
+    }
+
+    try {
+      const response = await fetch('https://api.deepseek.com/user/balance', {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${model.apiKey}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        logger.warn({ status: response.status, model: model.id }, 'DeepSeek 余额查询失败');
+        return res.status(200).json({
+          success: true,
+          data: {
+            balance: null,
+            currency: 'CNY',
+            message: '模型不支持余额查询或查询失败',
+          },
+        });
+      }
+
+      const data = await response.json() as {
+        is_available?: boolean;
+        balance_log_list?: Array<{ total_balance?: number }>;
+        balance_infos?: Array<{ total_balance?: number }>;
+      };
+
+      // 提取总余额
+      let totalBalance: number | null = null;
+      if (data.balance_log_list && data.balance_log_list.length > 0) {
+        totalBalance = data.balance_log_list[0].total_balance ?? null;
+      } else if (data.balance_infos && data.balance_infos.length > 0) {
+        totalBalance = data.balance_infos[0].total_balance ?? null;
+      }
+
+      return res.status(200).json({
+        success: true,
+        data: {
+          balance: totalBalance,
+          currency: 'CNY',
+          provider: 'deepseek',
+        },
+      });
+    } catch (apiError) {
+      logger.error({ error: apiError, model: model.id }, 'DeepSeek 余额查询异常');
+      return res.status(200).json({
+        success: true,
+        data: {
+          balance: null,
+          currency: 'CNY',
+          message: '模型不支持余额查询或查询失败',
+        },
+      });
+    }
+  } catch (error) {
+    logger.error({ error }, '查询模型余额失败');
+    res.status(500).json({ success: false, error: '查询模型余额失败' });
+  }
+});
+
 router.delete('/:id', async (req: Request, res: Response) => {
   try {
     const { id } = req.params;

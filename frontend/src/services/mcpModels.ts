@@ -49,6 +49,17 @@ export interface ModelConfigPayload {
   isBuiltIn?: boolean;
 }
 
+export interface ModelBalanceResponse {
+  success: boolean;
+  data?: {
+    balance: number | null;
+    currency: string;
+    provider?: string;
+    message?: string;
+  };
+  error?: string;
+}
+
 class McpModelsService {
   private getHeaders(): HeadersInit {
     const token = localStorage.getItem('auth_token');
@@ -200,6 +211,27 @@ class McpModelsService {
     } catch (error) {
       console.error('删除模型配置失败:', error);
       return { success: false, error: '删除模型配置失败' };
+    }
+  }
+
+  async getModelBalance(id: string): Promise<ModelBalanceResponse> {
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/mcp/models/${id}/balance`, {
+        method: 'GET',
+        headers: this.getHeaders(),
+      });
+
+      return await response.json();
+    } catch (error) {
+      console.error('获取模型余额失败:', error);
+      return {
+        success: false,
+        data: {
+          balance: null,
+          currency: 'CNY',
+          message: '模型不支持余额查询或查询失败',
+        },
+      };
     }
   }
 }
