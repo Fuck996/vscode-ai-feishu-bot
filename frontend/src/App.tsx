@@ -134,7 +134,7 @@ function MainLayout({ children }: { children: React.ReactNode }) {
   };
 
   return (
-    <div className="flex flex-col bg-gray-50" style={{ minHeight: '100vh' }}>
+    <div className="flex flex-col min-h-screen bg-gray-50">
       {/* 导航栏 */}
       <nav className="github-topbar">
         <div className="github-topbar__inner">
@@ -183,14 +183,14 @@ function MainLayout({ children }: { children: React.ReactNode }) {
       </nav>
 
       {/* 主内容 */}
-      <main className="max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-8">
+      <main className="flex-1 max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-8">
         {children}
       </main>
 
       {/* 页脚 */}
-      <footer style={{ marginTop: '1.5rem', paddingBottom: '1.5rem' }}>
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <p className="github-footer__text text-center text-gray-400" style={{ fontSize: '0.7rem' }}>
+      <footer className="bg-gray-100 border-t border-gray-200 mt-8">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+          <p className="github-footer__text text-center text-sm text-gray-600">
             © 2026 CortexFlow. All rights reserved. | System v{backendVersion} | Updated: {new Date().toLocaleString('en-US', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hour12: false })}
           </p>
         </div>

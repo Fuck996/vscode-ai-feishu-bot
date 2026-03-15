@@ -4,6 +4,7 @@ import * as jwt from 'jsonwebtoken';
 import axios from 'axios';
 
 import db, { Integration, ModelConfig, Notification, PromptTemplate, ReportTask, ReportTaskHistory, ReportTaskRange, Robot } from '../database';
+import { fetchModelBalance, notifyLowBalanceIfNeeded } from '../modelBalance';
 import { getLogs } from '../serviceLogger';
 import logger from '../logger';
 import taskQueueManager from '../taskQueue';
@@ -801,30 +802,11 @@ async function callLLMAPI(
     if (model.provider === 'deepseek' && model.apiKey) {
       (async () => {
         try {
-          const balanceUrl = 'https://api.deepseek.com/user/balance';
-          const balanceResponse = await axios.get(balanceUrl, {
-            headers: {
-              'Authorization': `Bearer ${model.apiKey}`,
-              'Content-Type': 'application/json',
-            },
-            timeout: 5000,
-          });
-
-          const balanceData = balanceResponse.data as {
-            is_available?: boolean;
-            balance_log_list?: Array<{ total_balance?: number }>;
-            balance_infos?: Array<{ total_balance?: number }>;
-          };
-
-          let balance: number | null = null;
-          if (balanceData.balance_log_list && balanceData.balance_log_list.length > 0) {
-            balance = balanceData.balance_log_list[0].total_balance ?? null;
-          } else if (balanceData.balance_infos && balanceData.balance_infos.length > 0) {
-            balance = balanceData.balance_infos[0].total_balance ?? null;
-          }
+          const balance = await fetchModelBalance(model);
 
           if (balance !== null) {
             logger.info({ modelId: model.id, balance }, '模型余额查询成功（异步更新）');
+            await notifyLowBalanceIfNeeded(model, balance, '模型调用后');
           }
         } catch (balanceError) {
           logger.debug({ modelId: model.id, error: balanceError }, '异步查询余额失败（不影响主流程）');
@@ -847,7 +829,13 @@ async function sendReportToRobot(
   robot: Robot | null,
   report: string,
   taskName: string,
-  statisticsData: any
+  statisticsData: any,
+  context: {
+    taskId: string;
+    periodLabel: string;
+    modelName: string;
+    promptName: string;
+  }
 ): Promise<void> {
   if (!robot || !robot.webhookUrl) {
     throw new Error('汇报机器人未配置或 Webhook URL 为空');
@@ -893,12 +881,76 @@ async function sendReportToRobot(
       timeout: 10000,
     });
 
+    try {
+      await db.saveNotification({
+        title: taskName,
+        summary: report,
+        status: 'success',
+        robotName: robot.name,
+        source: context.modelName,
+        details: JSON.stringify({
+          taskId: context.taskId,
+          period: context.periodLabel,
+          modelName: context.modelName,
+          promptName: context.promptName,
+          statistics: statisticsData,
+          meta: {
+            category: 'report-task-delivery',
+            visibleInList: true,
+          },
+        }),
+      });
+    } catch (saveError) {
+      logger.warn({ taskName, robotName: robot.name, error: saveError }, '汇报消息已发送，但写入通知列表失败');
+    }
+
     logger.info({ robotId: robot.id, taskName }, '报告已发送到汇报机器人');
   } catch (error) {
     const errorMsg = error instanceof Error ? error.message : String(error);
     logger.error({ robotName: robot?.name, error: errorMsg }, '发送报告到机器人失败');
     throw new Error(`发送报告失败: ${errorMsg}`);
   }
+}
+
+function parseNotificationDetails(details?: string): Record<string, unknown> | null {
+  if (!details) {
+    return null;
+  }
+
+  try {
+    const parsed = JSON.parse(details) as Record<string, unknown>;
+    return parsed && typeof parsed === 'object' ? parsed : null;
+  } catch {
+    return null;
+  }
+}
+
+function shouldExcludeFromReportTask(notification: Notification): boolean {
+  const source = (notification.source || '').toLowerCase();
+  if (source.includes('ai-report-task')) {
+    return true;
+  }
+
+  const parsedDetails = parseNotificationDetails(notification.details);
+  const meta = parsedDetails?.meta;
+
+  if (meta && typeof meta === 'object') {
+    const metaRecord = meta as Record<string, unknown>;
+    const category = metaRecord.category;
+    if (category === 'report-task-delivery' || category === 'report-task-execution') {
+      return true;
+    }
+  }
+
+  const isLegacyReportTaskRecord = Boolean(
+    parsedDetails &&
+    typeof parsedDetails.taskId === 'string' &&
+    typeof parsedDetails.modelName === 'string' &&
+    typeof parsedDetails.promptName === 'string' &&
+    (typeof parsedDetails.sentToRobot === 'boolean' || parsedDetails.statistics !== undefined)
+  );
+
+  return isLegacyReportTaskRecord;
 }
 
 async function runReportTask(task: ReportTask): Promise<ReportTaskHistory> {
@@ -927,19 +979,7 @@ async function runReportTask(task: ReportTask): Promise<ReportTaskHistory> {
       return false;
     }
 
-    if (robot && notification.robotName && notification.robotName !== robot.name) {
-      return false;
-    }
-
-    // 【新增】排除汇报任务相关的数据污染
-    // 1. 排除来自汇报机器人本身的通知（防止循环）
-    if (robot && notification.robotName === robot.name) {
-      return false;
-    }
-
-    // 2. 排除 source 中包含"汇报"、"报告"等关键词的通知
-    const source = (notification.source || '').toLowerCase();
-    if (source.includes('report') || source.includes('汇报')) {
+    if (shouldExcludeFromReportTask(notification)) {
       return false;
     }
 
@@ -1034,7 +1074,12 @@ async function runReportTask(task: ReportTask): Promise<ReportTaskHistory> {
     );
 
     // 【优化4】发送报告到汇报机器人
-    await sendReportToRobot(robot, generatedReport, task.name, formattedData.statistics);
+    await sendReportToRobot(robot, generatedReport, task.name, formattedData.statistics, {
+      taskId: task.id,
+      periodLabel: formatPeriodLabel(start, end),
+      modelName: model.name,
+      promptName: prompt.name,
+    });
 
     // 【新增】记录任务发送日志
     logger.info(
@@ -1077,7 +1122,7 @@ async function runReportTask(task: ReportTask): Promise<ReportTaskHistory> {
     taskName: task.name,
     periodLabel: formatPeriodLabel(start, end),
     notificationCount: relatedNotifications.length,
-    summary: `${summary}${generatedReport ? `\n\n【生成内容】\n${generatedReport.substring(0, 300)}...` : ''}`,
+    summary: historyStatus === 'success' && generatedReport ? generatedReport : summary,
     status: historyStatus,
     modelName: model?.name || '未知模型',
     promptName: prompt?.name || '未知提示词',
@@ -1090,11 +1135,11 @@ async function runReportTask(task: ReportTask): Promise<ReportTaskHistory> {
 
   // 保存执行事件到通知系统
   await db.saveNotification({
-    title: `AI 汇报任务执行${historyStatus === 'success' ? '成功' : '失败'}: ${task.name}`,
+    title: task.name,
     summary,
     status: historyStatus === 'success' ? 'success' : 'error',
     robotName: robot?.name,
-    source: `ai-report-task/${task.id}`,
+    source: history.modelName,
     details: JSON.stringify({
       taskId: task.id,
       period: history.periodLabel,
@@ -1102,6 +1147,10 @@ async function runReportTask(task: ReportTask): Promise<ReportTaskHistory> {
       promptName: history.promptName,
       notificationCount: history.notificationCount,
       sentToRobot: historyStatus === 'success',
+      meta: {
+        category: 'report-task-execution',
+        visibleInList: false,
+      },
     }),
   });
 
@@ -1143,8 +1192,7 @@ router.get('/', verifyToken, checkAdminRole, async (_req: AuthRequest, res: Resp
           }).length) },
           { label: '运行时间', value: formatUptime() },
         ],
-        isScheduled: Boolean(nextRunAt),
-        nextRunTime: nextRunAt,
+        isScheduled: false,
         uptime: formatUptime(),
         // 【新增】队列状态信息
         queueStats: {

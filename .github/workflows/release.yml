@@ -95,7 +95,7 @@ jobs:
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: ${{ env.REGISTRY }}/${{ github.repository_owner }}/feishu-bot
+          images: ${{ env.REGISTRY }}/${{ github.repository_owner }}/cortex-flow
           tags: |
             type=semver,pattern={{version}}
             type=semver,pattern={{major}}.{{minor}}
@@ -126,7 +126,7 @@ jobs:
             echo "📦 推送信息："
             echo "  镜像标签：${{ github.event.inputs.image_tag || github.ref_name }}"
             echo "  Registry：${{ env.REGISTRY }}"
-            echo "  仓库：${{ github.repository_owner }}/feishu-bot"
+            echo "  仓库：${{ github.repository_owner }}/cortex-flow"
           fi
 
       - name: 发送完成通知（可选）

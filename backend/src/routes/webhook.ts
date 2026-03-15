@@ -1,10 +1,54 @@
 import { Router, Request, Response } from 'express';
 import * as jwt from 'jsonwebtoken';
 import axios from 'axios';
-import database from '../database';
+import database, { Notification } from '../database';
 import logger from '../logger';
 
 const router = Router();
+
+function parseNotificationDetails(details?: string): Record<string, unknown> | null {
+  if (!details) {
+    return null;
+  }
+
+  try {
+    const parsed = JSON.parse(details) as Record<string, unknown>;
+    return parsed && typeof parsed === 'object' ? parsed : null;
+  } catch {
+    return null;
+  }
+}
+
+function shouldHideFromNotificationList(notification: Notification): boolean {
+  const source = (notification.source || '').toLowerCase();
+  if (source.includes('ai-report-task')) {
+    return true;
+  }
+
+  const parsedDetails = parseNotificationDetails(notification.details);
+  const meta = parsedDetails?.meta;
+
+  if (meta && typeof meta === 'object') {
+    const metaRecord = meta as Record<string, unknown>;
+    if (metaRecord.visibleInList === false || metaRecord.category === 'report-task-execution') {
+      return true;
+    }
+  }
+
+  const hasLegacyExecutionFields = Boolean(
+    parsedDetails &&
+    typeof parsedDetails.taskId === 'string' &&
+    typeof parsedDetails.modelName === 'string' &&
+    typeof parsedDetails.promptName === 'string' &&
+    typeof parsedDetails.sentToRobot === 'boolean'
+  );
+
+  if (!hasLegacyExecutionFields) {
+    return false;
+  }
+
+  return notification.summary.includes('成功执行') || notification.summary.includes('执行失败') || notification.summary.includes('无需生成报告');
+}
 
 interface NotifyRequest {
   title: string;
@@ -114,7 +158,7 @@ router.get('/notifications', verifyToken, async (req: Request, res: Response) =>
 
     // 按用户的机器人名称过滤通知
     const userNotifications = allNotifications.filter(n => 
-      !n.robotName || userRobotNames.has(n.robotName)
+      (!n.robotName || userRobotNames.has(n.robotName)) && !shouldHideFromNotificationList(n)
     );
 
     // 分页

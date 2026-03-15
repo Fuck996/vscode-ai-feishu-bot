@@ -2,7 +2,6 @@ import * as fs from 'fs';
 import * as path from 'path';
 
 import express, { Express, Request, Response, NextFunction } from 'express';
-import axios from 'axios';
 import cors from 'cors';
 import helmet from 'helmet';
 import morgan from 'morgan';
@@ -24,6 +23,7 @@ import mcpLogsRouter from './routes/mcp-logs';
 import servicesRouter from './routes/services';
 import auditRouter from './routes/audit';
 import databaseService from './database';
+import { fetchModelBalance, notifyLowBalanceIfNeeded } from './modelBalance';
 import taskQueueManager from './taskQueue';
 import { runReportTask } from './routes/services';
 
@@ -41,6 +41,25 @@ if (typeof global !== 'undefined') {
 }
 
 const app: Express = express();
+
+async function checkDeepSeekBalances(trigger: string, logLabel: string): Promise<void> {
+  const models = await databaseService.getAllModelConfigs();
+  const deepseekModels = models.filter((model) => model.provider === 'deepseek' && model.apiKey && model.status !== 'unconfigured');
+
+  logger.info({ count: deepseekModels.length }, `${logLabel}开始查询 DeepSeek 模型余额`);
+
+  for (const model of deepseekModels) {
+    try {
+      const balance = await fetchModelBalance(model);
+      if (balance !== null) {
+        logger.info({ modelId: model.id, modelName: model.name, balance }, `${logLabel}DeepSeek 余额`);
+        await notifyLowBalanceIfNeeded(model, balance, trigger);
+      }
+    } catch (error) {
+      logger.debug({ modelId: model.id, error }, `${logLabel}单个模型余额查询失败`);
+    }
+  }
+}
 
 function readAppVersion(): string {
   try {
@@ -295,40 +314,7 @@ async function start() {
       // 启动后立即查询一次（非阻塞）
       (async () => {
         try {
-          const models = await databaseService.getAllModelConfigs();
-          const deepseekModels = models.filter(m => m.provider === 'deepseek' && m.apiKey && m.status !== 'unconfigured');
-          
-          for (const model of deepseekModels) {
-            try {
-              const balanceUrl = 'https://api.deepseek.com/user/balance';
-              const response = await axios.get(balanceUrl, {
-                headers: {
-                  'Authorization': `Bearer ${model.apiKey}`,
-                  'Content-Type': 'application/json',
-                },
-                timeout: 5000,
-              });
-
-              const balanceData = response.data as {
-                is_available?: boolean;
-                balance_log_list?: Array<{ total_balance?: number }>;
-                balance_infos?: Array<{ total_balance?: number }>;
-              };
-
-              let balance: number | null = null;
-              if (balanceData.balance_log_list && balanceData.balance_log_list.length > 0) {
-                balance = balanceData.balance_log_list[0].total_balance ?? null;
-              } else if (balanceData.balance_infos && balanceData.balance_infos.length > 0) {
-                balance = balanceData.balance_infos[0].total_balance ?? null;
-              }
-
-              if (balance !== null) {
-                logger.info({ modelId: model.id, modelName: model.name, balance }, '【定时检查】DeepSeek 余额');
-              }
-            } catch (error) {
-              logger.debug({ modelId: model.id, error }, '【定时检查】单个模型余额查询失败');
-            }
-          }
+          await checkDeepSeekBalances('启动巡检', '【定时检查】');
         } catch (error) {
           logger.debug({ error }, '【定时检查】初始余额检查失败');
         }
@@ -338,42 +324,7 @@ async function start() {
       setTimeout(() => {
         (async () => {
           try {
-            const models = await databaseService.getAllModelConfigs();
-            const deepseekModels = models.filter(m => m.provider === 'deepseek' && m.apiKey && m.status !== 'unconfigured');
-            
-            logger.info({ count: deepseekModels.length }, '【每日定时】开始查询 DeepSeek 模型余额');
-
-            for (const model of deepseekModels) {
-              try {
-                const balanceUrl = 'https://api.deepseek.com/user/balance';
-                const response = await axios.get(balanceUrl, {
-                  headers: {
-                    'Authorization': `Bearer ${model.apiKey}`,
-                    'Content-Type': 'application/json',
-                  },
-                  timeout: 5000,
-                });
-
-                const balanceData = response.data as {
-                  is_available?: boolean;
-                  balance_log_list?: Array<{ total_balance?: number }>;
-                  balance_infos?: Array<{ total_balance?: number }>;
-                };
-
-                let balance: number | null = null;
-                if (balanceData.balance_log_list && balanceData.balance_log_list.length > 0) {
-                  balance = balanceData.balance_log_list[0].total_balance ?? null;
-                } else if (balanceData.balance_infos && balanceData.balance_infos.length > 0) {
-                  balance = balanceData.balance_infos[0].total_balance ?? null;
-                }
-
-                if (balance !== null) {
-                  logger.info({ modelId: model.id, modelName: model.name, balance }, '【每日定时】DeepSeek 余额');
-                }
-              } catch (error) {
-                logger.debug({ modelId: model.id, error }, '【每日定时】单个模型余额查询失败');
-              }
-            }
+            await checkDeepSeekBalances('每日巡检', '【每日定时】');
           } catch (error) {
             logger.error({ error }, '【每日定时】余额检查失败');
           }

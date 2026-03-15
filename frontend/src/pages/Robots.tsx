@@ -603,16 +603,13 @@ export default function Robots() {
                             {/* 分隔符 */}
                             <span style={{ color: '#e5e7eb', fontSize: '1rem', flexShrink: 0 }}>|</span>
                             {/* 启停开关 */}
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', flexShrink: 0 }}>
+                            <div style={{ display: 'flex', alignItems: 'center', flexShrink: 0 }}>
                               <button
                                 onClick={() => handleToggleRobotStatus(robot)}
                                 style={{ width: '36px', height: '20px', backgroundColor: robot.status === 'active' ? '#10b981' : '#cbd5e1', borderRadius: '10px', position: 'relative', cursor: 'pointer', border: 'none', padding: 0, transition: 'background-color 0.2s', flexShrink: 0 }}
                               >
                                 <div style={{ width: '16px', height: '16px', backgroundColor: 'white', borderRadius: '8px', position: 'absolute', top: '2px', left: robot.status === 'active' ? '18px' : '2px', transition: 'left 0.2s' }} />
                               </button>
-                              <span style={{ fontSize: '0.72rem', fontWeight: 600, color: robot.status === 'active' ? '#10b981' : '#9ca3af', whiteSpace: 'nowrap' }}>
-                                {robot.status === 'active' ? '启用' : '禁用'}
-                              </span>
                             </div>
                             {/* 三点菜单 */}
                             <div style={{ display: 'inline-flex', position: 'relative', flexShrink: 0 }} onClick={e => e.stopPropagation()}>

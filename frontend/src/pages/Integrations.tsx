@@ -764,7 +764,7 @@ function ToggleSwitch({ checked, disabled, onChange }: {
   checked: boolean; disabled: boolean; onChange: () => void;
 }) {
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+    <div style={{ display: 'flex', alignItems: 'center' }}>
       <button
         onClick={onChange}
         disabled={disabled}
@@ -785,9 +785,6 @@ function ToggleSwitch({ checked, disabled, onChange }: {
           transition: 'left 0.2s', display: 'block',
         }} />
       </button>
-      <span style={{ fontSize: '0.78rem', fontWeight: 600, minWidth: '2.2rem', color: checked ? '#10b981' : '#9ca3af' }}>
-        {checked ? '启用' : '停用'}
-      </span>
     </div>
   );
 }

@@ -38,7 +38,7 @@
 
 services:
   app:
-    image: ghcr.io/fuck996/feishu-bot:${IMAGE_TAG:-latest}
+    image: ghcr.io/fuck996/cortex-flow:${IMAGE_TAG:-latest}
     container_name: feishu-bot
     ports:
       - "${APP_PORT:-45173}:3000"

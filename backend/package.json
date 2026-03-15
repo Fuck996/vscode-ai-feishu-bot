@@ -1,51 +1,51 @@
 {
-  "name": "feishu-bot-backend",
-  "version": "1.4.20",
-  "description": "Feishu AI notification webhook service with nginx proxy and charset fixes",
-  "main": "dist/server.js",
-  "scripts": {
-    "dev": "set NODE_OPTIONS=--no-warnings && ts-node src/server.ts",
-    "build": "tsc",
-    "start": "node dist/server.js",
-    "lint": "eslint src --ext .ts",
-    "format": "prettier --write src"
+  "name":  "feishu-bot-backend",
+  "version": "1.5.0",
+  "description":  "Feishu AI notification webhook service with nginx proxy and charset fixes",
+  "main":  "dist/server.js",
+  "scripts":  {
+  "dev":  "set NODE_OPTIONS=--no-warnings \u0026\u0026 ts-node src/server.ts",
+  "build":  "tsc",
+  "start":  "node dist/server.js",
+  "lint":  "eslint src --ext .ts",
+  "format":  "prettier --write src"
   },
-  "keywords": [
-    "feishu",
-    "webhook",
-    "notification",
-    "ai"
+  "keywords":  [
+  "feishu",
+  "webhook",
+  "notification",
+  "ai"
   ],
-  "author": "",
-  "license": "MIT",
-  "dependencies": {
-    "axios": "^1.6.2",
-    "bcrypt": "^6.0.0",
-    "better-sqlite3": "^9.2.2",
-    "cors": "^2.8.5",
-    "dotenv": "^16.3.1",
-    "express": "^4.18.2",
-    "express-rate-limit": "^7.1.5",
-    "helmet": "^7.1.0",
-    "joi": "^17.11.0",
-    "jsonwebtoken": "^9.0.3",
-    "morgan": "^1.10.0",
-    "pino": "^8.17.2",
-    "pino-http": "^8.6.1",
-    "pino-pretty": "^10.3.1"
+  "author":  "",
+  "license":  "MIT",
+  "dependencies":  {
+  "axios":  "^1.6.2",
+  "bcrypt":  "^6.0.0",
+  "better-sqlite3":  "^9.2.2",
+  "cors":  "^2.8.5",
+  "dotenv":  "^16.3.1",
+  "express":  "^4.18.2",
+  "express-rate-limit":  "^7.1.5",
+  "helmet":  "^7.1.0",
+  "joi":  "^17.11.0",
+  "jsonwebtoken":  "^9.0.3",
+  "morgan":  "^1.10.0",
+  "pino":  "^8.17.2",
+  "pino-http":  "^8.6.1",
+  "pino-pretty":  "^10.3.1"
   },
-  "devDependencies": {
-    "@types/bcrypt": "^6.0.0",
-    "@types/cors": "^2.8.17",
-    "@types/express": "^4.17.21",
-    "@types/jsonwebtoken": "^9.0.10",
-    "@types/morgan": "^1.9.9",
-    "@types/node": "^20.10.5",
-    "@typescript-eslint/eslint-plugin": "^6.16.0",
-    "@typescript-eslint/parser": "^6.16.0",
-    "eslint": "^8.56.0",
-    "prettier": "^3.1.0",
-    "ts-node": "^10.9.2",
-    "typescript": "^5.3.3"
+  "devDependencies":  {
+  "@types/bcrypt":  "^6.0.0",
+  "@types/cors":  "^2.8.17",
+  "@types/express":  "^4.17.21",
+  "@types/jsonwebtoken":  "^9.0.10",
+  "@types/morgan":  "^1.9.9",
+  "@types/node":  "^20.10.5",
+  "@typescript-eslint/eslint-plugin":  "^6.16.0",
+  "@typescript-eslint/parser":  "^6.16.0",
+  "eslint":  "^8.56.0",
+  "prettier":  "^3.1.0",
+  "ts-node":  "^10.9.2",
+  "typescript":  "^5.3.3"
   }
 }

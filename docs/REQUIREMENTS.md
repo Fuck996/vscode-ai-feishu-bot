@@ -1,6 +1,6 @@
 # 需求与BUG跟踪文档
 
-![alt text](image.png)**版本：** v1.4.20 | **更新时间：** 2026-03-15 | **内容：** API流控机制、任务队列系统、超时处理升级、0条消息检查
+**版本：** v1.5.0 | **更新时间：** 2026-03-16 | **内容：** 修复 Services 导航与 MCP 卡片回退问题，校正 AI 汇报手动发送筛选逻辑并切换镜像名为 cortex-flow
 
 
 ## 📌 使用说明
@@ -92,31 +92,7 @@
 
 | 版本 | 发布日期 | 主要变更 |
 |------|----------|----------|
-| v1.4.20 | 2026-03-15 | 任务队列系统与流控机制完整实现：(1) 当筛选消息为0条时不发送给模型，避免无意义API调用；(2) 新增 backend/src/taskQueue.ts 模块实现高级任务队列管理；(3) 并行限制：最多10个任务同时处理；(4) 超时处理：30分钟系统级超时，超时任务自动标记；(5) 失败重试：支持最多3次自动重试，失败任务自动重入队列；(6) 任务优先级排序；(7) 服务器宕机恢复机制；(8) 新增 GET /api/services/queue/stats 端点查询队列状态；LLM API 调用超时从60秒升级为30分钟；后端 services.ts runReportTask() 增加0条消息检查逻辑 ✅ 已完成 |
-| v1.4.15 | 2026-03-15 | AI 汇报算法优化：通知选择从简单 slice(0, 50) 改为智能排序（按优先级 error>warning>success>info，相同优先级内按时间倒序），确保超过50条时仍然选中所有错误和最新的消息；新增 originalCount 和 truncated 标志，日志记录截断情况 ✅ 已完成 |
-| v1.4.14 | 2026-03-15 | AI 汇报核心功能完整实现：(1) 通知数据格式化为 JSON 方案A（结构化数据 + 统计 + 关键事件）；(2) LLM API 调用集成，支持 DeepSeek/OpenAI/Google 模型，传递格式化数据 + 提示词生成报告；(3) 生成的报告发送给配置的汇报机器人（飞书卡片格式）；(4) 通知过滤优化：限制最多50条、按时间/状态/机器人/集成多维过滤；(5) 完整错误处理和日志记录，执行历史记录包含生成内容摘要 ✅ 已完成 |
-| v1.4.13 | 2026-03-15 | 服务页继续完善：LLM 服务商选择去掉默认首项；推荐模型名称统一为 DeepSeek；模型配置弹窗在已保存 API Key 后显示 `********` 掩码提示并支持保留旧 Key；AI 汇报管理接入真实后端任务/历史/元数据接口，移除任务列表与新增弹窗中的硬编码内容，支持机器人、集成、模型、提示词的真实联动以及任务新增、编辑、启停、手动执行、删除 ✅ 已完成 |
-| v1.4.12 | 2026-03-15 | 模型配置方案重构：删除旧方案中的错误内置模型数据并迁移到新结构（provider/apiUrl/apiKey/modelId）；内置模型改为“推荐模型”，当前仅保留固定服务商和基础 URL 的 DeepSeek；自定义模型改为先选择提供商（DeepSeek、Google、OpenAI、自定义）、填写基础 URL 与 API Key，再通过刷新按钮从服务商拉取模型列表并选择模型后保存；前后端模型配置接口、服务页弹窗与列表展示全部同步到新方案 ✅ 已完成 |
-| v1.4.9 | 2026-03-15 | 数据库清理与模型验证修复：从数据库移除 Ollama/LM Studio 条目；修复后端 isBuiltIn 绕过 API Key 校验的漏洞（去掉 `&& !model.isBuiltIn` 判断，所有模型一律要求提供有效 Key 才能测试）；Claude 测试请求补充必需的 `anthropic-version: 2023-06-01` 头；精确更新内置模型名称（DeepSeek (deepseek-chat / V3.2)、OpenAI (GPT-4o)、Anthropic Claude (claude-3-5-sonnet)、Moonshot Kimi (kimi-k2-turbo)）以及对应 API URL；还原"清除 API Key"UI 功能（恢复简单输入框，保存/测试均强制要求非空 Key） ✅ 已完成 |
-| v1.4.19 | 2026-03-15 | 界面优化与修复：导航栏菜单顺序调整（仪表板 > 机器人 > 服务 > 历史 > 设置）；MCP 服务卡片字段修正（关联任务 > 今日调用 > 运行时间，而非关联集成）；后端 validateTaskPayload 补充 rangeType 新选项验证（'1d'、'today'），修复编辑任务后 maxNotifications 无法保存 ✅ 已完成 |
-| v1.4.18 | 2026-03-15 | 汇报功能优化：修复成本预估计算公式（改用分段计价方式）；maxNotifications 数字输入框支持完全删除重新输入；后端任务发送通知时添加详细日志记录（包含任务名称、机器人、通知数量、统计信息）；确保任务执行后的菜单自动关闭和 Toast 通知提示 ✅ 已完成 |
-| v1.4.17 | 2026-03-15 | AI 汇报统计范围选项优化：新增"最近 1 天"和"本日"选项；时间筛选规则调整为用户要求的精确模式（最近X天以触发当日为起点往前推X天不含当日，本日/本周/本月包含当日数据）；maxNotifications 输入框添加 Token 和成本预估显示（￥符号）；前后端类型定义同步更新 ✅ 已完成 |
-| v1.4.16 | 2026-03-15 | AI 汇报功能增强：任务配置新增 maxNotifications 字段，默认 50；前后端验证范围 1-1000；Settings.tsx 新增"消息限制"输入框放置在消息过滤与模型配置之间；backend formatNotificationsAsJSON() 接收 maxNotifications 参数并替代硬编码 50；runReportTask() 从任务读取限制值并传递；frontend/src/services/reportTasks.ts ReportTaskItem 接口补充 maxNotifications 字段；用户自定义选择发送给 AI 模型的最大通知条数 ✅ 已完成 |
-| v1.4.15 | 2026-03-15 | AI 汇报通知智能选择优化：超过 50 条时按优先级（error > warning > success > info）+ 时间（新→旧）排序，精确选择最重要的通知；formatNotificationsAsJSON() 返回 originalCount 和 truncated 标记；舍弃低优先级通知以节省 token ✅ 已完成 |
-| v1.4.14 | 2026-03-15 | AI 汇报完整实现：后端 formatNotificationsAsJSON() 序列化通知并计算统计；callLLMAPI() 支持 DeepSeek/OpenAI/Google 三种模型接口；runReportTask() 完整流程（筛选 → 格式化 → 调用 LLM → 发送机器人 → 记录）；前端 Services 页完整 UI；解决"执行汇报任务无输出"问题 ✅ 已完成 |
-| v1.4.13 | 2026-03-15 | （迭代中间版本）|
-| v1.4.8 | 2026-03-15 | 内置模型重构：移除本地模型（Ollama/LM Studio），修复 DeepSeek 命名为 V3，修正 Moonshot API 地址（/openai/v1 → /v1），数据库自动迁移清理旧数据；新增 API Key 清除功能（配置弹窗显示已配置 Key 状态并支持清除，清除后自动重置状态为未配置）；修复后端测试结果错误消息字段（message→正确传递）；修复前端测试时已有 Key 无法测试的问题；saveModel 保存后刷新列表 ✅ 已完成 |
-| v1.4.7 | 2026-03-15 | 完善 MCP 模型连接测试验证：后端优化 Ollama/LM Studio/OpenAI/Claude 的验证逻辑，确保 HTTP 错误、无模型列表等情况都设置明确的错误信息；前端所有模型测试通知（成功/失败）改用 Toast 通知替代 alert()，包括测试连接、保存配置等操作全部接入 toastService ✅ 已完成 |
-| v1.4.11 | 2026-03-15 | 修复浏览器自动填充扩展错误：模型配置弹窗中 API Key 输入框改为 `type="text"` 并添加 `autoComplete="off"` 禁用自动填充，解决浏览器扩展处理 password 字段时的 null 异常崩溃 ✅ 已完成 |
-| v1.4.10 | 2026-03-15 | MCP 服务完善：API KEY 真实验证（Ollama、LM Studio、OpenAI、Deepseek、Claude、Moonshot 各有相应的验证端点和请求头，错误提示清楚）；UI 改进：修复提示词显示的 refs→usageCount 且显示 0，移除按钮"🔗"Emoji，移除模型定价的 emoji，修复模型配置弹窗的 desc 字段访问（改为根据 purpose 动态显示），提示词预览框使用情况改为显示具体数值 ✅ 已完成 |
-| v1.4.9 | 2026-03-15 | 修复 MCP 服务 401 认证错误：mcpModels.ts、mcpPrompts.ts、mcpLogs.ts 三个服务文件读取 token 时使用了错误的 localStorage key `'token'`，与 auth.ts 实际存储的 `'auth_token'` 不一致，导致请求头携带 `Bearer null`，后端返回 401；已统一修正为 `'auth_token'`（共 18 处替换） ✅ 已完成 |
-| v1.4.8 | 2026-03-17 | UI 缺陷修复：History.tsx 筛选器下拉菜单改用 `position: fixed + getBoundingClientRect()` 动态定位，完全避免被卡片容器 overflow 裁切；Services.tsx MCP 模型和提示词标签页调整加载时机（组件挂载时初始一次 + 标签切换时重新加载），确保数据展示；强化表格规范文档第7章关于 overflow 裁切问题的说明，加入强制规范、根本原因、正确/错误做法及检查清单 ✅ 已完成 |
-| v1.4.7 | 2026-03-17 | UI 缺陷修复：Robots.tsx 状态筛选器从单选改为多选数组状态管理（支持同时筛选活跃和非活跃机器人）；History.tsx 筛选框裁切问题修复（应用 flexbox `minWidth:0` 和 `whiteSpace:nowrap` 确保响应式布局）；前端成功编译无错误；后端服务正常运行；数据库内置模型和提示词初始化验证成功 (6+5) ✅ 已完成 |
-| v1.4.6 | 2026-03-17 | 提示词管理完整实现：后端在初始化时自动创建 5 个预置提示词模板（VS Code Chat 汇报、日报快报、周报总结、事件报告、优化建议）和 6 个内置模型（Ollama/LM Studio/Deepseek/OpenAI/Claude/Moonshot）；前端 Services 页面新增自定义提示词列表加载、编辑、删除功能；提示词创建弹窗支持实时飞书卡片预览和格式教程；所有 API 调用已集成后端路由 ✅ 已完成 |
-| v1.3.40 | 2026-03-15 | 机器人管理页：APP ID 改为 BOT ID；将最后活动列与启停/三点菜单合并为单列（左=时间，中=开关，右=三点）；筛选按钮改为 GitHub pill 风格（去除 ChevronDown）；修复机器人管理与集成管理筛选下拉被 overflow:hidden 截断；仪表板"汇报通知"改为"信息通知"；页脚移除 flex-1 使其紧跟内容不贴底 ✅ 已完成 |
-| v1.3.34 | 2026-03-14 | 三张表（活跃机器人、最近通知记录、历史记录）名称列加 maxWidth:300px 固定宽度并截断省略；活跃机器人筛选按钮改为与最近通知记录一致的 GitHub 风格多选下拉 ✅ 已完成 |
-| v1.3.33 | 2026-03-14 | 修复 Dashboard：恢复活跃机器人状态筛选和数量统计，三点菜单改为 fixed 定位避免被 overflow 截断，两表格状态列用百分比宽度居中对齐，活跃机器人与通知记录间距恢复 ✅ 已完成 |
-| v1.3.32 | 2026-03-14 | 修复三点菜单下拉因 overflow:hidden 被截断的问题（Robots/History 均改为 getBoundingClientRect+position:fixed 浮层），History 顶部添加消息名称搜索框，解决前次修改未保存到磁盘问题 ✅ 已完成 |
+| v1.5.0 | 2026-03-16 | 修复顶部导航品牌名与菜单顺序回退；移除 MCP 工作汇报服务卡片错误的下次运行展示；修正 AI 汇报手动发送前的通知筛选逻辑，避免把正常带 robotName 的通知误排除；手动发送前端提示改为“已加入队列”；GitHub Actions 与群晖部署镜像名统一切换为 `cortex-flow`；前后端版本同步更新 ✅ 已完成 |
 | v1.3.31 | 2026-03-13 | 修复 Robots 与 History 页面三点菜单被表格层级遮挡的问题，统一改为 fixed 浮层；History 顶部加入与 Robots 同风格的消息名称搜索与横向筛选布局，并同步前后端版本号 ✅ 已完成 |
 | v1.3.30 | 2026-03-13 | 修复 Dashboard 活跃机器人表头丢失的状态筛选；将 Dashboard 的三点菜单改为最外层 fixed 浮层，避免被表格容器遮挡；重新收紧活跃机器人与最近通知记录两张卡片的间距，并用 fixed table layout 重新约束状态列居中 ✅ 已完成 |
 | v1.3.29 | 2026-03-13 | 修复 Dashboard 仪表板 React DOM 嵌套告警；调整 Dashboard 与 History 状态列到表格中部并将时间列靠近操作列；Dashboard 活跃机器人卡片补充“共 n 个”统计；Robots 页面新增状态筛选并与新建按钮交换位置；History 页面新增消息名称搜索框 ✅ 已完成 |

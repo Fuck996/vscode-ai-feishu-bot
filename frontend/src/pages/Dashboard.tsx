@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { CalendarDays, ChevronDown, ChevronLeft, ChevronRight, Clock3, MoreHorizontal, Search } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import authService from '../services/auth';
+import NotificationDetailModal from '../components/NotificationDetailModal';
 import StatusBadge from '../components/StatusBadge';
 import SceneIcon from '../components/SceneIcon';
 
@@ -865,49 +866,7 @@ const Dashboard: React.FC = () => {
         </div>
       )}
 
-      {selectedNotification && (
-        <div
-          style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}
-          onMouseDown={e => { if (e.target === e.currentTarget) closeNotificationDetail(); }}
-        >
-          <div
-            style={{ backgroundColor: 'white', borderRadius: '0.75rem', boxShadow: '0 10px 40px rgba(0,0,0,0.2)', maxWidth: '600px', width: '90%', maxHeight: '80vh', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}
-            onClick={e => e.stopPropagation()}
-          >
-            <div style={{ backgroundColor: getStatusColor(selectedNotification.status), padding: '1.5rem', color: 'white', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-              <div style={{ flex: 1 }}>
-                <h2 style={{ margin: 0, fontSize: '1.125rem', fontWeight: 'bold' }}>{selectedNotification.title}</h2>
-                <p style={{ margin: '0.25rem 0 0 0', fontSize: '0.8125rem', opacity: 0.9 }}>
-                  {getStatusText(selectedNotification.status)}
-                </p>
-              </div>
-            </div>
-            <div style={{ padding: '1.5rem', flex: 1, overflowY: 'auto' }}>
-              <div style={{ marginBottom: '1.5rem' }}>
-                <label style={{ fontSize: '0.75rem', color: '#6b7280', fontWeight: 600, display: 'block', marginBottom: '0.25rem' }}>来源</label>
-                <p style={{ margin: 0, fontSize: '0.875rem', color: '#374151' }}>{(selectedNotification.source || '').replace('系统消息/', '系统通知/') || '未指定'}</p>
-              </div>
-              <div style={{ marginBottom: '1.5rem' }}>
-                <label style={{ fontSize: '0.75rem', color: '#6b7280', fontWeight: 600, display: 'block', marginBottom: '0.5rem' }}>详细内容</label>
-                <div style={{ fontSize: '0.875rem', color: '#374151', lineHeight: '1.6', whiteSpace: 'pre-wrap', wordBreak: 'break-word', backgroundColor: '#f9fafb', padding: '0.75rem', borderRadius: '0.375rem', border: '1px solid #e5e7eb' }}>
-                  {selectedNotification.summary || selectedNotification.details || selectedNotification.message || '暂无内容'}
-                </div>
-              </div>
-            </div>
-            <div style={{ padding: '1rem 1.5rem', borderTop: '1px solid #e5e7eb', backgroundColor: '#f9fafb', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span style={{ fontSize: '0.75rem', color: '#6b7280' }}>
-                🕐 {new Date(selectedNotification.createdAt || '').toLocaleString('zh-CN')}
-              </span>
-              <button
-                onClick={closeNotificationDetail}
-                style={{ padding: '0.5rem 1rem', backgroundColor: '#3b82f6', color: 'white', border: 'none', borderRadius: '0.375rem', cursor: 'pointer', fontSize: '0.875rem', fontWeight: 500 }}
-              >
-                关闭
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <NotificationDetailModal notification={selectedNotification} onClose={closeNotificationDetail} />
     </div>
   );
 };
