@@ -17,6 +17,7 @@ export interface ReportTaskItem {
   promptTemplateId: string;
   promptName: string;
   status: 'active' | 'inactive';
+  maxNotifications?: number;
   lastSentAt?: string;
   nextRunAt?: string;
   scheduleText: string;

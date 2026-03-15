@@ -104,6 +104,7 @@ export interface ReportTask {
   notificationStatuses: Array<Notification['status']>;
   modelConfigId: string;
   promptTemplateId: string;
+  maxNotifications?: number;           // 【新增】发送给AI模型的最多条数，默认50
   status: 'active' | 'inactive';
   lastSentAt?: string;
   createdAt: string;

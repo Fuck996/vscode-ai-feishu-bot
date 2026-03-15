@@ -222,6 +222,8 @@ async function validateTaskPayload(payload: any, existingTask?: ReportTask): Pro
   const modelConfigId = typeof payload.modelConfigId === 'string' ? payload.modelConfigId : '';
   const promptTemplateId = typeof payload.promptTemplateId === 'string' ? payload.promptTemplateId : '';
   const status = payload.status === 'inactive' ? 'inactive' : 'active';
+  // 【新增】最多发送给模型的条数，默认50，范围1-1000
+  const maxNotifications = Math.min(Math.max(1, Number(payload.maxNotifications) || 50), 1000);
 
   if (!name || !weekdays.length || !sendTime || !robotId || !integrationIds.length || !notificationStatuses.length || !modelConfigId || !promptTemplateId) {
     throw new Error('任务信息不完整，请检查名称、发送计划、机器人、集成、状态、模型和提示词配置');
@@ -260,6 +262,7 @@ async function validateTaskPayload(payload: any, existingTask?: ReportTask): Pro
     notificationStatuses,
     modelConfigId,
     promptTemplateId,
+    maxNotifications,  // 【新增】保存用户配置的最大条数
     status,
     lastSentAt: existingTask?.lastSentAt,
     createdAt: existingTask?.createdAt || now,
@@ -270,14 +273,15 @@ async function validateTaskPayload(payload: any, existingTask?: ReportTask): Pro
 /**
  * 格式化通知为 JSON 方案A（结构化数据）
  * - 包含统计信息和关键事件
- * - 按优先级+时间智能选择最重要的50条通知
+ * - 按优先级+时间智能选择最重要的通知（由用户配置最大条数）
  * - 确保不会遗漏关键的错误和警告
  */
 function formatNotificationsAsJSON(
-  notifications: Array<Notification & { id?: number; createdAt?: string }>
+  notifications: Array<Notification & { id?: number; createdAt?: string }>,
+  maxNotifications: number = 50  // 【新增】用户可配置，默认50
 ): {
   total: number;
-  originalCount: number;  // 过滤前的总数（用于判断是否被截断）
+  originalCount: number;
   statistics: Record<string, number>;
   events: Array<{
     status: string;
@@ -285,29 +289,27 @@ function formatNotificationsAsJSON(
     summary: string;
     timestamp: string;
   }>;
-  truncated: boolean;  // 是否因为超过50条而被截断
+  truncated: boolean;
+  maxLimit: number;
 } {
   // 过滤有效通知
   const validNotifications = notifications.filter(n => n.createdAt && n.id);
   const originalCount = validNotifications.length;
 
   // 智能排序：优先级 > 时间（相同优先级内按时间倒序）
-  // 这样能确保重要的错误和最新的消息优先被包含
   const priorityMap = { error: 0, warning: 1, success: 2, info: 3 };
   const sorted = validNotifications.sort((a, b) => {
-    // 第一步：按优先级排序（error 最高）
     const priorityDiff = (priorityMap[a.status] ?? 99) - (priorityMap[b.status] ?? 99);
     if (priorityDiff !== 0) return priorityDiff;
 
-    // 第二步：相同优先级内按时间倒序（最新的优先）
     const timeA = new Date(a.createdAt || 0).getTime();
     const timeB = new Date(b.createdAt || 0).getTime();
     return timeB - timeA;
   });
 
-  // 限制最多50条，并标记是否被截断
-  const selected = sorted.slice(0, 50);
-  const truncated = originalCount > 50;
+  // 限制为配置的最大条数，并标记是否被截断
+  const selected = sorted.slice(0, maxNotifications);
+  const truncated = originalCount > maxNotifications;
 
   // 统计各类型
   const statistics: Record<string, number> = {
@@ -321,9 +323,9 @@ function formatNotificationsAsJSON(
     statistics[n.status] = (statistics[n.status] || 0) + 1;
   });
 
-  // 构建事件列表（已按优先级+时间排序）
+  // 构建事件列表（已按优先级+时间排序，取前20条）
   const events = selected
-    .slice(0, 20) // 只取前20条关键事件作为摘要
+    .slice(0, 20)
     .map(n => ({
       status: n.status,
       title: n.title,
@@ -337,6 +339,7 @@ function formatNotificationsAsJSON(
     statistics,
     events,
     truncated,
+    maxLimit: maxNotifications,
   };
 }
 
@@ -508,8 +511,10 @@ async function runReportTask(task: ReportTask): Promise<ReportTaskHistory> {
       throw new Error('汇报机器人未配置');
     }
 
-    // 【优化2】格式化通知数据为 JSON 方案A（智能选择最重要的50条）
-    const formattedData = formatNotificationsAsJSON(relatedNotifications);
+    // 【优化2】格式化通知数据为 JSON 方案A（智能选择最重要的通知）
+    // 使用任务配置的 maxNotifications（默认50），也可用户自定义
+    const maxNotifications = task.maxNotifications || 50;
+    const formattedData = formatNotificationsAsJSON(relatedNotifications, maxNotifications);
 
     // 记录收集和选择情况
     logger.info(

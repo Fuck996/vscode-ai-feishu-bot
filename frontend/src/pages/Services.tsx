@@ -164,6 +164,7 @@ const Services: React.FC = () => {
   const [modalRobot, setModalRobot] = useState<string>('');
   const [modalNotificationStatus, setModalNotificationStatus] = useState<string[]>(['success', 'error', 'warning', 'info']);
   const [modalIntegrationIds, setModalIntegrationIds] = useState<string[]>([]);
+  const [modalMaxNotifications, setModalMaxNotifications] = useState<number>(50);  // 【新增】设置最多发送条数，默认50
   const [taskMeta, setTaskMeta] = useState<ReportTaskMeta | null>(null);
   const [reportTasks, setReportTasks] = useState<ReportTaskItem[]>([]);
   const [reportTasksLoading, setReportTasksLoading] = useState(false);
@@ -401,6 +402,7 @@ const Services: React.FC = () => {
     setModalNotificationStatus(['success', 'error', 'warning', 'info']);
     setModalModel(meta?.models?.[0]?.id || '');
     setModalTemplate(meta?.prompts?.[0]?.id || '');
+    setModalMaxNotifications(50);  // 【新增】重置为默认值50
   }, []);
 
   const openTaskCreateModal = useCallback(() => {
@@ -422,6 +424,7 @@ const Services: React.FC = () => {
     setModalNotificationStatus(task.notificationStatuses);
     setModalModel(task.modelConfigId);
     setModalTemplate(task.promptTemplateId);
+    setModalMaxNotifications(task.maxNotifications || 50);  // 【新增】加载保存的最大条数
     setTaskModalOpen(true);
   }, []);
 
@@ -699,6 +702,7 @@ const Services: React.FC = () => {
         robotId: modalRobot,
         integrationIds: modalIntegrationIds,
         notificationStatuses: modalNotificationStatus,
+        maxNotifications: modalMaxNotifications,  // 【新增】传递最大条数
         modelConfigId: modalModel,
         promptTemplateId: modalTemplate,
       };
@@ -3945,6 +3949,41 @@ const Services: React.FC = () => {
                         </label>
                       ))}
                     </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* ── 第3.5区：最大通知条数 ── */}
+              <div>
+                <div style={{ fontSize: '0.8125rem', fontWeight: 600, color: '#374151', marginBottom: '0.875rem', paddingBottom: '0.5rem', borderBottom: '1px solid #f3f4f6' }}>
+                  消息限制
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.875rem' }}>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.8125rem', fontWeight: 500, color: '#374151', marginBottom: '0.5rem' }}>
+                      发送给AI模型的最多条数（默认50）
+                    </label>
+                    <input
+                      type="number"
+                      min="1"
+                      max="1000"
+                      value={modalMaxNotifications}
+                      onChange={(e) => setModalMaxNotifications(Math.max(1, Math.min(1000, Number(e.target.value) || 50)))}
+                      style={{
+                        display: 'block',
+                        width: '100%',
+                        padding: '0.625rem 0.875rem',
+                        fontSize: '0.875rem',
+                        border: '1px solid #d1d5db',
+                        borderRadius: '0.375rem',
+                        boxSizing: 'border-box',
+                        fontFamily: 'inherit',
+                      }}
+                      placeholder="50"
+                    />
+                    <p style={{ fontSize: '0.75rem', color: '#6b7280', marginTop: '0.375rem' }}>
+                      范围: 1-1000。超过限制的通知按优先级+时间智能选择最重要的数据。
+                    </p>
                   </div>
                 </div>
               </div>
