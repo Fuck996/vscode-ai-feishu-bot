@@ -1381,22 +1381,72 @@ const Services: React.FC = () => {
               <h3 style={{ fontSize: '1rem', fontWeight: 600, color: '#1f2937', marginTop: 0, marginBottom: '1rem' }}>内置模型</h3>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginBottom: '2rem' }}>
                 {[
-                  { name: 'OpenAI', models: ['GPT-4o', 'GPT-4o mini'] },
-                  { name: 'Anthropic Claude', models: ['Claude 3.5 Sonnet'] },
-                  { name: 'DeepSeek', models: ['DeepSeek-V3'] },
-                ].map((provider, idx) => (
+                  { 
+                    name: 'Ollama', 
+                    desc: '本地运行的开源模型',
+                    apiUrl: 'http://localhost:11434/v1',
+                    status: '✓ 已连接',
+                    statusColor: '#10b981',
+                    pricing: '💚 完全免费（本地运行）'
+                  },
+                  { 
+                    name: 'LM Studio', 
+                    desc: '桌面端本地模型运行工具',
+                    apiUrl: 'http://localhost:1234/v1',
+                    status: '未连接',
+                    statusColor: '#9ca3af',
+                    pricing: '💚 完全免费（本地运行）'
+                  },
+                  { 
+                    name: 'Deepseek', 
+                    desc: '国内超低成本模型',
+                    apiUrl: 'https://api.deepseek.com/v1',
+                    status: '配置中',
+                    statusColor: '#f59e0b',
+                    pricing: '💛 $0.00008/1K input tokens（业界最便宜）'
+                  },
+                  { 
+                    name: 'OpenAI', 
+                    desc: '业界标准模型系列',
+                    apiUrl: 'https://api.openai.com/v1',
+                    status: '未配置',
+                    statusColor: '#ef4444',
+                    pricing: '💰 GPT-4o: $2.50/1M in | GPT-4o mini: $0.15/1M in'
+                  },
+                  { 
+                    name: 'Anthropic Claude', 
+                    desc: '高智能推理能力',
+                    apiUrl: 'https://api.anthropic.com/v1',
+                    status: '未配置',
+                    statusColor: '#ef4444',
+                    pricing: '💰 Claude 3.5 Haiku: $0.80/1M in（商用最便宜）'
+                  },
+                  { 
+                    name: 'Moonshot', 
+                    desc: '国内高端推理模型',
+                    apiUrl: 'https://api.moonshot.cn/openai/v1',
+                    status: '未配置',
+                    statusColor: '#ef4444',
+                    pricing: '💛 ¥0.008/1K tokens（约 $0.001）'
+                  },
+                ].map((model, idx) => (
                   <div
                     key={idx}
                     style={{
                       border: '1px solid #d1d5db',
                       borderRadius: '0.5rem',
                       padding: '1rem',
-                      backgroundColor: '#f9fafb',
+                      backgroundColor: model.status === '✓ 已连接' ? '#f0fdf4' : '#f9fafb',
                     }}
                   >
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
-                      <div style={{ fontSize: '0.9375rem', fontWeight: 600, color: '#1f2937' }}>
-                        {provider.name}
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.75rem' }}>
+                      <div>
+                        <div style={{ fontSize: '0.9375rem', fontWeight: 600, color: '#1f2937' }}>
+                          {model.name}
+                        </div>
+                        <div style={{ fontSize: '0.75rem', color: '#6b7280', marginTop: '0.25rem' }}>
+                          {model.desc}
+                        </div>
                       </div>
                       <button
                         style={{
@@ -1413,15 +1463,18 @@ const Services: React.FC = () => {
                         配置
                       </button>
                     </div>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem', fontSize: '0.8125rem', color: '#6b7280' }}>
-                      <div>API 地址：<span style={{ color: '#1f2937', fontFamily: 'monospace' }}>https://api.openai.com/v1</span></div>
-                      <div>API Key：<span style={{ color: '#ef4444' }}>未配置</span></div>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem', fontSize: '0.8125rem', color: '#6b7280', marginBottom: '0.75rem' }}>
+                      <div>API 地址：<span style={{ color: '#1f2937', fontFamily: 'monospace', fontSize: '0.75rem' }}>{model.apiUrl}</span></div>
+                      <div>状态：<span style={{ color: model.statusColor, fontWeight: 600 }}>{model.status}</span></div>
+                    </div>
+                    <div style={{ fontSize: '0.8125rem', color: '#6b7280', paddingTop: '0.75rem', borderTop: '1px solid #e5e7eb' }}>
+                      {model.pricing}
                     </div>
                   </div>
                 ))}
               </div>
 
-              <h3 style={{ fontSize: '1rem', fontWeight: 600, color: '#1f2937', marginTop: 0, marginBottom: '1rem' }}>自定义模型</h3>
+              <h3 style={{ fontSize: '1rem', fontWeight: 600, color: '#1f2937', marginTop: '1.5rem', marginBottom: '1rem' }}>自定义模型</h3>
               <div style={{ border: '2px dashed #d1d5db', borderRadius: '0.5rem', padding: '2rem', textAlign: 'center' }}>
                 <div style={{ fontSize: '0.875rem', color: '#6b7280', marginBottom: '1rem' }}>
                   💡 支持任何兼容 OpenAI API 的模型（如 Ollama、LM Studio 等）
@@ -1730,10 +1783,12 @@ const Services: React.FC = () => {
               background: 'white',
               borderRadius: '1rem',
               boxShadow: '0 20px 60px rgba(0,0,0,0.25)',
-              width: '600px',
+              width: '900px',
               maxWidth: '95vw',
               maxHeight: '90vh',
               overflowY: 'auto',
+              display: 'flex',
+              flexDirection: 'column',
             }}
           >
             {/* 弹窗头 */}
@@ -1766,50 +1821,121 @@ const Services: React.FC = () => {
               </button>
             </div>
 
-            {/* 弹窗体 */}
-            <div style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-              <div>
-                <label style={{ display: 'block', fontSize: '0.8125rem', fontWeight: 500, color: '#374151', marginBottom: '0.35rem' }}>
-                  模板名称 <span style={{ color: '#ef4444' }}>*</span>
-                </label>
-                <input
-                  type="text"
-                  placeholder="如：团队周报模板"
-                  value={customPromptName}
-                  onChange={(e) => setCustomPromptName(e.target.value)}
-                  style={{ width: '100%', padding: '0.5rem 0.75rem', border: '1px solid #d1d5db', borderRadius: '0.375rem', fontSize: '0.875rem', fontFamily: 'inherit', boxSizing: 'border-box' }}
-                />
-              </div>
-              <div>
-                <label style={{ display: 'block', fontSize: '0.8125rem', fontWeight: 500, color: '#374151', marginBottom: '0.35rem' }}>
-                  用途标签 <span style={{ color: '#ef4444' }}>*</span>
-                </label>
-                <div style={{ display: 'flex', gap: '1rem' }}>
-                  {['周报', '日报', '事件', '其他'].map(tag => (
-                    <label key={tag} style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', fontSize: '0.875rem', cursor: 'pointer' }}>
-                      <input
-                        type="radio"
-                        name="purpose"
-                        value={tag}
-                        checked={customPromptPurpose === tag}
-                        onChange={(e) => setCustomPromptPurpose(e.target.value)}
-                        style={{ cursor: 'pointer' }}
-                      />
-                      {tag}
-                    </label>
-                  ))}
+            {/* 弹窗体：两列布局 */}
+            <div style={{ padding: '1.5rem', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem', flex: 1, overflowY: 'auto', minHeight: 0 }}>
+              {/* 左列：表单输入 */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.8125rem', fontWeight: 500, color: '#374151', marginBottom: '0.35rem' }}>
+                    模板名称 <span style={{ color: '#ef4444' }}>*</span>
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="如：团队周报模板"
+                    value={customPromptName}
+                    onChange={(e) => setCustomPromptName(e.target.value)}
+                    style={{ width: '100%', padding: '0.5rem 0.75rem', border: '1px solid #d1d5db', borderRadius: '0.375rem', fontSize: '0.875rem', fontFamily: 'inherit', boxSizing: 'border-box' }}
+                  />
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.8125rem', fontWeight: 500, color: '#374151', marginBottom: '0.35rem' }}>
+                    用途标签 <span style={{ color: '#ef4444' }}>*</span>
+                  </label>
+                  <div style={{ display: 'flex', gap: '1rem' }}>
+                    {['周报', '日报', '事件', '其他'].map(tag => (
+                      <label key={tag} style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', fontSize: '0.875rem', cursor: 'pointer' }}>
+                        <input
+                          type="radio"
+                          name="purpose"
+                          value={tag}
+                          checked={customPromptPurpose === tag}
+                          onChange={(e) => setCustomPromptPurpose(e.target.value)}
+                          style={{ cursor: 'pointer' }}
+                        />
+                        {tag}
+                      </label>
+                    ))}
+                  </div>
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.8125rem', fontWeight: 500, color: '#374151', marginBottom: '0.35rem' }}>
+                    提示词内容 <span style={{ color: '#ef4444' }}>*</span>
+                  </label>
+                  <textarea
+                    placeholder="输入提示词内容（如：生成✅完成、🔧修复、📝说明三种格式的汇报...）"
+                    value={customPromptContent}
+                    onChange={(e) => setCustomPromptContent(e.target.value)}
+                    style={{ width: '100%', padding: '0.75rem', border: '1px solid #d1d5db', borderRadius: '0.375rem', fontSize: '0.875rem', fontFamily: "'Monaco', 'Menlo', 'Ubuntu Mono', monospace", boxSizing: 'border-box', minHeight: '200px' }}
+                  />
+                  <div style={{ fontSize: '0.75rem', color: '#6b7280', marginTop: '0.5rem' }}>
+                    💡 提示词应指导模型按照飞书汇报规范生成内容
+                  </div>
                 </div>
               </div>
-              <div>
-                <label style={{ display: 'block', fontSize: '0.8125rem', fontWeight: 500, color: '#374151', marginBottom: '0.35rem' }}>
-                  提示词内容 <span style={{ color: '#ef4444' }}>*</span>
-                </label>
-                <textarea
-                  placeholder="输入提示词内容，支持 Markdown 格式..."
-                  value={customPromptContent}
-                  onChange={(e) => setCustomPromptContent(e.target.value)}
-                  style={{ width: '100%', padding: '0.75rem', border: '1px solid #d1d5db', borderRadius: '0.375rem', fontSize: '0.875rem', fontFamily: "'Monaco', 'Menlo', 'Ubuntu Mono', monospace", boxSizing: 'border-box', minHeight: '150px' }}
-                />
+
+              {/* 右列：飞书卡片预览 */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                <div style={{ fontSize: '0.8125rem', fontWeight: 600, color: '#374151' }}>📋 飞书卡片预览</div>
+                <div style={{
+                  background: '#f3f4f6',
+                  border: '1px solid #d1d5db',
+                  borderRadius: '0.5rem',
+                  padding: '1rem',
+                  minHeight: '350px',
+                  display: 'flex',
+                  flexDirection: 'column',
+                }}>
+                  {/* 飞书卡片头部 */}
+                  <div style={{
+                    backgroundColor: '#1f883d',
+                    color: 'white',
+                    padding: '0.75rem 1rem',
+                    borderRadius: '0.375rem 0.375rem 0 0',
+                    marginBottom: '1rem',
+                  }}>
+                    <div style={{ fontSize: '0.875rem', fontWeight: 600 }}>
+                      ✅ {customPromptName || '模板预览'}
+                    </div>
+                    <div style={{ fontSize: '0.75rem', opacity: 0.8, marginTop: '0.25rem' }}>
+                      {customPromptPurpose ? `分类：${customPromptPurpose}汇报` : '分类：待选择'}
+                    </div>
+                  </div>
+
+                  {/* 示例输出 */}
+                  <div style={{ flex: 1, overflowY: 'auto' }}>
+                    <div style={{ fontSize: '0.8125rem', color: '#6b7280', lineHeight: 1.8 }}>
+                      <div style={{ color: '#10b981', marginBottom: '0.75rem' }}>✅ 完成的任务1</div>
+                      <div style={{ color: '#10b981', marginBottom: '0.75rem' }}>✅ 完成的任务2</div>
+                      <div style={{ color: '#f59e0b', marginBottom: '0.75rem' }}>🔧 修复的问题1</div>
+                      <div style={{ color: '#f59e0b', marginBottom: '0.75rem' }}>🔧 改进的功能1</div>
+                      <div style={{ color: '#6b7280' }}>📝 后续计划或说明</div>
+                    </div>
+                  </div>
+
+                  {/* 卡片底部说明 */}
+                  <div style={{
+                    fontSize: '0.75rem',
+                    color: '#9ca3af',
+                    marginTop: '1rem',
+                    paddingTop: '0.75rem',
+                    borderTop: '1px solid #e5e7eb',
+                  }}>
+                    飞书卡片将采用这种格式展示，✅🔧📝 三种符号分类汇报内容
+                  </div>
+                </div>
+
+                {/* 模板示例说明 */}
+                <div style={{
+                  background: '#fef3c7',
+                  border: '1px solid #fcd34d',
+                  borderRadius: '0.375rem',
+                  padding: '0.75rem',
+                }}>
+                  <div style={{ fontSize: '0.75rem', color: '#92400e', lineHeight: 1.6 }}>
+                    <div style={{ fontWeight: 600, marginBottom: '0.25rem' }}>💡 提示词编写建议</div>
+                    <div>指导模型按照 ✅完成 | 🔧修复 | 📝说明 的格式组织信息</div>
+                  </div>
+                </div>
               </div>
             </div>
 
