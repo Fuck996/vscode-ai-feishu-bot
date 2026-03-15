@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import authService from '../services/auth';
 import { useToast } from '../hooks/useToast';
 import SceneIcon from '../components/SceneIcon';
+import TablePagination from '../components/TablePagination';
 
 /* ─ 类型定义 ─ */
 interface UserRow {
@@ -616,39 +617,12 @@ const Settings: React.FC = () => {
                           ))}
                         </tbody>
                       </table>
-                      {userTotalPages > 1 && (
-                        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.125rem', margin: '1rem 0', paddingTop: '1rem', borderTop: '1px solid #e5e7eb' }}>
-                          <button
-                            onClick={() => setUserPage(p => Math.max(1, p - 1))}
-                            disabled={userPage === 1}
-                            style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem', padding: '0.375rem 0.625rem', border: 'none', borderRadius: '0.375rem', backgroundColor: 'transparent', color: userPage === 1 ? '#8c959f' : '#0969da', cursor: userPage === 1 ? 'not-allowed' : 'pointer', fontSize: '0.8125rem', fontWeight: 500, opacity: userPage === 1 ? 0.7 : 1 }}
-                            onMouseEnter={e => { if (userPage !== 1) e.currentTarget.style.backgroundColor = '#f3f4f6'; }}
-                            onMouseLeave={e => { e.currentTarget.style.backgroundColor = 'transparent'; }}
-                          >
-                            <ChevronLeft size={15} />上一页
-                          </button>
-                          {Array.from({ length: userTotalPages }, (_, i) => i + 1).map(page => (
-                            <button
-                              key={page}
-                              onClick={() => setUserPage(page)}
-                              style={{ width: '32px', height: '32px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', border: userPage === page ? 'none' : '1px solid transparent', backgroundColor: userPage === page ? '#0969da' : 'transparent', color: userPage === page ? 'white' : '#1f2328', cursor: 'pointer', borderRadius: '0.375rem', fontSize: '0.875rem', fontWeight: userPage === page ? 600 : 400 }}
-                              onMouseEnter={e => { if (userPage !== page) e.currentTarget.style.border = '1px solid #d0d7de'; }}
-                              onMouseLeave={e => { if (userPage !== page) e.currentTarget.style.border = '1px solid transparent'; }}
-                            >
-                              {page}
-                            </button>
-                          ))}
-                          <button
-                            onClick={() => setUserPage(p => Math.min(userTotalPages, p + 1))}
-                            disabled={userPage === userTotalPages}
-                            style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem', padding: '0.375rem 0.625rem', border: 'none', borderRadius: '0.375rem', backgroundColor: 'transparent', color: userPage === userTotalPages ? '#8c959f' : '#0969da', cursor: userPage === userTotalPages ? 'not-allowed' : 'pointer', fontSize: '0.8125rem', fontWeight: 500, opacity: userPage === userTotalPages ? 0.7 : 1 }}
-                            onMouseEnter={e => { if (userPage !== userTotalPages) e.currentTarget.style.backgroundColor = '#f3f4f6'; }}
-                            onMouseLeave={e => { e.currentTarget.style.backgroundColor = 'transparent'; }}
-                          >
-                            下一页<ChevronRight size={15} />
-                          </button>
-                        </div>
-                      )}
+                      <TablePagination
+                        currentPage={userPage}
+                        totalPages={userTotalPages}
+                        onPageChange={setUserPage}
+                        containerStyle={{ margin: '1rem 0', paddingTop: '1rem', borderTop: '1px solid #e5e7eb' }}
+                      />
                     </div>
                   )}
                 </div>

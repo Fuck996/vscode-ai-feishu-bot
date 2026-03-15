@@ -188,11 +188,26 @@ function MainLayout({ children }: { children: React.ReactNode }) {
       </main>
 
       {/* 页脚 */}
-      <footer className="bg-gray-100 border-t border-gray-200 mt-8">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <p className="github-footer__text text-center text-sm text-gray-600">
-            © 2026 CortexFlow. All rights reserved. | System v{backendVersion} | Updated: {new Date().toLocaleString('en-US', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hour12: false })}
-          </p>
+      <footer className="mt-10 pb-6">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div style={{ backgroundColor: '#ffffff', border: '1px solid #d0d7de', borderRadius: '0.875rem', boxShadow: '0 1px 3px rgba(15, 23, 42, 0.06)', padding: '0.875rem 1rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.75rem', flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.625rem' }}>
+              <SceneIcon name="brand" size={18} title="CortexFlow" />
+              <div>
+                <div style={{ fontSize: '0.875rem', fontWeight: 600, color: '#1f2328', lineHeight: 1.2 }}>CortexFlow</div>
+                <div style={{ fontSize: '0.75rem', color: '#656d76', marginTop: '0.125rem' }}>AI notification orchestration console</div>
+              </div>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+              <span style={{ display: 'inline-flex', alignItems: 'center', padding: '0.3rem 0.65rem', borderRadius: '999px', backgroundColor: '#eff6ff', color: '#1d4ed8', fontSize: '0.75rem', fontWeight: 600 }}>
+                System v{backendVersion}
+              </span>
+              <span style={{ display: 'inline-flex', alignItems: 'center', padding: '0.3rem 0.65rem', borderRadius: '999px', backgroundColor: '#f6f8fa', color: '#57606a', fontSize: '0.75rem', fontWeight: 500 }}>
+                Updated {new Date().toLocaleString('en-US', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hour12: false })}
+              </span>
+              <span style={{ fontSize: '0.75rem', color: '#8c959f' }}>© 2026</span>
+            </div>
+          </div>
         </div>
       </footer>
     </div>

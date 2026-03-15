@@ -1,7 +1,8 @@
 import React, { useEffect, useState, useCallback, useMemo, useRef } from 'react';
-import { CalendarDays, Clock3, MoreHorizontal, ChevronLeft, ChevronRight, ChevronDown, RotateCw, Search } from 'lucide-react';
+import { CalendarDays, Clock3, MoreHorizontal, ChevronDown, RotateCw, Search } from 'lucide-react';
 import SceneIcon, { SceneIconName } from '../components/SceneIcon';
 import NotificationDetailModal from '../components/NotificationDetailModal';
+import TablePagination from '../components/TablePagination';
 import authService from '../services/auth';
 import mcpModelsService, { ModelConfig as McpModelConfig, ModelProvider } from '../services/mcpModels';
 import mcpPromptsService from '../services/mcpPrompts';
@@ -1939,31 +1940,11 @@ const Services: React.FC = () => {
                         {totalHistoryPages > 1 && (
                           <tr>
                             <td colSpan={4} style={{ padding: '0.875rem 0', borderTop: '1px solid #e5e7eb' }}>
-                              <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.125rem' }}>
-                                <button
-                                  onClick={() => setHistoryPage(Math.max(1, historyPage - 1))}
-                                  disabled={historyPage === 1}
-                                  style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem', padding: '0.375rem 0.625rem', border: 'none', backgroundColor: 'transparent', color: historyPage === 1 ? '#8c959f' : '#0969da', cursor: historyPage === 1 ? 'not-allowed' : 'pointer', borderRadius: '0.375rem', fontSize: '0.8125rem', fontWeight: 500, opacity: historyPage === 1 ? 0.7 : 1 }}
-                                >
-                                  <ChevronLeft size={15} />上一页
-                                </button>
-                                {Array.from({ length: totalHistoryPages }, (_, i) => i + 1).map(pg => (
-                                  <button
-                                    key={pg}
-                                    onClick={() => setHistoryPage(pg)}
-                                    style={{ width: '32px', height: '32px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', border: historyPage === pg ? 'none' : '1px solid transparent', backgroundColor: historyPage === pg ? '#0969da' : 'transparent', color: historyPage === pg ? 'white' : '#1f2328', cursor: 'pointer', borderRadius: '0.375rem', fontSize: '0.875rem', fontWeight: historyPage === pg ? 600 : 400 }}
-                                  >
-                                    {pg}
-                                  </button>
-                                ))}
-                                <button
-                                  onClick={() => setHistoryPage(Math.min(totalHistoryPages, historyPage + 1))}
-                                  disabled={historyPage === totalHistoryPages}
-                                  style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem', padding: '0.375rem 0.625rem', border: 'none', backgroundColor: 'transparent', color: historyPage === totalHistoryPages ? '#8c959f' : '#0969da', cursor: historyPage === totalHistoryPages ? 'not-allowed' : 'pointer', borderRadius: '0.375rem', fontSize: '0.8125rem', fontWeight: 500, opacity: historyPage === totalHistoryPages ? 0.7 : 1 }}
-                                >
-                                  下一页<ChevronRight size={15} />
-                                </button>
-                              </div>
+                              <TablePagination
+                                currentPage={historyPage}
+                                totalPages={totalHistoryPages}
+                                onPageChange={setHistoryPage}
+                              />
                             </td>
                           </tr>
                         )}

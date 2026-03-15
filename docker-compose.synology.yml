@@ -5,7 +5,7 @@
 # 超快速部署（1 条命令）
 # ═══════════════════════════════════════════
 # 
-# cd /volume1/docker/feishu-bot
+# cd /volume1/docker/cortex-flow
 # docker compose -f docker-compose.synology.yml pull
 # docker compose -f docker-compose.synology.yml up -d
 #
@@ -39,7 +39,7 @@
 services:
   app:
     image: ghcr.io/fuck996/cortex-flow:${IMAGE_TAG:-latest}
-    container_name: feishu-bot
+    container_name: cortex-flow
     ports:
       - "${APP_PORT:-45173}:3000"
     environment:
@@ -54,7 +54,7 @@ services:
     volumes:
       # ✅ 数据持久化到主机路径（而非 Docker 命名卷）
       # 数据将存储在 docker-compose.yml 所在目录的 data/ 子目录中
-      # 通常为 /volume1/docker/feishu-bot/data
+      # 通常为 /volume1/docker/cortex-flow/data
       # 即使容器或镜像删除，数据也会保留在主机上
       - ./data:/app/data
     networks:

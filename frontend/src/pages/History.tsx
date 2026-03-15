@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
-import { CalendarDays, ChevronDown, ChevronLeft, ChevronRight, Clock3, MoreHorizontal, Search } from 'lucide-react';
+import { CalendarDays, ChevronDown, Clock3, MoreHorizontal, Search } from 'lucide-react';
 import authService from '../services/auth';
 import NotificationDetailModal from '../components/NotificationDetailModal';
+import TablePagination from '../components/TablePagination';
 
 interface Notification {
   id: string;
@@ -332,39 +333,12 @@ const History: React.FC = () => {
               </tbody>
             </table>
 
-            {totalPages > 1 && (
-              <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.125rem', margin: '1rem 0', paddingTop: '1rem', borderTop: '1px solid #e5e7eb' }}>
-                <button
-                  onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
-                  disabled={currentPage === 1}
-                  style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem', padding: '0.375rem 0.625rem', border: 'none', backgroundColor: 'transparent', color: currentPage === 1 ? '#8c959f' : '#0969da', cursor: currentPage === 1 ? 'not-allowed' : 'pointer', borderRadius: '0.375rem', fontSize: '0.8125rem', fontWeight: 500, opacity: currentPage === 1 ? 0.7 : 1 }}
-                  onMouseEnter={e => { if (currentPage !== 1) e.currentTarget.style.backgroundColor = '#f3f4f6'; }}
-                  onMouseLeave={e => { e.currentTarget.style.backgroundColor = 'transparent'; }}
-                >
-                  <ChevronLeft size={15} />上一页
-                </button>
-                {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
-                  <button
-                    key={page}
-                    onClick={() => setCurrentPage(page)}
-                    style={{ width: '32px', height: '32px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', border: currentPage === page ? 'none' : '1px solid transparent', backgroundColor: currentPage === page ? '#0969da' : 'transparent', color: currentPage === page ? 'white' : '#1f2328', cursor: 'pointer', borderRadius: '0.375rem', fontSize: '0.875rem', fontWeight: currentPage === page ? 600 : 400 }}
-                    onMouseEnter={e => { if (currentPage !== page) e.currentTarget.style.border = '1px solid #d0d7de'; }}
-                    onMouseLeave={e => { if (currentPage !== page) e.currentTarget.style.border = '1px solid transparent'; }}
-                  >
-                    {page}
-                  </button>
-                ))}
-                <button
-                  onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
-                  disabled={currentPage === totalPages}
-                  style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem', padding: '0.375rem 0.625rem', border: 'none', backgroundColor: 'transparent', color: currentPage === totalPages ? '#8c959f' : '#0969da', cursor: currentPage === totalPages ? 'not-allowed' : 'pointer', borderRadius: '0.375rem', fontSize: '0.8125rem', fontWeight: 500, opacity: currentPage === totalPages ? 0.7 : 1 }}
-                  onMouseEnter={e => { if (currentPage !== totalPages) e.currentTarget.style.backgroundColor = '#f3f4f6'; }}
-                  onMouseLeave={e => { e.currentTarget.style.backgroundColor = 'transparent'; }}
-                >
-                  下一页<ChevronRight size={15} />
-                </button>
-              </div>
-            )}
+            <TablePagination
+              currentPage={currentPage}
+              totalPages={totalPages}
+              onPageChange={setCurrentPage}
+              containerStyle={{ margin: '1rem 0', paddingTop: '1rem', borderTop: '1px solid #e5e7eb' }}
+            />
           </div>
         </div>
       </div>
